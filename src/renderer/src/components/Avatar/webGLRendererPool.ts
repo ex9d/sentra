@@ -9,13 +9,13 @@ interface RendererEntry {
 
 class WebGLRendererPool {
   private pool: RendererEntry[] = []
-  private readonly maxRenderers = 6
+  private readonly maxRenderers = 6 // Limit to 6 to stay well below browser limits
 
-
-
-
+  /**
+   * Get an available renderer from the pool or create a new one if under the limit
+   */
   acquire(container: HTMLElement): THREE.WebGLRenderer {
-
+    // First, try to find an unused renderer
     const availableEntry = this.pool.find((entry) => !entry.inUse)
 
     if (availableEntry) {
@@ -23,7 +23,7 @@ class WebGLRendererPool {
       availableEntry.lastUsed = Date.now()
       availableEntry.container = container
 
-
+      // Reattach to new container
       if (!container.contains(availableEntry.renderer.domElement)) {
         container.appendChild(availableEntry.renderer.domElement)
       }
@@ -31,7 +31,7 @@ class WebGLRendererPool {
       return availableEntry.renderer
     }
 
-
+    // If we're under the limit, create a new renderer
     if (this.pool.length < this.maxRenderers) {
       const renderer = this.createRenderer()
       container.appendChild(renderer.domElement)
@@ -47,18 +47,18 @@ class WebGLRendererPool {
       return renderer
     }
 
-
+    // If we're at the limit, forcibly reclaim the least recently used renderer
     console.warn('WebGL renderer pool exhausted, reclaiming oldest renderer')
     const oldestEntry = this.pool.reduce((oldest, current) =>
       current.lastUsed < oldest.lastUsed ? current : oldest
     )
 
-
+    // Remove from old container
     if (oldestEntry.container && oldestEntry.container.contains(oldestEntry.renderer.domElement)) {
       oldestEntry.container.removeChild(oldestEntry.renderer.domElement)
     }
 
-
+    // Reattach to new container
     container.appendChild(oldestEntry.renderer.domElement)
     oldestEntry.container = container
     oldestEntry.lastUsed = Date.now()
@@ -67,16 +67,16 @@ class WebGLRendererPool {
     return oldestEntry.renderer
   }
 
-
-
-
+  /**
+   * Release a renderer back to the pool
+   */
   release(renderer: THREE.WebGLRenderer): void {
     const entry = this.pool.find((e) => e.renderer === renderer)
     if (entry) {
       entry.inUse = false
       entry.lastUsed = Date.now()
 
-
+      // Remove from container but don't dispose
       if (entry.container && entry.container.contains(renderer.domElement)) {
         entry.container.removeChild(renderer.domElement)
       }
@@ -84,9 +84,9 @@ class WebGLRendererPool {
     }
   }
 
-
-
-
+  /**
+   * Create a new WebGL renderer with standard settings
+   */
   private createRenderer(): THREE.WebGLRenderer {
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -94,12 +94,12 @@ class WebGLRendererPool {
       powerPreference: 'high-performance'
     })
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)) // Cap at 2x for performance
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.shadowMap.enabled = true
     renderer.setClearColor(0x000000, 0)
 
-
+    // Standard styles
     renderer.domElement.style.width = '100%'
     renderer.domElement.style.height = '100%'
     renderer.domElement.style.position = 'absolute'
@@ -110,9 +110,9 @@ class WebGLRendererPool {
     return renderer
   }
 
-
-
-
+  /**
+   * Dispose of all renderers in the pool (cleanup on app exit)
+   */
   disposeAll(): void {
     this.pool.forEach((entry) => {
       if (entry.container && entry.container.contains(entry.renderer.domElement)) {
@@ -123,9 +123,9 @@ class WebGLRendererPool {
     this.pool = []
   }
 
-
-
-
+  /**
+   * Get pool statistics for debugging
+   */
   getStats() {
     return {
       total: this.pool.length,
@@ -136,10 +136,10 @@ class WebGLRendererPool {
   }
 }
 
-
+// Export a singleton instance
 export const rendererPool = new WebGLRendererPool()
 
-
+// For debugging in console
 if (typeof window !== 'undefined') {
   ;(window as any).rendererPoolStats = () => {}
 }

@@ -8,8 +8,8 @@ interface StatusBadgeProps {
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-
-
+  // We cast status to any here because TypeScript might complain that the enum
+  // values don't perfectly overlap with the variant keys, even though they do.
   return (
     <Badge variant={status as any}>
       <span

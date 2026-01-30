@@ -1,14 +1,14 @@
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Net-Log Control Component
+ *
+ * This component provides an interface to control Electron's net-log functionality.
+ * You can use this as a standalone debug panel or integrate it into your settings.
+ *
+ * Usage:
+ * - Import this component into your app
+ * - Display it in a debug/settings panel
+ * - Use the IPC calls directly: window.api.getNetLogStatus(), etc.
+ */
 
 import { useState, useEffect } from 'react'
 

@@ -42,15 +42,15 @@ function SlidingNumberRoller({ value, place, isSticky = false }: SlidingNumberRo
     const val = v / place
     if (!isSticky) return val
 
-
-
+    // Odometer logic: only move when lower digits wrap
+    // This corresponds to the decimal part of `val` being > 0.9
     const integer = Math.floor(val)
     const decimal = val - integer
 
     if (decimal < 0.9) {
       return integer
     } else {
-
+      // Map 0.9->1.0 to 0.0->1.0 relative to the integer
       return integer + (decimal - 0.9) * 10
     }
   })
@@ -82,16 +82,16 @@ type SlidingNumberDisplayProps = {
 function SlidingNumberDisplay({ motionValue, number, height }: SlidingNumberDisplayProps) {
   const y = useTransform(motionValue, (latest) => {
     if (!height) return 0
-
+    // Normalize placeValue to be in range [0, 10) for consistent calculation
     let placeValue = latest % 10
     if (placeValue < 0) placeValue += 10
 
-
-
+    // Calculate the offset: how many positions this digit needs to move
+    // We want digit 'number' to be visible when placeValue equals 'number'
     let offset = number - placeValue
 
-
-
+    // Normalize offset to be in range [-5, 5] for smooth wrapping
+    // This ensures digits wrap correctly (e.g., when going from 9 to 0)
     while (offset > 5) offset -= 10
     while (offset < -5) offset += 10
 
@@ -166,37 +166,37 @@ function SlidingNumber({
 
   const numberStr = formatDisplayNumber(rawNumber)
 
-
+  // Extract suffix (non-digit characters at the end, like K, M, B)
   const suffixMatch = numberStr.match(/[^\d.]+$/)
   const suffix = suffixMatch ? suffixMatch[0] : ''
   const numberWithoutSuffix = suffix ? numberStr.slice(0, -suffix.length) : numberStr
 
-
+  // Align the animated value with the formatted numeric portion so abbreviated numbers animate correctly
   const displayValue = React.useMemo(() => {
     const cleaned = numberWithoutSuffix.replace(/[^\d.-]/g, '')
     const parsed = Number(cleaned)
     return Number.isFinite(parsed) ? parsed : 0
   }, [numberWithoutSuffix])
 
-
+  // Initialize with the current value to prevent animation on mount/remount
   const targetValue = useMotionValue(displayValue)
   const animatedValue = useSpring(targetValue, transition)
   const isInitialMountRef = React.useRef(true)
   const previousValueRef = React.useRef<number>(displayValue)
 
   React.useEffect(() => {
-
+    // On initial mount, set the value immediately without animation
     if (isInitialMountRef.current) {
       isInitialMountRef.current = false
       previousValueRef.current = displayValue
-
+      // Set immediately without animation on first mount
       targetValue.set(displayValue)
       return
     }
 
-
+    // Don't animate if the value hasn't changed
     if (displayValue === previousValueRef.current) {
-
+      // Ensure the motion value is set to the current value (no animation)
       const currentValue = targetValue.get()
       if (Math.abs(currentValue - displayValue) > 0.001) {
         targetValue.set(displayValue)
@@ -204,13 +204,13 @@ function SlidingNumber({
       return
     }
 
-
+    // Value has changed, animate to the new value
     previousValueRef.current = displayValue
     targetValue.set(displayValue)
   }, [displayValue, targetValue])
 
   const [newIntStrRaw, newDecStrRaw = ''] = numberWithoutSuffix.split('.')
-
+  // Remove any non-digit characters from decimal part (in case of edge cases)
   const cleanDecStr = newDecStrRaw.replace(/\D/g, '')
   const newIntStr = padStart && newIntStrRaw?.length === 1 ? '0' + newIntStrRaw : newIntStrRaw
 

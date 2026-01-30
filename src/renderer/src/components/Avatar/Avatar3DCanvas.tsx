@@ -43,7 +43,7 @@ interface Object3DLoaderProps {
   onError: (error: string) => void
 }
 
-
+// Component that loads and displays the 3D object
 const Object3DLoader: React.FC<Object3DLoaderProps> = ({
   manifestUrl,
   objectName,
@@ -67,7 +67,7 @@ const Object3DLoader: React.FC<Object3DLoaderProps> = ({
   const zoomOffsetRef = useRef(0)
   const { camera, gl } = useThree()
 
-
+  // Load the 3D object
   useEffect(() => {
     let cancelled = false
     const group = groupRef.current
@@ -81,12 +81,12 @@ const Object3DLoader: React.FC<Object3DLoaderProps> = ({
           return
         }
 
-
+        // Apply vertical offset
         if (verticalOffset !== 0) {
           object.position.y += verticalOffset
         }
 
-
+        // Clear existing object
         if (objectRef.current && group) {
           group.remove(objectRef.current)
           dispose3DObject(objectRef.current)
@@ -96,7 +96,7 @@ const Object3DLoader: React.FC<Object3DLoaderProps> = ({
           group.add(object)
           objectRef.current = object
 
-
+          // Fit camera to object
           const box = new THREE.Box3().setFromObject(object)
           const size = new THREE.Vector3()
           box.getSize(size)
@@ -144,14 +144,14 @@ const Object3DLoader: React.FC<Object3DLoaderProps> = ({
     onError
   ])
 
-
+  // Auto-rotation animation
   useFrame(() => {
     if (objectRef.current && !isDraggingRef.current) {
       objectRef.current.rotation.y += autoRotateSpeed
     }
   })
 
-
+  // Manual rotation and zoom handlers
   useEffect(() => {
     const canvas = gl.domElement
 
@@ -221,13 +221,13 @@ const Object3DLoader: React.FC<Object3DLoaderProps> = ({
   return <group ref={groupRef} />
 }
 
-
+// Component to handle WebGL context cleanup on unmount
 const ContextCleanup: React.FC = () => {
   const { gl, scene } = useThree()
 
   useEffect(() => {
     return () => {
-
+      // Dispose all objects in the scene
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {
           object.geometry?.dispose()
@@ -242,7 +242,7 @@ const ContextCleanup: React.FC = () => {
           }
         }
       })
-
+      // Dispose the renderer
       gl.dispose()
     }
   }, [gl, scene])
@@ -250,7 +250,7 @@ const ContextCleanup: React.FC = () => {
   return null
 }
 
-
+// Scene lighting component
 const SceneLighting: React.FC<{ objectType: ObjectType }> = ({ objectType }) => {
   return (
     <>
@@ -288,12 +288,12 @@ const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-
+  // Determine the type and ID based on props
   const objectType: ObjectType | null =
     explicitType || (manifestUrl ? 'avatar' : userId ? 'avatar' : assetId ? 'asset' : null)
   const objectId = userId || assetId
 
-
+  // Use TanStack Query for manifest fetching
   const {
     data: avatarManifestUrl,
     error: avatarError,
@@ -307,18 +307,18 @@ const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
     assetTypeId
   })
 
-
+  // Determine the effective manifest URL from props or query
   const effectiveManifestUrl = manifestUrl || avatarManifestUrl || assetManifestUrl
   const manifestError = avatarError || assetError
   const manifestLoading = avatarLoading || assetLoading
 
-
+  // Compute defaults based on type
   const effectiveVerticalOffset = verticalOffset ?? (objectType === 'avatar' ? -1.2 : 0)
   const effectiveZoomLimits =
     manualZoomLimits ?? (objectType === 'asset' ? { min: 1, max: 15 } : { min: 7, max: 26 })
   const effectiveCameraDistanceFactor = cameraDistanceFactor ?? (objectType === 'asset' ? 2.2 : 1.8)
 
-
+  // Handle manifest errors
   useEffect(() => {
     if (manifestError) {
       const errorMessage = (manifestError as Error)?.message || 'Failed to load 3D manifest'
@@ -327,7 +327,7 @@ const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
     }
   }, [manifestError, onError])
 
-
+  // Camera settings
   const fov = objectType === 'asset' ? 40 : 32
   const initialCameraZ = objectType === 'asset' ? 5 : 18
 
@@ -342,7 +342,7 @@ const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
     onError?.(errorMessage)
   }
 
-
+  // Start loading when manifest URL is available
   useEffect(() => {
     if (effectiveManifestUrl) {
       setIsLoading(true)

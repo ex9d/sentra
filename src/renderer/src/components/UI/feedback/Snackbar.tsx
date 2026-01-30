@@ -16,12 +16,12 @@ const Snackbar: React.FC<SnackbarProps> = ({ id, message, type, duration = 5000,
 
   const handleClose = useCallback(() => {
     setIsVisible(false)
-
+    // Wait for exit animation
     setTimeout(() => onClose(id), 300)
   }, [id, onClose])
 
   useEffect(() => {
-
+    // Trigger entrance animation
     requestAnimationFrame(() => setIsVisible(true))
 
     if (duration <= 0) {

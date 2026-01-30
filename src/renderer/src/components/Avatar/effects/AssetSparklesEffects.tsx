@@ -4,14 +4,14 @@ import { SparklesInstance } from './fireUtils'
 
 interface AssetSparklesEffectsProps {
   sparkles: SparklesInstance[]
-
+  /** Scale factor for the entire scene (to match 3D model scaling) */
   scale?: number
 }
 
-
-
-
-
+/**
+ * Renders all sparkles effects extracted from an asset hierarchy
+ * Should be used inside a R3F Canvas context
+ */
 export const AssetSparklesEffects: React.FC<AssetSparklesEffectsProps> = ({
   sparkles,
   scale = 1
@@ -27,7 +27,7 @@ export const AssetSparklesEffects: React.FC<AssetSparklesEffectsProps> = ({
           sparkleColor={sparkle.sparkleColor}
           timeScale={sparkle.timeScale}
           position={[
-            sparkle.position.x * 0.1,
+            sparkle.position.x * 0.1, // Scale down from Roblox studs
             sparkle.position.y * 0.1,
             sparkle.position.z * 0.1
           ]}

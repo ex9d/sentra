@@ -7,10 +7,10 @@ type FavoriteParticlesProps = {
   animate?: boolean
 }
 
-
-
-
-
+/**
+ * Renders the particle burst animation that plays when a favorite button toggles on.
+ * The parent element should be relatively positioned so the absolute particles can align correctly.
+ */
 const FavoriteParticles = ({
   active = false,
   color = [251, 191, 36],

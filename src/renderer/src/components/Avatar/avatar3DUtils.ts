@@ -62,7 +62,7 @@ const buildMaterialMap = async (mtlText: string) => {
           return
         }
 
-        const textureUrl = `https:
+        const textureUrl = `https://t${hashToServer(textureHash)}.rbxcdn.com/${textureHash}`
         textureLoader.load(
           textureUrl,
           (tex) => {
@@ -110,7 +110,7 @@ export const dispose3DObject = (obj: THREE.Object3D | null) => {
   })
 }
 
-
+// Legacy alias for backward compatibility
 export const disposeAvatarObject = dispose3DObject
 
 export type ObjectType = 'avatar' | 'asset'
@@ -122,10 +122,10 @@ interface Load3DObjectOptions {
   objectName?: string
 }
 
-
-
-
-
+/**
+ * Fetches the manifest URL for a 3D object based on type.
+ * Uses IPC API for authenticated requests with CSRF support.
+ */
 const fetchManifestUrl = async (
   type: ObjectType,
   id: string | number,
@@ -189,8 +189,8 @@ const loadFromManifest = async (
   const objHash = manifest.obj
   if (!mtlHash || !objHash) throw new Error('MTL or OBJ hash missing in manifest.')
 
-  const mtlUrl = `https:
-  const objUrl = `https:
+  const mtlUrl = `https://t${hashToServer(mtlHash)}.rbxcdn.com/${mtlHash}`
+  const objUrl = `https://t${hashToServer(objHash)}.rbxcdn.com/${objHash}`
 
   const mtlTextResponse = await fetch(mtlUrl)
   if (!mtlTextResponse.ok) throw new Error(`Failed to load MTL: ${mtlTextResponse.status}`)
@@ -210,12 +210,12 @@ const loadFromManifest = async (
       const loader = new OBJLoader()
       const object = loader.parse(objText)
 
-
+      // Center
       const box = new THREE.Box3().setFromObject(object)
       const center = new THREE.Vector3()
       box.getCenter(center)
 
-
+      // Translate geometries
       const translateGeometry = (geometry: THREE.BufferGeometry) => {
         geometry.translate(-center.x, -center.y, -center.z)
       }
@@ -285,17 +285,17 @@ const loadFromManifest = async (
     }
   })
 
-
+  // Geometry is already centered by worker logic
   object.position.set(0, 0, 0)
   object.rotation.y = Math.PI
 
   return object
 }
 
-
-
-
-
+/**
+ * Universal 3D object loader - works for both avatars and assets
+ * Requires authentication cookie for API requests
+ */
 export const load3DObject = async ({
   type,
   id,
@@ -307,9 +307,9 @@ export const load3DObject = async ({
   return loadFromManifest(manifestUrl, name)
 }
 
-
-
-
+/**
+ * Load a 3D object directly from a manifest URL
+ */
 export const load3DObjectFromUrl = async (
   manifestUrl: string,
   objectName: string = '3d_object'
@@ -317,16 +317,16 @@ export const load3DObjectFromUrl = async (
   return loadFromManifest(manifestUrl, objectName)
 }
 
-
+// Legacy interface for backward compatibility
 interface LoadAvatarOptions {
   userId: string
   cookie: string
   objectName?: string
 }
 
-
-
-
+/**
+ * @deprecated Use load3DObject({ type: 'avatar', id: userId, cookie }) instead
+ */
 export const loadAvatarObject = async ({
   userId,
   cookie,
@@ -335,10 +335,10 @@ export const loadAvatarObject = async ({
   return load3DObject({ type: 'avatar', id: userId, cookie, objectName })
 }
 
-
-
-
-
+/**
+ * Load an asset's 3D model
+ * Requires authentication cookie for API requests
+ */
 export const loadAssetObject = async (
   assetId: number | string,
   cookie: string,

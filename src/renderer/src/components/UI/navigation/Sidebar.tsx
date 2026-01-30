@@ -60,7 +60,7 @@ const RobloxSettingsIcon = ({
   )
 }
 
-
+// Bottom Profile Card Component with dropdown menu
 interface ProfileCardProps {
   account: Account
   isCollapsed: boolean
@@ -85,7 +85,7 @@ const ProfileCard = ({
   const { removeAccount } = useAccountsManager()
   const { data: accountStats } = useAccountStats(account.cookie)
 
-
+  // Use live robux balance if available, otherwise fall back to stored value
   const robuxBalance = accountStats?.robuxBalance ?? account.robuxBalance
 
   useClickOutside(containerRef, () => setIsDropdownOpen(false))
@@ -100,7 +100,7 @@ const ProfileCard = ({
   }
 
   const dropdownGroups = [
-
+    // Roblox Account Actions
     [
       {
         icon: ArrowRightLeft,
@@ -127,7 +127,7 @@ const ProfileCard = ({
         }
       }
     ],
-
+    // App Actions
     [
       {
         icon: Settings,
@@ -146,7 +146,7 @@ const ProfileCard = ({
         }
       }
     ],
-
+    // Session Actions
     [
       {
         icon: LogOut,
@@ -157,7 +157,7 @@ const ProfileCard = ({
     ]
   ]
 
-
+  // Collapsed state - just show avatar with tooltip
   if (isCollapsed) {
     return (
       <>
@@ -180,7 +180,7 @@ const ProfileCard = ({
                 />
               </button>
 
-              {}
+              {/* Collapsed Dropdown */}
               <AnimatePresence>
                 {isDropdownOpen && (
                   <motion.div
@@ -190,7 +190,7 @@ const ProfileCard = ({
                     transition={{ duration: 0.15, ease: 'easeOut' }}
                     className="absolute bottom-full left-3 mb-2 w-56 bg-[var(--color-surface-strong)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-2xl z-50 overflow-hidden"
                   >
-                    {}
+                    {/* Mini profile header */}
                     <div className="p-3 border-b border-[var(--color-border)]">
                       <div className="flex items-center gap-2.5">
                         <img
@@ -200,13 +200,13 @@ const ProfileCard = ({
                           style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                         />
                         <div className="flex-1 min-w-0">
-                          <div
+                          <div 
                             className="font-semibold text-sm text-[var(--color-text-primary)] truncate"
                             style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                           >
                             {account.displayName}
                           </div>
-                          <div
+                          <div 
                             className="text-[var(--color-text-muted)] text-xs truncate"
                             style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                           >
@@ -262,7 +262,7 @@ const ProfileCard = ({
     )
   }
 
-
+  // Expanded state
   return (
     <div className="px-3 py-3 relative" ref={containerRef}>
       <AnimatePresence>
@@ -303,7 +303,7 @@ const ProfileCard = ({
         )}
       </AnimatePresence>
 
-      {}
+      {/* Main Card */}
       <button
         onClick={handleCardClick}
         className={`w-full rounded-xl border transition-all duration-200 text-left ${
@@ -314,7 +314,7 @@ const ProfileCard = ({
       >
         <div className="p-3">
           <div className="flex items-center gap-3">
-            {}
+            {/* Avatar */}
             <div className="relative flex-shrink-0">
               <img
                 className={`h-10 w-10 rounded-full bg-[var(--color-surface)] object-cover border-2 transition-all duration-200 ${
@@ -328,17 +328,17 @@ const ProfileCard = ({
               />
             </div>
 
-            {}
+            {/* Name, username, and robux */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <div
+                  <div 
                     className="font-semibold text-sm text-[var(--color-text-primary)] truncate"
                     style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                   >
                     {account.displayName}
                   </div>
-                  <div
+                  <div 
                     className="text-[var(--color-text-muted)] text-xs truncate"
                     style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                   >
@@ -356,7 +356,7 @@ const ProfileCard = ({
               </div>
             </div>
 
-            {}
+            {/* Chevron indicator */}
             <div
               className={`flex-shrink-0 transition-transform duration-200 ${isDropdownOpen ? '' : 'rotate-180'}`}
             >
@@ -400,7 +400,7 @@ const Sidebar = ({
   tabOrder,
   hiddenTabs
 }: SidebarProps) => {
-
+  // Using individual selectors for optimized re-renders
   const activeTab = useActiveTab()
   const setActiveTab = useTabTransition()
   const isSidebarCollapsed = useSidebarCollapsed()
@@ -438,7 +438,7 @@ const Sidebar = ({
           isSidebarCollapsed ? 'min-w-[72px]' : ''
         } ${!isResizing ? 'transition-[width] duration-300 ease-in-out' : ''}`}
       >
-        {}
+        {/* Sidebar Header - extra top padding on macOS for traffic lights */}
         <div
           className={`flex items-center shrink-0 bg-[var(--color-surface-strong)] transition-all duration-300 ${
             isSidebarCollapsed ? 'justify-center px-0' : 'justify-between pl-6 pr-4'
@@ -468,7 +468,7 @@ const Sidebar = ({
           )}
         </div>
 
-        {}
+        {/* Nav Items */}
         <div className="flex-1 py-2 overflow-y-auto scrollbar-hide">
           <nav>
             {sidebarTabsToRender.map((tab, index) => {
@@ -494,7 +494,7 @@ const Sidebar = ({
           </nav>
         </div>
 
-        {}
+        {/* Bottom Profile Card */}
         {selectedAccount && showProfileCard && (
           <div className="border-t border-[var(--color-border)] shrink-0 bg-[var(--color-surface-strong)] relative">
             <ProfileCard
@@ -508,7 +508,7 @@ const Sidebar = ({
           </div>
         )}
 
-        {}
+        {/* Resize Handle */}
         {!isSidebarCollapsed && (
           <Tooltip>
             <TooltipTrigger asChild>

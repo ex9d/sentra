@@ -3,59 +3,59 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { DDSLoader } from 'three/examples/jsm/loaders/DDSLoader.js'
 
-
+// Primary fire emitter textures
 import fireMainDdsUrl from '@assets/textures/fire_main.dds?url'
 import fireColorDdsUrl from '@assets/textures/fire_color.dds?url'
 import fireAlphaDdsUrl from '@assets/textures/fire_alpha.dds?url'
 
-
+// Secondary sparks emitter textures
 import fireSparksMainDdsUrl from '@assets/textures/fire_sparks_main.dds?url'
 import fireSparksColorDdsUrl from '@assets/textures/fire_sparks_color.dds?url'
 import commonAlphaDdsUrl from '@assets/textures/common_alpha.dds?url'
 
-
-
-
-
+/**
+ * Roblox Fire properties interface
+ * Based on Roblox's Fire.cpp implementation
+ */
 export interface RobloxFireProps {
-
+  /** Whether the fire effect is active */
   enabled?: boolean
-
+  /** Fire color (primary) - default is Roblox orange */
   color?: THREE.Color | string
-
+  /** Secondary color for blend - default is Roblox dark red-brown */
   secondaryColor?: THREE.Color | string
-
+  /** Fire size - default 5, range 2-30 (faithful to Roblox) */
   size?: number
-
+  /** Heat affects upward velocity - default 9, range -25 to 25 */
   heat?: number
-
+  /** Position offset from parent */
   position?: [number, number, number]
-
+  /** Parent size for scaling the fire effect */
   parentSize?: [number, number, number]
 }
 
-
+// Roblox Fire constants from Fire.cpp
 const MAX_HEAT = 25.0
 const MAX_SIZE = 30.0
 const MIN_SIZE = 2.0
 
-
+// Primary emitter constants
 const DAMPENING = 0.4
-const SPREAD_ANGLE = 10
-const SPIN_SPEED = 100 / 57.3
+const SPREAD_ANGLE = 10 // degrees (10/57.3 rad)
+const SPIN_SPEED = 100 / 57.3 // ~1.75 rad/s
 const PARTICLE_LIFETIME_MIN = 1.0
 const PARTICLE_LIFETIME_MAX = 2.0
 const COLOR_MULTIPLIER = 4.0
 const BLEND_RATIO = 0.4
 
+// Default colors from Roblox's modern particle system (RenderNewParticles2Enable)
+const DEFAULT_COLOR = new THREE.Color(236 / 255, 139 / 255, 70 / 255) // Orange: #EC8B46
+const DEFAULT_SECONDARY_COLOR = new THREE.Color(139 / 255, 80 / 255, 55 / 255) // Dark: #8B5037
 
-const DEFAULT_COLOR = new THREE.Color(236 / 255, 139 / 255, 70 / 255)
-const DEFAULT_SECONDARY_COLOR = new THREE.Color(139 / 255, 80 / 255, 55 / 255)
-
-
-const PARTICLE_COUNT = 200
-const BASE_EMISSION_RATE = 85
-const SPARKS_PARTICLE_COUNT = 150
+// Particle system configuration
+const PARTICLE_COUNT = 200 // Enough for higher emission rate * 2sec lifetime
+const BASE_EMISSION_RATE = 85 // Increased for denser flame (Roblox uses 65 but we need more for visual density)
+const SPARKS_PARTICLE_COUNT = 150 // Secondary emitter for sparks
 
 interface Particle {
   position: THREE.Vector3
@@ -65,12 +65,12 @@ interface Particle {
   size: number
   rotation: number
   spin: number
-  colorBlend: number
+  colorBlend: number // 0 = primary color, 1 = secondary color
 }
 
-
-
-
+/**
+ * Creates a fallback fire particle texture if DDS loading fails
+ */
 const createFallbackFireTexture = (): THREE.Texture => {
   const canvas = document.createElement('canvas')
   const size = 128
@@ -118,9 +118,9 @@ const createFallbackFireTexture = (): THREE.Texture => {
   return texture
 }
 
-
-
-
+/**
+ * Creates a fallback color gradient texture
+ */
 const createFallbackColorTexture = (): THREE.Texture => {
   const canvas = document.createElement('canvas')
   canvas.width = 256
@@ -128,12 +128,12 @@ const createFallbackColorTexture = (): THREE.Texture => {
   const ctx = canvas.getContext('2d')!
 
   const gradient = ctx.createLinearGradient(0, 0, 256, 0)
-  gradient.addColorStop(0, '#FFFFCC')
-  gradient.addColorStop(0.2, '#FFCC66')
-  gradient.addColorStop(0.4, '#FF9933')
-  gradient.addColorStop(0.6, '#FF6600')
-  gradient.addColorStop(0.8, '#CC3300')
-  gradient.addColorStop(1.0, '#661100')
+  gradient.addColorStop(0, '#FFFFCC') // Very bright yellow-white
+  gradient.addColorStop(0.2, '#FFCC66') // Bright orange-yellow
+  gradient.addColorStop(0.4, '#FF9933') // Orange
+  gradient.addColorStop(0.6, '#FF6600') // Deep orange
+  gradient.addColorStop(0.8, '#CC3300') // Red-orange
+  gradient.addColorStop(1.0, '#661100') // Dark red-brown
 
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, 256, 1)
@@ -144,21 +144,21 @@ const createFallbackColorTexture = (): THREE.Texture => {
   return texture
 }
 
-
-
-
+/**
+ * Creates a fallback alpha gradient texture
+ */
 const createFallbackAlphaTexture = (): THREE.Texture => {
   const canvas = document.createElement('canvas')
   canvas.width = 256
   canvas.height = 1
   const ctx = canvas.getContext('2d')!
 
-
+  // Alpha fades from full to zero over lifetime
   const gradient = ctx.createLinearGradient(0, 0, 256, 0)
-  gradient.addColorStop(0, '#FFFFFF')
-  gradient.addColorStop(0.3, '#FFFFFF')
-  gradient.addColorStop(0.7, '#888888')
-  gradient.addColorStop(1.0, '#000000')
+  gradient.addColorStop(0, '#FFFFFF') // Full alpha at start
+  gradient.addColorStop(0.3, '#FFFFFF') // Hold
+  gradient.addColorStop(0.7, '#888888') // Start fading
+  gradient.addColorStop(1.0, '#000000') // Zero alpha at end
 
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, 256, 1)
@@ -169,9 +169,9 @@ const createFallbackAlphaTexture = (): THREE.Texture => {
   return texture
 }
 
-
-
-
+/**
+ * Loads a DDS texture with fallback
+ */
 const loadDDSTexture = (
   url: string,
   name: string,
@@ -200,10 +200,10 @@ const loadDDSTexture = (
   })
 }
 
-
-
-
-
+/**
+ * RobloxFire - A faithful recreation of Roblox's Fire particle effect
+ * Based on the original Fire.cpp and Emitter.cpp implementation
+ */
 export const RobloxFire: React.FC<RobloxFireProps> = ({
   enabled = true,
   color = DEFAULT_COLOR,
@@ -355,7 +355,7 @@ export const RobloxFire: React.FC<RobloxFireProps> = ({
         attribute float rotation;
         varying float vLifetime;
         varying float vRotation;
-
+        
         void main() {
           vLifetime = lifetime;
           vRotation = rotation;
@@ -371,31 +371,31 @@ export const RobloxFire: React.FC<RobloxFireProps> = ({
         uniform sampler2D astrip;
         uniform vec4 modulateColor;
         uniform vec4 secondaryModulateColor;
-
+        
         varying float vLifetime;
         varying float vRotation;
-
+        
         void main() {
           vec2 uv = gl_PointCoord - 0.5;
           float c = cos(vRotation);
           float s = sin(vRotation);
           uv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c) + 0.5;
           uv.y = 1.0 - uv.y;
-
+          
           vec2 colorLookup = vec2(1.0 - vLifetime, 0.5);
-
+          
           vec4 texcolor = texture2D(tex, uv);
           float stripAlpha = texture2D(astrip, colorLookup).r;
-
+          
           vec4 stripColor = texture2D(cstrip, colorLookup);
-
+          
           float innerBlend = stripColor.r;
           vec4 blendedColor = mix(modulateColor, secondaryModulateColor, innerBlend);
-
+          
           vec4 result;
           result.rgb = texcolor.rgb * blendedColor.rgb * stripAlpha * texcolor.a;
           result.a = ${BLEND_RATIO} * texcolor.a * stripAlpha;
-
+          
           gl_FragColor = result;
         }
       `,
@@ -425,7 +425,7 @@ export const RobloxFire: React.FC<RobloxFireProps> = ({
         attribute float rotation;
         varying float vLifetime;
         varying float vRotation;
-
+        
         void main() {
           vLifetime = lifetime;
           vRotation = rotation;
@@ -440,28 +440,28 @@ export const RobloxFire: React.FC<RobloxFireProps> = ({
         uniform sampler2D cstrip;
         uniform sampler2D astrip;
         uniform vec4 modulateColor;
-
+        
         varying float vLifetime;
         varying float vRotation;
-
+        
         void main() {
           vec2 uv = gl_PointCoord - 0.5;
           float c = cos(vRotation);
           float s = sin(vRotation);
           uv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c) + 0.5;
           uv.y = 1.0 - uv.y;
-
+          
           vec2 colorLookup = vec2(1.0 - vLifetime, 0.5);
-
+          
           vec4 texcolor = texture2D(tex, uv);
           vec4 vcolor = texture2D(cstrip, colorLookup);
           vcolor.a = texture2D(astrip, colorLookup).r;
-
+          
           vec4 result;
           result.rgb = (texcolor.rgb + vcolor.rgb) * modulateColor.rgb;
           result.a = texcolor.a * vcolor.a;
           result.rgb *= result.a;
-
+          
           gl_FragColor = result;
         }
       `,

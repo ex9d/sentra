@@ -54,7 +54,7 @@ export interface Badge {
 
 export interface Friend {
   id: string
-  accountId: string
+  accountId: string // The ID of the account this friend belongs to
   displayName: string
   username: string
   userId: string
@@ -81,9 +81,9 @@ export interface JoinConfig {
 }
 
 export interface Game {
-  id: string
+  id: string // This is typically the Universe ID
   universeId: string
-  placeId: string
+  placeId: string // This is the Root Place ID
   name: string
   creatorName: string
   creatorId: string
@@ -100,7 +100,7 @@ export interface Game {
   updated: string
   creatorHasVerifiedBadge: boolean
   userVote?: boolean | null
-
+  // Optional metadata (may not always be present from APIs)
   ageRating?: string | null
   supportedDevices?: string[]
   supportsVoiceChat?: boolean | null

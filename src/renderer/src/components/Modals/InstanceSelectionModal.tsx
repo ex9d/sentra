@@ -25,7 +25,7 @@ const InstanceSelectionModal: React.FC<InstanceSelectionModalProps> = ({
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
       <DialogContent className="w-full max-w-md bg-neutral-950 border border-neutral-800 rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
-        {}
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-950">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-neutral-900 rounded-lg">
@@ -44,7 +44,7 @@ const InstanceSelectionModal: React.FC<InstanceSelectionModalProps> = ({
           </button>
         </div>
 
-        {}
+        {/* Body */}
         <div className="p-6 space-y-4">
           <div className="space-y-2">
             <button

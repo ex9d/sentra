@@ -48,9 +48,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   )
 }
 
-
-
-
+/**
+ * Compact empty state for inline use (e.g., within sections)
+ */
 export const EmptyStateCompact: React.FC<{
   message: string
   className?: string

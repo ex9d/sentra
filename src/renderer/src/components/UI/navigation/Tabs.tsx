@@ -52,7 +52,7 @@ export const Tabs: React.FC<TabsProps> = ({
   return (
     <div className={cn('flex border-b border-[var(--color-border)] shrink-0', className)}>
       <div className="relative flex flex-1">
-        {}
+        {/* Animated sliding indicator */}
         <motion.div
           className="absolute bottom-0 h-0.5 bg-[var(--accent-color)] z-20"
           layoutId={layoutId}

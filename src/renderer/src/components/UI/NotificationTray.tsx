@@ -26,7 +26,7 @@ import {
   NotificationType
 } from '../../features/system/stores/useNotificationTrayStore'
 
-
+// Format relative time (e.g., "2m ago", "1h ago")
 const formatRelativeTime = (timestamp: number): string => {
   const now = Date.now()
   const diff = now - timestamp
@@ -42,7 +42,7 @@ const formatRelativeTime = (timestamp: number): string => {
   return new Date(timestamp).toLocaleDateString()
 }
 
-
+// Get icon and color for notification type
 const getNotificationStyle = (type: NotificationType) => {
   switch (type) {
     case 'friend_online':
@@ -114,7 +114,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
   const style = getNotificationStyle(notification.type)
   const Icon = style.icon
 
-
+  // Color code based on notification type
   const getTitleColor = () => {
     switch (notification.type) {
       case 'friend_online':
@@ -140,7 +140,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
       `}
     >
       <div className="flex gap-3">
-        {}
+        {/* Avatar or Icon */}
         {notification.avatarUrl ? (
           <Avatar className="h-10 w-10 shrink-0">
             <AvatarImage src={notification.avatarUrl} />
@@ -154,18 +154,18 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
           </div>
         )}
 
-        {}
+        {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 h-5">
             <p className={`text-sm font-medium truncate flex-1 ${getTitleColor()}`}>
               {notification.title}
             </p>
             <div className="relative shrink-0 h-5">
-              {}
+              {/* Timestamp */}
               <span className="text-xs text-neutral-500 h-5 flex items-center transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none whitespace-nowrap">
                 {formatRelativeTime(notification.timestamp)}
               </span>
-              {}
+              {/* Dismiss button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -190,16 +190,16 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
         </div>
         </div>
       </div>
-      {}
+      {/* Make whole item clickable for actions (open browser, navigate) */}
       <button
         onClick={async () => {
           try {
-
+            // If notification contains userId, open browser with that account
             if (notification.userId) {
               await window.api.openBrowserWithAccount(String(notification.userId))
             }
           } catch (err) {
-
+            /* ignore */
           }
         }}
         className="absolute inset-0 bg-transparent"
@@ -218,7 +218,7 @@ const NotificationTray: React.FC = () => {
   const trayRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-
+  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -237,7 +237,7 @@ const NotificationTray: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen, setIsOpen])
 
-
+  // Close on escape
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
@@ -251,7 +251,7 @@ const NotificationTray: React.FC = () => {
 
   return (
     <div className="relative z-50">
-      {}
+      {/* Bell Button */}
       <button
         ref={buttonRef}
         onClick={(e) => {
@@ -265,7 +265,7 @@ const NotificationTray: React.FC = () => {
         title="Notifications"
       >
         <Bell className="h-4 w-4" />
-        {}
+        {/* Unread badge */}
         <AnimatePresence>
           {unreadCount > 0 && (
             <motion.div
@@ -280,7 +280,7 @@ const NotificationTray: React.FC = () => {
         </AnimatePresence>
       </button>
 
-      {}
+      {/* Tray Panel */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -291,7 +291,7 @@ const NotificationTray: React.FC = () => {
             transition={{ duration: 0.15 }}
             className="absolute right-0 top-full mt-2 w-96 max-h-[500px] bg-neutral-900 border border-neutral-800 rounded-[var(--menu-radius)] shadow-2xl overflow-hidden z-[100]"
           >
-            {}
+            {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-sm sticky top-0 z-10">
               <div className="flex items-center gap-2">
                 <Bell className="h-4 w-4 text-neutral-400" />
@@ -322,7 +322,7 @@ const NotificationTray: React.FC = () => {
               </div>
             </div>
 
-            {}
+            {/* Notifications List */}
             <div className="h-[400px] p-2">
               {notifications.length > 0 ? (
                 <Virtuoso

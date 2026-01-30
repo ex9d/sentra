@@ -11,41 +11,41 @@ import {
 import { useAssetFires, AssetFireEffects, useAssetSparkles, AssetSparklesEffects } from './effects'
 
 interface Model3DViewerProps {
-
+  /** User ID for avatar loading */
   userId?: string
-
+  /** Asset ID for asset loading */
   assetId?: number | null
-
+  /** Asset type ID - if provided, avoids API calls for unsupported types like faces */
   assetTypeId?: number | null
-
+  /** Direct manifest URL (bypasses userId/assetId lookup) */
   manifestUrl?: string
-
+  /** Explicit object type */
   type?: ObjectType
-
+  /** Auth cookie for API requests */
   cookie?: string
-
+  /** Additional CSS classes */
   className?: string
-
+  /** Auto-rotation speed (0 to disable) */
   autoRotateSpeed?: number
-
+  /** Camera distance multiplier */
   cameraDistanceFactor?: number
-
+  /** Enable manual rotation via drag */
   enableRotate?: boolean
-
+  /** Enable manual zoom via scroll */
   enableZoom?: boolean
-
+  /** Enable manual panning via drag */
   enablePan?: boolean
-
+  /** Zoom distance limits */
   zoomLimits?: { min: number; max: number }
-
+  /** Field of view */
   fov?: number
-
+  /** Enable fire effects from asset hierarchy (for accessories with Fire) */
   enableFireEffects?: boolean
-
+  /** Enable sparkles effects from asset hierarchy (for accessories with Sparkles) */
   enableSparklesEffects?: boolean
-
+  /** External trigger to reset orbit controls */
   resetSignal?: number
-
+  /** Callbacks */
   onLoad?: () => void
   onError?: (error: string) => void
   onLoadStart?: () => void
@@ -53,7 +53,7 @@ interface Model3DViewerProps {
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>
 }
 
-
+// Legacy props interface for backward compatibility
 interface Avatar3DThumbnailProps {
   userId?: string
   assetId?: number | null
@@ -96,7 +96,7 @@ interface SceneControlsProps {
   controlsRef?: React.MutableRefObject<OrbitControlsImpl | null>
 }
 
-
+// Animated rig that smoothly transitions the model into view
 interface AnimatedRigProps {
   children: React.ReactNode
   isLoaded: boolean
@@ -233,7 +233,7 @@ const Object3DLoader: React.FC<Object3DLoaderProps> = ({
   return <group ref={groupRef} />
 }
 
-
+// Scene controls using drei's OrbitControls with invalidate for on-demand rendering
 const SceneControls: React.FC<SceneControlsProps> = ({
   autoRotate,
   autoRotateSpeed,
@@ -310,10 +310,10 @@ const SceneLighting: React.FC<{ objectType: ObjectType }> = ({ objectType }) => 
   )
 }
 
-
-
-
-
+/**
+ * Universal 3D Model Viewer Component
+ * Supports loading avatars and assets with smooth animations and orbit controls
+ */
 export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   userId,
   assetId,
@@ -498,9 +498,9 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
               onLoad={handleLoad}
               onError={handleError}
             />
-            {}
+            {/* Render fire effects from asset hierarchy */}
             {hasFireEffects && <AssetFireEffects fires={fires} scale={1} />}
-            {}
+            {/* Render sparkles effects from asset hierarchy */}
             {hasSparklesEffects && <AssetSparklesEffects sparkles={sparkles} scale={1} />}
           </AnimatedRig>
         </Suspense>
@@ -509,10 +509,10 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   )
 }
 
-
-
-
-
+/**
+ * @deprecated Use Model3DViewer instead
+ * Legacy wrapper for backward compatibility
+ */
 const Avatar3DThumbnail: React.FC<Avatar3DThumbnailProps> = ({
   userId,
   assetId,

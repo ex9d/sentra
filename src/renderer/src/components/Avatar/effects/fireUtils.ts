@@ -1,46 +1,46 @@
 import * as THREE from 'three'
 
-
-
-
+/**
+ * Represents a Fire instance extracted from Roblox XML/RBXM
+ */
 export interface FireInstance {
   enabled: boolean
   color: THREE.Color
   secondaryColor: THREE.Color
   size: number
   heat: number
-
+  /** Relative position of the fire (local to the accessory) */
   position: THREE.Vector3
-
+  /** Size of the parent part for emitter bounds */
   parentSize: THREE.Vector3
 }
 
-
-
-
+/**
+ * Represents a Sparkles instance extracted from Roblox XML/RBXM
+ */
 export interface SparklesInstance {
   enabled: boolean
-
+  /** Sparkle color - default is Roblox purple (144, 25, 255)/255 */
   sparkleColor: THREE.Color
-
+  /** Time scale for animation speed - default 1, 0 = frozen */
   timeScale: number
-
+  /** Relative position of the sparkles (local to the accessory) */
   position: THREE.Vector3
-
+  /** Size of the parent part for emitter bounds */
   parentSize: THREE.Vector3
 }
 
-
-
-
+/**
+ * Property interface from XML parser
+ */
 interface Property {
   value: any
   type: string
 }
 
-
-
-
+/**
+ * Instance interface from XML parser
+ */
 interface Instance {
   class: string
   referent: string
@@ -48,14 +48,14 @@ interface Instance {
   children: Instance[]
 }
 
-
-
-
-
-
-
-
-
+/**
+ * Parses a Color3 property value from Roblox XML format
+ * Handles multiple formats:
+ * - Object format: { R: "0.5", G: "0.3", B: "0.1" }
+ * - Packed integer (Roblox uses ARGB or packed RGB): 4281650924
+ * - String number: "4281650924"
+ * - Comma-separated string: "0.5, 0.3, 0.1" or "4.0767217860337887e+21, -219043090560, 0"
+ */
 const parseColor3 = (value: any): THREE.Color => {
   if (!value) return new THREE.Color(1, 1, 1)
 
@@ -76,12 +76,12 @@ const parseColor3 = (value: any): THREE.Color => {
 
       if (isNaN(r) || isNaN(g) || isNaN(b)) {
         console.warn('[parseColor3] Invalid color values (NaN):', value)
-        return new THREE.Color(144 / 255, 25 / 255, 255 / 255)
+        return new THREE.Color(144 / 255, 25 / 255, 255 / 255) // Default sparkle purple
       }
 
       if (r < 0 || g < 0 || b < 0 || r > 255 || g > 255 || b > 255) {
         console.warn('[parseColor3] Invalid color values (out of range):', value)
-        return new THREE.Color(144 / 255, 25 / 255, 255 / 255)
+        return new THREE.Color(144 / 255, 25 / 255, 255 / 255) // Default sparkle purple
       }
 
       if (r > 1 || g > 1 || b > 1) {
@@ -98,7 +98,7 @@ const parseColor3 = (value: any): THREE.Color => {
     }
   }
 
-
+  // Roblox stores Color3 as a packed 32-bit integer in format 0xFFRRGGBB (ARGB) or sometimes as 0xRRGGBB
   if (
     typeof value === 'number' ||
     (typeof value === 'string' && /^-?\d+\.?\d*(?:e[+-]?\d+)?$/.test(value.trim()))
@@ -122,9 +122,9 @@ const parseColor3 = (value: any): THREE.Color => {
   return new THREE.Color(1, 1, 1)
 }
 
-
-
-
+/**
+ * Parses a Vector3 property value from Roblox XML format
+ */
 const parseVector3 = (value: any): THREE.Vector3 => {
   if (!value) return new THREE.Vector3(0, 0, 0)
 
@@ -139,9 +139,9 @@ const parseVector3 = (value: any): THREE.Vector3 => {
   return new THREE.Vector3(0, 0, 0)
 }
 
-
-
-
+/**
+ * Gets the size of a Part instance
+ */
 const getPartSize = (instance: Instance): THREE.Vector3 => {
   const sizeValue = instance.properties['size']?.value || instance.properties['Size']?.value
   if (sizeValue) {
@@ -150,9 +150,9 @@ const getPartSize = (instance: Instance): THREE.Vector3 => {
   return new THREE.Vector3(2, 1, 4)
 }
 
-
-
-
+/**
+ * Gets the position of an instance from its CFrame or Position
+ */
 const getInstancePosition = (instance: Instance): THREE.Vector3 => {
   const cframe = instance.properties['CFrame']?.value
   if (cframe && typeof cframe === 'object' && 'X' in cframe) {
@@ -171,9 +171,9 @@ const getInstancePosition = (instance: Instance): THREE.Vector3 => {
   return new THREE.Vector3(0, 0, 0)
 }
 
-
-
-
+/**
+ * Checks if an instance is a Part-like class that can have Fire
+ */
 const isPartLike = (className: string): boolean => {
   const partClasses = [
     'Part',
@@ -191,11 +191,11 @@ const isPartLike = (className: string): boolean => {
   return partClasses.includes(className)
 }
 
-
-
-
-
-
+/**
+ * Recursively extracts all Fire instances from a hierarchy
+ * For accessories, positions are relative to the accessory's center since
+ * the 3D model is centered at origin during loading.
+ */
 export const extractFireInstances = (
   root: Instance,
   parentPosition: THREE.Vector3 = new THREE.Vector3(),
@@ -227,9 +227,9 @@ export const extractFireInstances = (
   return fires
 }
 
-
-
-
+/**
+ * Parses a Fire instance from XML properties
+ */
 const parseFireInstance = (
   instance: Instance,
   position: THREE.Vector3,
@@ -243,7 +243,7 @@ const parseFireInstance = (
     enabled = val === 'true' || val === true || val === '1' || val === 1
   }
 
-
+  // Default: color = #EC8B46 (236, 139, 70), secondaryColor = #8B5037 (139, 80, 55)
   let color = new THREE.Color(236 / 255, 139 / 255, 70 / 255)
   let secondaryColor = new THREE.Color(139 / 255, 80 / 255, 55 / 255)
 
@@ -291,11 +291,11 @@ const parseFireInstance = (
   }
 }
 
-
-
-
-
-
+/**
+ * Finds all Fire instances in an asset hierarchy and returns render-ready data.
+ * Positions are centered relative to the model since the 3D viewer centers
+ * models at origin.
+ */
 export const findFiresInHierarchy = (hierarchy: Instance | null): FireInstance[] => {
   if (!hierarchy) return []
 
@@ -314,11 +314,11 @@ export const findFiresInHierarchy = (hierarchy: Instance | null): FireInstance[]
   return fires
 }
 
-
-
-
-
-
+/**
+ * Recursively extracts all Sparkles instances from a hierarchy
+ * For accessories, positions are relative to the accessory's center since
+ * the 3D model is centered at origin during loading.
+ */
 export const extractSparklesInstances = (
   root: Instance,
   parentPosition: THREE.Vector3 = new THREE.Vector3(),
@@ -350,9 +350,9 @@ export const extractSparklesInstances = (
   return sparkles
 }
 
-
-
-
+/**
+ * Parses a Sparkles instance from XML properties
+ */
 const parseSparklesInstance = (
   instance: Instance,
   position: THREE.Vector3,
@@ -366,7 +366,7 @@ const parseSparklesInstance = (
     enabled = val === 'true' || val === true || val === '1' || val === 1
   }
 
-
+  // Default: Color3(144, 25, 255)/255.0f (purple)
   let sparkleColor = new THREE.Color(144 / 255, 25 / 255, 255 / 255)
 
   const colorProp = props['SparkleColor']?.value ?? props['Color']?.value
@@ -376,7 +376,7 @@ const parseSparklesInstance = (
     sparkleColor = parsedColor
   }
 
-
+  // Very small values like 1e-44 mean essentially frozen/paused
   let timeScale = 1
   const timeScaleVal = props['TimeScale']?.value
   if (timeScaleVal !== undefined) {
@@ -395,11 +395,11 @@ const parseSparklesInstance = (
   }
 }
 
-
-
-
-
-
+/**
+ * Finds all Sparkles instances in an asset hierarchy and returns render-ready data.
+ * Positions are centered relative to the model since the 3D viewer centers
+ * models at origin.
+ */
 export const findSparklesInHierarchy = (hierarchy: Instance | null): SparklesInstance[] => {
   if (!hierarchy) return []
 

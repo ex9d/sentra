@@ -16,7 +16,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
   const [remainingAttempts, setRemainingAttempts] = useState(5)
   const [isCheckingLockout, setIsCheckingLockout] = useState(true)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
-  const lastVerifiedPinRef = useRef<string>('')
+  const lastVerifiedPinRef = useRef<string>('') // Track last verified PIN to prevent duplicate calls
   useEffect(() => {
     const checkLockoutStatus = async () => {
       try {
@@ -38,14 +38,14 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
     checkLockoutStatus()
   }, [])
 
-
+  // Focus first input on mount
   useEffect(() => {
     if (!isLocked && !isCheckingLockout) {
       inputRefs.current[0]?.focus()
     }
   }, [isLocked, isCheckingLockout])
 
-
+  // Countdown timer for lockout
   useEffect(() => {
     if (lockoutSeconds > 0) {
       const timer = setInterval(() => {
@@ -82,7 +82,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           setTimeout(() => {
             setShake(false)
             setPin(Array(6).fill(''))
-            lastVerifiedPinRef.current = ''
+            lastVerifiedPinRef.current = '' // Reset so user can try again after lockout
           }, 500)
         } else {
           setRemainingAttempts(result.remainingAttempts)
@@ -95,7 +95,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           setTimeout(() => {
             setShake(false)
             setPin(Array(6).fill(''))
-            lastVerifiedPinRef.current = ''
+            lastVerifiedPinRef.current = '' // Reset so user can try again
             inputRefs.current[0]?.focus()
           }, 500)
         }
@@ -103,7 +103,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         console.error('PIN verification error:', err)
         setError('An error occurred. Please try again.')
         setPin(Array(6).fill(''))
-        lastVerifiedPinRef.current = ''
+        lastVerifiedPinRef.current = '' // Reset so user can try again
       } finally {
         setIsVerifying(false)
       }
@@ -111,7 +111,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
     [onUnlock]
   )
 
-
+  // Verify PIN when all digits are entered
   useEffect(() => {
     const enteredPin = pin.join('')
     if (
@@ -120,7 +120,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
       !isLocked &&
       enteredPin !== lastVerifiedPinRef.current
     ) {
-      lastVerifiedPinRef.current = enteredPin
+      lastVerifiedPinRef.current = enteredPin // Mark this PIN as being verified
       verifyPin(enteredPin)
     }
   }, [pin, isVerifying, isLocked, verifyPin])
@@ -129,7 +129,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
     (index: number, value: string) => {
       if (isLocked || isVerifying) return
 
-
+      // Only allow single digit
       const digit = value.slice(-1)
       if (!/^\d?$/.test(digit)) return
 
@@ -139,7 +139,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         return newPin
       })
 
-
+      // Move to next input if digit entered
       if (digit && index < 5) {
         inputRefs.current[index + 1]?.focus()
       }
@@ -153,7 +153,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
 
       if (e.key === 'Backspace') {
         if (!pin[index] && index > 0) {
-
+          // Move to previous input if current is empty
           inputRefs.current[index - 1]?.focus()
           setPin((prev) => {
             const newPin = [...prev]
@@ -212,7 +212,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
     if (isLocked || isVerifying) return
 
     setPin(Array(6).fill(''))
-    lastVerifiedPinRef.current = ''
+    lastVerifiedPinRef.current = '' // Reset so user can try again
     inputRefs.current[0]?.focus()
   }, [isLocked, isVerifying])
 
@@ -230,10 +230,10 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
       transition={{ duration: 0.5, ease: 'easeInOut' }}
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black"
     >
-      {}
+      {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-black to-neutral-900" />
 
-      {}
+      {/* Loading state while checking lockout */}
       {isCheckingLockout ? (
         <motion.div
           initial={{ opacity: 0 }}
@@ -246,13 +246,13 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           <p className="text-neutral-500 text-sm">Checking security status...</p>
         </motion.div>
       ) : (
-
+        /* Content */
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="relative z-10 flex flex-col items-center w-full max-w-md px-4"
         >
-          {}
+          {/* Lock Icon */}
           <motion.div
             className={`mb-6 p-4 rounded-full border ${
               isLocked ? 'bg-red-900/20 border-red-800' : 'bg-neutral-900 border-neutral-800'
@@ -268,7 +268,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             )}
           </motion.div>
 
-          {}
+          {/* Title */}
           <motion.h1
             className="text-2xl font-bold text-white mb-2"
             initial={{ opacity: 0 }}
@@ -288,7 +288,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
               : 'Enter your 6-digit PIN to unlock'}
           </motion.p>
 
-          {}
+          {/* PIN Input */}
           <motion.div
             className="flex gap-2 sm:gap-3 mb-6 justify-center w-full"
             animate={shake ? { x: [0, -10, 10, -10, 10, 0] } : {}}
@@ -326,7 +326,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             ))}
           </motion.div>
 
-          {}
+          {/* Error/Info Message */}
           <AnimatePresence mode="wait">
             {error && (
               <motion.div
@@ -345,7 +345,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             )}
           </AnimatePresence>
 
-          {}
+          {/* Remaining Attempts Indicator */}
           {!isLocked && remainingAttempts < 5 && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -363,7 +363,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             </motion.div>
           )}
 
-          {}
+          {/* Numpad */}
           <motion.div
             className="grid grid-cols-3 gap-3 sm:gap-4 mt-4"
             initial={{ opacity: 0, y: 20 }}
@@ -427,7 +427,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             </motion.button>
           </motion.div>
 
-          {}
+          {/* Security note */}
           <motion.p
             className="text-neutral-600 text-xs mt-8 text-center max-w-xs"
             initial={{ opacity: 0 }}

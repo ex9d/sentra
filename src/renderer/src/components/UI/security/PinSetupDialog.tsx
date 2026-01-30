@@ -45,10 +45,10 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
   const confirmInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
-
+  // Reset state when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
-
+      // If PIN is set, start with verify step; otherwise go directly to enter
       setStep(currentPin ? 'verify' : 'enter')
       setVerifyPin(Array(6).fill(''))
       setPin(Array(6).fill(''))
@@ -63,7 +63,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
     }
   }, [isOpen, currentPin])
 
-
+  // Countdown timer for lockout
   useEffect(() => {
     if (lockoutSeconds > 0) {
       const timer = setInterval(() => {
@@ -82,7 +82,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
     return undefined
   }, [lockoutSeconds])
 
-
+  // Focus first input when step changes
   useEffect(() => {
     if (isOpen && !isLocked) {
       setTimeout(() => {
@@ -159,7 +159,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
     [pin, confirmPin, verifyPin, isLocked, isSubmitting]
   )
 
-
+  // Handle verify current PIN before allowing changes
   const handleVerifyCurrentPin = async () => {
     const enteredPin = verifyPin.join('')
     if (enteredPin.length !== 6) {
@@ -171,11 +171,11 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
     setError(null)
 
     try {
-
+      // Use the onSave with null newPin and currentPin to just verify
       const result = await onSave(null, enteredPin)
 
       if (result.success) {
-
+        // Verification successful, go to manage step
         setStep('remove')
         setVerifyPin(Array(6).fill(''))
       } else {
@@ -228,7 +228,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
     setError(null)
 
     try {
-
+      // Pass the verified current PIN if we had to verify first
       const currentPinForChange = currentPin ? verifyPin.join('') : undefined
       const result = await onSave(enteredPin, currentPinForChange)
 
@@ -254,7 +254,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
     setError(null)
 
     try {
-
+      // Pass the verified current PIN for removal
       const currentPinForRemoval = verifyPin.join('')
       const result = await onSave(null, currentPinForRemoval)
 
@@ -333,7 +333,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
         </DialogHeader>
         <DialogBody>
           <AnimatePresence mode="wait">
-            {}
+            {/* Verify current PIN step (required before changing/removing) */}
             {step === 'verify' && currentPin && (
               <motion.div
                 key="verify"

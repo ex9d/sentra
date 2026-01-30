@@ -7,7 +7,7 @@ import { formatNumber } from '@renderer/utils/numberUtils'
 import { useRolimonsItem } from '@renderer/hooks/queries'
 import VerifiedIcon from '../icons/VerifiedIcon'
 
-
+// Sound Hat IDs
 const SOUND_HAT_IDS = [24114402, 305888394, 24112667, 33070696]
 
 export interface CatalogItemCardItem {
@@ -74,17 +74,17 @@ export const CatalogItemCard = ({
       onCreatorClick(item.creatorTargetId, item.creatorName)
     }
   }
-
+  // Check if item is limited based on itemRestrictions array
   const isLimitedUnique = item.itemRestrictions?.includes('LimitedUnique') ?? false
   const isLimited = isLimitedUnique || (item.itemRestrictions?.includes('Limited') ?? false)
   const hasResale = item.hasResellers && item.lowestResalePrice
 
-
+  // Get rolimons data for limited items
   const rolimonsItem = useRolimonsItem(isLimited ? item.id : null)
 
-
+  // Determine price to display
   const displayPrice = useMemo(() => {
-
+    // For limited items, show lowest resale price if available
     if (
       isLimited &&
       item.lowestResalePrice !== null &&
@@ -94,7 +94,7 @@ export const CatalogItemCard = ({
       return formatNumber(item.lowestResalePrice)
     }
 
-
+    // Check status first - if off sale, it's not free
     if (item.priceStatus === 'Off Sale') return 'Off Sale'
 
     if (item.price === 0) return 'Free'
@@ -107,7 +107,7 @@ export const CatalogItemCard = ({
 
   const isOffSale = displayPrice === 'Off Sale' || displayPrice === 'Not For Sale'
 
-
+  // Check if text is truncated
   useEffect(() => {
     const checkTruncation = () => {
       if (nameRef.current) {
@@ -135,14 +135,14 @@ export const CatalogItemCard = ({
       onContextMenu={handleContextMenu}
       className="group relative flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden cursor-pointer hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-[var(--color-text-secondary)]"
     >
-      {}
+      {/* Image Container */}
       <div
         className={`w-full relative overflow-hidden bg-[var(--color-surface-muted)] ${isCompact ? 'aspect-square p-0' : 'aspect-square p-2'}`}
       >
         <div
           className={`w-full h-full relative overflow-hidden bg-[var(--color-surface-hover)] ${isCompact ? '' : 'rounded-lg'}`}
         >
-          {}
+          {/* Tags  */}
           <div
             className={`absolute flex flex-col gap-1.5 z-10 ${isCompact ? 'top-1 left-1' : 'top-2 left-2'}`}
           >
@@ -267,7 +267,7 @@ export const CatalogItemCard = ({
         </div>
       </div>
 
-      {}
+      {/* Item Info */}
       <div
         className={`flex flex-col gap-1.5 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-muted)] ${isCompact ? 'p-2' : 'p-3'}`}
       >
@@ -294,7 +294,7 @@ export const CatalogItemCard = ({
 
         {!isCompact && (
           <div className="flex items-center justify-between text-[11px] text-[var(--color-text-muted)]">
-            {}
+            {/* Creator */}
             <div className="flex items-center gap-1 truncate max-w-[70%]">
               {item.creatorTargetId && onCreatorClick ? (
                 isCreatorTruncated ? (
@@ -346,7 +346,7 @@ export const CatalogItemCard = ({
               )}
             </div>
 
-            {}
+            {/* Favorite Count */}
             {item.favoriteCount !== undefined && item.favoriteCount > 0 && (
               <div className="flex items-center gap-1.5 shrink-0">
                 <Star size={16} className="text-[var(--color-text-muted)]" />
@@ -359,7 +359,7 @@ export const CatalogItemCard = ({
         )}
 
         <div className="flex items-center justify-between">
-          {}
+          {/* Price */}
           {isPriceTruncated ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -410,7 +410,7 @@ export const CatalogItemCard = ({
             </div>
           )}
 
-          {}
+          {/* Resale Price tooltip or indicator */}
           {hasResale && !isLimited && (
             <div
               className="flex items-center gap-1 text-xs text-[var(--color-text-muted)]"

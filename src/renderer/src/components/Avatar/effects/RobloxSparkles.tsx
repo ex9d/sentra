@@ -3,58 +3,58 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { DDSLoader } from 'three/examples/jsm/loaders/DDSLoader.js'
 
-
+// Sparkles textures
 import sparklesMainDdsUrl from '@assets/textures/sparkles_main.dds?url'
 import sparklesColorDdsUrl from '@assets/textures/sparkles_color.dds?url'
 import commonAlphaDdsUrl from '@assets/textures/common_alpha.dds?url'
 
-
-
-
-
+/**
+ * Roblox Sparkles properties interface
+ * Based on Roblox's Sparkles.cpp implementation
+ */
 export interface RobloxSparklesProps {
-
+  /** Whether the sparkles effect is active */
   enabled?: boolean
-
+  /** Sparkle color - default is Roblox purple (144, 25, 255)/255 */
   sparkleColor?: THREE.Color | string | number
-
+  /** Time scale for animation speed - default 1, 0 = frozen */
   timeScale?: number
-
+  /** Position offset from parent */
   position?: [number, number, number]
-
+  /** Parent size for scaling the sparkles effect */
   parentSize?: [number, number, number]
 }
 
-
+// Default color from Sparkles.cpp: Color3(144, 25, 255)/255.0f (purple)
 const DEFAULT_SPARKLE_COLOR = new THREE.Color(144 / 255, 25 / 255, 255 / 255)
 
-
+// Primary emitter constants from Roblox implementation
 const PRIMARY_EMISSION_RATE = 30
 const PRIMARY_PARTICLE_LIFETIME = 1.3
 const PRIMARY_SIZE = 45
 const PRIMARY_SPEED = 5
 const PRIMARY_DAMPENING = 0.2
-const PRIMARY_SPIN_MIN = 40 / 57.3
-const PRIMARY_SPIN_MAX = 100 / 57.3
-const PRIMARY_ROTATION_RANGE = 90 / 57.3
+const PRIMARY_SPIN_MIN = 40 / 57.3 // ~0.7 rad/s
+const PRIMARY_SPIN_MAX = 100 / 57.3 // ~1.75 rad/s
+const PRIMARY_ROTATION_RANGE = 90 / 57.3 // ~1.57 rad
 const PRIMARY_GROWTH = 0.5
 const PRIMARY_BLEND_RATIO = 0.6
 
-
+// Secondary emitter constants
 const SECONDARY_EMISSION_RATE = 5
 const SECONDARY_PARTICLE_LIFETIME = 1.7
 const SECONDARY_SIZE = 0.1
 const SECONDARY_SPEED = 8
 const SECONDARY_DAMPENING = 2
-const SECONDARY_SPIN_MIN = -500 / 57.3
-const SECONDARY_SPIN_MAX = 500 / 57.3
+const SECONDARY_SPIN_MIN = -500 / 57.3 // ~-8.73 rad/s
+const SECONDARY_SPIN_MAX = 500 / 57.3 // ~8.73 rad/s
 const SECONDARY_GROWTH = 0.2
 
+// Particle system configuration
+const PRIMARY_PARTICLE_COUNT = 80 // 30 emission * 1.3 lifetime * 2 buffer
+const SECONDARY_PARTICLE_COUNT = 30 // 5 emission * 1.7 lifetime * 3 buffer
 
-const PRIMARY_PARTICLE_COUNT = 80
-const SECONDARY_PARTICLE_COUNT = 30
-
-
+// Emitter box size from Roblox
 const EMITTER_BOX_SIZE = 0.2
 
 interface Particle {
@@ -68,9 +68,9 @@ interface Particle {
   growth: number
 }
 
-
-
-
+/**
+ * Creates a fallback sparkle particle texture if DDS loading fails
+ */
 const createFallbackSparkleTexture = (): THREE.Texture => {
   const canvas = document.createElement('canvas')
   const size = 64
@@ -118,9 +118,9 @@ const createFallbackSparkleTexture = (): THREE.Texture => {
   return texture
 }
 
-
-
-
+/**
+ * Creates a fallback color gradient texture
+ */
 const createFallbackColorTexture = (): THREE.Texture => {
   const canvas = document.createElement('canvas')
   canvas.width = 256
@@ -142,16 +142,16 @@ const createFallbackColorTexture = (): THREE.Texture => {
   return texture
 }
 
-
-
-
+/**
+ * Creates a fallback alpha gradient texture
+ */
 const createFallbackAlphaTexture = (): THREE.Texture => {
   const canvas = document.createElement('canvas')
   canvas.width = 256
   canvas.height = 1
   const ctx = canvas.getContext('2d')!
 
-
+  // Alpha fades from full to zero over lifetime (ColourFader alpha -1)
   const gradient = ctx.createLinearGradient(0, 0, 256, 0)
   gradient.addColorStop(0, '#FFFFFF')
   gradient.addColorStop(0.5, '#888888')
@@ -166,9 +166,9 @@ const createFallbackAlphaTexture = (): THREE.Texture => {
   return texture
 }
 
-
-
-
+/**
+ * Loads a DDS texture with fallback
+ */
 const loadDDSTexture = (
   url: string,
   name: string,
@@ -197,16 +197,16 @@ const loadDDSTexture = (
   })
 }
 
-
-
-
+/**
+ * Parse color from various formats (THREE.Color, string, or packed integer)
+ */
 const parseSparkleColor = (color: THREE.Color | string | number): THREE.Color => {
   if (color instanceof THREE.Color) {
     return color
   }
 
   if (typeof color === 'number') {
-
+    // Packed integer format (0xAARRGGBB or 0xRRGGBB)
     const r = ((color >> 16) & 0xff) / 255
     const g = ((color >> 8) & 0xff) / 255
     const b = (color & 0xff) / 255
@@ -221,17 +221,17 @@ const parseSparkleColor = (color: THREE.Color | string | number): THREE.Color =>
       const b = (intValue & 0xff) / 255
       return new THREE.Color(r, g, b)
     }
-
+    // Otherwise treat as hex/named color
     return new THREE.Color(color)
   }
 
   return DEFAULT_SPARKLE_COLOR.clone()
 }
 
-
-
-
-
+/**
+ * RobloxSparkles - A faithful recreation of Roblox's Sparkles particle effect
+ * Based on the original Sparkles.cpp implementation
+ */
 export const RobloxSparkles: React.FC<RobloxSparklesProps> = ({
   enabled = true,
   sparkleColor = DEFAULT_SPARKLE_COLOR,
@@ -355,45 +355,45 @@ export const RobloxSparkles: React.FC<RobloxSparklesProps> = ({
         attribute float rotation;
         varying float vLifetime;
         varying float vRotation;
-
+        
         void main() {
           vLifetime = lifetime;
           vRotation = rotation;
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-
+          // Use fixed screen-space size (not perspective-based)
           gl_PointSize = size;
           gl_PointSize = clamp(gl_PointSize, 1.0, 128.0);
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
-
+        // Roblox Shader_CrazySparkles from particle.hlsl
         uniform sampler2D tex;
         uniform sampler2D cstrip;
         uniform sampler2D astrip;
         uniform vec4 modulateColor;
         uniform float blendRatio;
-
+        
         varying float vLifetime;
         varying float vRotation;
-
+        
         void main() {
           vec2 uv = gl_PointCoord - 0.5;
           float c = cos(vRotation);
           float s = sin(vRotation);
           uv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c) + 0.5;
           uv.y = 1.0 - uv.y;
-
+          
           vec2 colorLookup = vec2(1.0 - vLifetime, 0.5);
-
+          
           vec4 texcolor = texture2D(tex, uv);
           float stripAlpha = texture2D(astrip, colorLookup).r;
           vec4 stripColor = texture2D(cstrip, colorLookup);
-
+          
           vec4 result;
           result.rgb = texcolor.rgb * modulateColor.rgb * stripAlpha * texcolor.a;
           result.a = blendRatio * texcolor.a * stripAlpha * modulateColor.a;
-
+          
           gl_FragColor = result;
         }
       `,
@@ -425,45 +425,45 @@ export const RobloxSparkles: React.FC<RobloxSparklesProps> = ({
         attribute float rotation;
         varying float vLifetime;
         varying float vRotation;
-
+        
         void main() {
           vLifetime = lifetime;
           vRotation = rotation;
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-
+          // Use fixed screen-space size (not perspective-based)
           gl_PointSize = size;
           gl_PointSize = clamp(gl_PointSize, 1.0, 64.0);
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
-
+        // Roblox Shader_CrazySparkles from particle.hlsl
         uniform sampler2D tex;
         uniform sampler2D cstrip;
         uniform sampler2D astrip;
         uniform vec4 modulateColor;
         uniform float blendRatio;
-
+        
         varying float vLifetime;
         varying float vRotation;
-
+        
         void main() {
           vec2 uv = gl_PointCoord - 0.5;
           float c = cos(vRotation);
           float s = sin(vRotation);
           uv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c) + 0.5;
           uv.y = 1.0 - uv.y;
-
+          
           vec2 colorLookup = vec2(1.0 - vLifetime, 0.5);
-
+          
           vec4 texcolor = texture2D(tex, uv);
           float stripAlpha = texture2D(astrip, colorLookup).r;
           vec4 stripColor = texture2D(cstrip, colorLookup);
-
+          
           vec4 result;
           result.rgb = texcolor.rgb * modulateColor.rgb * stripAlpha * texcolor.a;
           result.a = blendRatio * texcolor.a * stripAlpha * modulateColor.a;
-
+          
           gl_FragColor = result;
         }
       `,
@@ -476,10 +476,10 @@ export const RobloxSparkles: React.FC<RobloxSparklesProps> = ({
     })
   }, [mainTexture, colorTexture, alphaTexture, parsedColor])
 
-
-
-
-
+  /**
+   * Spawn a primary sparkle particle
+   * Uses spherical spread (pi radians full sphere)
+   */
   const spawnPrimaryParticle = (particle: Particle) => {
     particle.position.set(
       (Math.random() - 0.5) * 2 * EMITTER_BOX_SIZE,
@@ -507,9 +507,9 @@ export const RobloxSparkles: React.FC<RobloxSparklesProps> = ({
     particle.growth = PRIMARY_GROWTH
   }
 
-
-
-
+  /**
+   * Spawn a secondary sparkle particle
+   */
   const spawnSecondaryParticle = (particle: Particle) => {
     particle.position.set(
       (Math.random() - 0.5) * 2 * EMITTER_BOX_SIZE,

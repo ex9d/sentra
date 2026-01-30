@@ -39,7 +39,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
-
+  // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node
@@ -60,7 +60,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
     }
   }, [isOpen])
 
-
+  // Calculate dropdown position based on button location
   useEffect(() => {
     if (isOpen && dropdownRef.current) {
       const computed = window.getComputedStyle(dropdownRef.current)
@@ -75,13 +75,13 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       let left = rect.left
       let top = rect.bottom + 8
 
-
+      // Check if dropdown would overflow on the right
       if (left + menuWidth > viewportWidth - 16) {
         left = Math.max(16, rect.right - menuWidth)
       }
 
-
-      const menuHeight = 260
+      // Check if dropdown would overflow on the bottom
+      const menuHeight = 260 // approximate max height
       if (top + menuHeight > viewportHeight - 16) {
         top = rect.top - menuHeight - 8
       }

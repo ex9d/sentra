@@ -109,7 +109,7 @@ const App: React.FC = () => {
   const hasCompletedOnboarding = useHasCompletedOnboarding()
   const initializeFirstLaunch = useOnboardingStore((state) => state.initializeFirstLaunch)
 
-
+  // Initialize onboarding first launch detection early
   useEffect(() => {
     if (onboardingInitializedRef.current) return
     onboardingInitializedRef.current = true
@@ -134,7 +134,7 @@ const App: React.FC = () => {
   const openCommandPalette = useCommandPaletteStore((s) => s.open)
   const isCommandPaletteOpen = useCommandPaletteStore((s) => s.isOpen)
 
-
+  // Defer catalog search index init until command palette is actually opened
   useEffect(() => {
     if (!isCommandPaletteOpen || catalogInitTriggeredRef.current) return
     catalogInitTriggeredRef.current = true
@@ -162,12 +162,12 @@ const App: React.FC = () => {
   const selectedIds = useSelectedIds()
   const setSelectedIds = useSetSelectedIds()
 
-
+  // Browser custom URL dialog state
   const [showBrowserCustomDialog, setShowBrowserCustomDialog] = useState(false)
   const [browserCustomUrl, setBrowserCustomUrl] = useState('')
   const [browserCustomAccountId, setBrowserCustomAccountId] = useState<string | null>(null)
 
-
+  // Remove account confirmation dialog state
   const [removeAccountOpen, setRemoveAccountOpen] = useState(false)
   const [removeAccountId, setRemoveAccountId] = useState<string | null>(null)
 
@@ -194,7 +194,7 @@ const App: React.FC = () => {
       }
 
       try {
-
+        // Use the first available cookie for authenticated requests (better rate limits)
         const cookie = currentAccounts.find((a) => a.cookie)?.cookie
         const avatarMap = await window.api.getBatchUserAvatars(userIds, '420x420', cookie)
         setAccounts((prev) => {
@@ -223,7 +223,7 @@ const App: React.FC = () => {
     [queryClient, setAccounts]
   )
 
-
+  // Keep account avatars from going stale (Roblox thumbnails can change when you update your avatar).
   const initialAvatarRefreshRef = useRef(false)
   useEffect(() => {
     if (isLoadingAccounts) return
@@ -317,7 +317,7 @@ const App: React.FC = () => {
     return accounts.find((a) => a.id === selectedAccountId) || null
   }, [accounts, selectedAccountId])
 
-
+  // Refetch thumbnails when switching accounts (cached by the 60s throttle).
   useEffect(() => {
     if (!selectedAccountId || isLoadingAccounts) return
     void refreshAccountAvatarUrls()
@@ -331,7 +331,7 @@ const App: React.FC = () => {
     return null
   }, [accounts, selectedAccount?.avatarUrl, settings.primaryAccountId])
 
-
+  // If dynamic accent color is enabled, derive it from the current account's avatar.
   useEffect(() => {
     if (!settings.useDynamicAccentColor || !accentAvatarUrl) return
 
@@ -371,10 +371,10 @@ const App: React.FC = () => {
     }
   }, [activeTab, setActiveTabState, visibleSidebarTabs])
 
-
+  // Update Discord RPC when tab changes
   useEffect(() => {
     window.api.setDiscordRPCTab(activeTab).catch(() => {
-
+      // Silently ignore if RPC is not enabled
     })
   }, [activeTab])
 
@@ -496,8 +496,8 @@ const App: React.FC = () => {
 
           if (notifyServerLocation) {
             const pollForServerLocation = async () => {
-              const maxAttempts = 15
-              const pollInterval = 2000
+              const maxAttempts = 15 // Poll for up to 30 seconds
+              const pollInterval = 2000 // 2 seconds between polls
 
               for (let attempt = 0; attempt < maxAttempts; attempt++) {
                 await new Promise((r) => setTimeout(r, pollInterval))
@@ -666,7 +666,7 @@ const App: React.FC = () => {
     }
 
     try {
-
+      // Open Roblox home in default browser
       await window.api.openBrowserWithAccount(id, 'https://roblox.com/home')
       showNotification(`Opening Roblox home for ${account.displayName || account.username}...`, 'info')
     } catch (error) {
@@ -684,7 +684,7 @@ const App: React.FC = () => {
       return
     }
 
-
+    // Open dialog for custom URL input
     setBrowserCustomAccountId(id)
     setBrowserCustomUrl('')
     setShowBrowserCustomDialog(true)
@@ -814,7 +814,7 @@ const App: React.FC = () => {
       id="app-container"
       className={`flex h-screen w-full bg-[var(--color-app-bg)] text-[var(--color-text-muted)] font-sans overflow-hidden overflow-x-hidden selection:bg-[var(--accent-color-soft)] selection:text-[var(--color-text-primary)] ${settings.privacyMode ? 'privacy-mode' : ''}`}
     >
-      {}
+      {/* Sidebar */}
       <Sidebar
         sidebarWidth={sidebarWidth}
         isResizing={isResizing}
@@ -827,9 +827,9 @@ const App: React.FC = () => {
         hiddenTabs={sidebarHiddenTabs}
       />
 
-      {}
+      {/* Main Content Wrapper */}
       <main className="flex-1 flex flex-col min-w-0 bg-[var(--color-surface)] h-full relative overflow-hidden text-[var(--color-text-secondary)]">
-        {}
+        {/* Title Bar spacer */}
         <div
           className="h-[45px] bg-[var(--color-titlebar)] flex-shrink-0 w-full border-b border-[var(--color-border)] flex items-center justify-end"
           style={
@@ -839,7 +839,7 @@ const App: React.FC = () => {
             } as React.CSSProperties
           }
         >
-          {}
+          {/* Search and Notification Bell */}
           <div
             className="flex items-center mr-2 gap-2"
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
@@ -858,7 +858,7 @@ const App: React.FC = () => {
             {!isMac && <div className="w-px h-5 bg-[var(--color-border)] mx-2" />}
           </div>
         </div>
-        {}
+        {/* Tab panels - conditional rendering for performance */}
         <div className="flex-1 flex flex-col h-full min-h-0 w-full relative tab-transition-surface">
           {activeTab === 'Accounts' && (
             <AccountsTab
@@ -967,7 +967,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {}
+      {/* Global Modals */}
       <JoinModal
         isOpen={modals.join}
         onClose={() => closeModal('join')}
@@ -1015,7 +1015,7 @@ const App: React.FC = () => {
         />
       </Suspense>
 
-      {}
+      {/* Browser Custom URL Dialog */}
       <AnimatePresence>
         {showBrowserCustomDialog && (
           <motion.div
@@ -1108,7 +1108,7 @@ const App: React.FC = () => {
         />
       </Suspense>
 
-      {}
+      {/* Command Palette */}
       <AnimatePresence>
         {isCommandPaletteOpen && (
           <Suspense fallback={null}>
@@ -1121,7 +1121,7 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {}
+      {/* Context Menu */}
       <ContextMenu
         activeMenu={activeMenu}
         accounts={accounts}
@@ -1155,15 +1155,15 @@ const App: React.FC = () => {
         isDangerous
       />
 
-      {}
+      {/* Snackbar Notifications (replaces NotificationProvider) */}
       <SnackbarContainer />
 
-      {}
+      {/* PIN Lock Screen Overlay */}
       <AnimatePresence>
         {settings.pinCode && !isAppUnlocked && <PinLockScreen onUnlock={handlePinUnlock} />}
       </AnimatePresence>
 
-      {}
+      {/* Onboarding Screen Overlay */}
       <AnimatePresence>{!hasCompletedOnboarding && <OnboardingScreen />}</AnimatePresence>
     </div>
   )
