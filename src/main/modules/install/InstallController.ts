@@ -1,4 +1,4 @@
-import { app, dialog } from 'electron'
+import { app, dialog, BrowserWindow } from 'electron'
 import path from 'path'
 import { z } from 'zod'
 import { handle } from '../core/utils/handle'
@@ -132,7 +132,7 @@ export const registerInstallHandlers = (): void => {
   )
 
   handle('pick-backup-file', z.tuple([]), async (event) => {
-    const result = await dialog.showOpenDialog(event.sender.getOwnerBrowserWindow()!, {
+    const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender)!, {
       filters: [
         { name: 'Sentra Backup', extensions: ['bak'] },
         { name: 'All Files', extensions: ['*'] }
