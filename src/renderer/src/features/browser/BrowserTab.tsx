@@ -53,7 +53,7 @@ export const BrowserTab: React.FC = () => {
       className="flex flex-col items-center justify-center h-full w-full gap-6"
       onClick={closeMenu}
     >
-      {}
+      {/* Main Browser Button */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -76,7 +76,7 @@ export const BrowserTab: React.FC = () => {
         <p className="text-sm text-muted-foreground">Right-click for options</p>
       </motion.div>
 
-      {}
+      {/* Dropdown Menu */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
@@ -111,7 +111,7 @@ export const BrowserTab: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {}
+      {/* Link Input Dialog */}
       {showLinkDialog && (
         <motion.div
           initial={{ opacity: 0 }}
