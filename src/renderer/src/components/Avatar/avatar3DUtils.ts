@@ -185,12 +185,34 @@ const loadFromManifest = async (
   if (!manifestResponse.ok) throw new Error(`Failed to fetch manifest: ${manifestResponse.status}`)
   const manifest = await manifestResponse.json()
 
-  const mtlHash = manifest.mtl
-  const objHash = manifest.obj
-  if (!mtlHash || !objHash) throw new Error('MTL or OBJ hash missing in manifest.')
+  // Manifest formats vary. Support several shapes:
+  // - { mtl: '<hash>', obj: '<hash>' }
+  // - { mtlHash: '<hash>', objHash: '<hash>' }
+  // - { mtl: { hash: '<hash>' } , obj: { hash: '<hash>' } }
+  // - { mtl: '<url>', obj: '<url>' }
+  const resolveField = (val: any): string | null => {
+    if (!val) return null
+    if (typeof val === 'string') return val
+    if (typeof val === 'object') {
+      if (typeof val.hash === 'string') return val.hash
+      if (typeof val.url === 'string') return val.url
+    }
+    return null
+  }
 
-  const mtlUrl = `https://t${hashToServer(mtlHash)}.rbxcdn.com/${mtlHash}`
-  const objUrl = `https://t${hashToServer(objHash)}.rbxcdn.com/${objHash}`
+  const mtlVal =
+    resolveField(manifest.mtl) || resolveField(manifest.mtlHash) || resolveField(manifest.material)
+  const objVal = resolveField(manifest.obj) || resolveField(manifest.objHash) || resolveField(manifest.object)
+
+  if (!mtlVal || !objVal) throw new Error('MTL or OBJ hash missing in manifest.')
+
+  const makeUrl = (val: string) => {
+    if (val.startsWith('http')) return val
+    return `https://t${hashToServer(val)}.rbxcdn.com/${val}`
+  }
+
+  const mtlUrl = makeUrl(mtlVal)
+  const objUrl = makeUrl(objVal)
 
   const mtlTextResponse = await fetch(mtlUrl)
   if (!mtlTextResponse.ok) throw new Error(`Failed to load MTL: ${mtlTextResponse.status}`)
