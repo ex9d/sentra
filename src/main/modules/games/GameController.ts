@@ -11,9 +11,9 @@ import { storageService } from '../system/StorageService'
 import { downloadFileToPath } from '../core/utils/downloadUtils'
 import { gameSessionService } from './GameSessionService'
 
-
-
-
+/**
+ * Registers game-related IPC handlers
+ */
 export const registerGameHandlers = (): void => {
   handle('get-game-thumbnail-16x9', z.tuple([z.number()]), async (_, universeId) => {
     return RobloxGameService.getGameThumbnail16x9(universeId)
@@ -32,7 +32,7 @@ export const registerGameHandlers = (): void => {
   })
 
   handle('get-games-by-place-ids', z.tuple([z.array(z.string())]), async (_, placeIds) => {
-
+    // Try to find a valid cookie from stored accounts
     const accounts = storageService.getAccounts()
     const accountWithCookie = accounts.find((acc) => acc.cookie && acc.cookie.length > 0)
     const cookie = accountWithCookie ? accountWithCookie.cookie : undefined
@@ -103,7 +103,7 @@ export const registerGameHandlers = (): void => {
         })
       )
 
-
+      // Newest first
       entries.sort((a, b) => b.lastModified - a.lastModified)
 
       const seenPlaces = new Set<string>()
@@ -159,11 +159,11 @@ export const registerGameHandlers = (): void => {
   handle(
     'launch-game',
     z.tuple([
-      z.string(),
-      z.union([z.string(), z.number()]),
-      z.string().optional(),
-      z.union([z.string(), z.number()]).optional(),
-      z.string().optional()
+      z.string(), // cookie
+      z.union([z.string(), z.number()]), // placeId
+      z.string().optional(), // jobId
+      z.union([z.string(), z.number()]).optional(), // friendId
+      z.string().optional() // installPath
     ]),
     async (_, cookieRaw, placeId, jobId, friendId, installPath) => {
       const cookie = RobloxAuthService.extractCookie(cookieRaw)
@@ -186,14 +186,14 @@ export const registerGameHandlers = (): void => {
   handle(
     'get-game-servers',
     z.tuple([
-      z.union([z.string(), z.number()]),
-      z.string().optional(),
-      z.number().optional(),
-      z.enum(['Asc', 'Desc']).optional(),
-      z.boolean().optional()
+      z.union([z.string(), z.number()]), // placeId
+      z.string().optional(), // cursor
+      z.number().optional(), // limit
+      z.enum(['Asc', 'Desc']).optional(), // sortOrder
+      z.boolean().optional() // excludeFullGames
     ]),
     async (_, placeId, cursor, limit, sortOrder, excludeFullGames) => {
-
+      // Try to find a valid cookie from stored accounts
       const accounts = storageService.getAccounts()
       const accountWithCookie = accounts.find((acc) => acc.cookie && acc.cookie.length > 0)
       const cookie = accountWithCookie ? accountWithCookie.cookie : undefined
@@ -286,12 +286,12 @@ export const registerGameHandlers = (): void => {
   handle(
     'purchase-game-pass',
     z.tuple([
-      z.string(),
-      z.number(),
-      z.number(),
-      z.number(),
-      z.string().optional(),
-      z.string().optional()
+      z.string(), // cookie
+      z.number(), // productId
+      z.number(), // expectedPrice
+      z.number(), // expectedSellerId
+      z.string().optional(), // expectedPurchaserId
+      z.string().optional() // idempotencyKey
     ]),
     async (
       _,
@@ -320,10 +320,10 @@ export const registerGameHandlers = (): void => {
     'save-game-image',
     z.tuple([z.string(), z.string()]),
     async (event, imageUrl, gameName) => {
-
+      // Get the parent window for the dialog
       const win = BrowserWindow.fromWebContents(event.sender)
 
-
+      // Determine file extension from URL or default to png
       const urlLower = imageUrl.toLowerCase()
       let extension = 'png'
       if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) {

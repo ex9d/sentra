@@ -21,13 +21,13 @@ export class RateLimitError extends Error {
 }
 
 export class TransactionService {
-
-
-
+  /**
+   * Get available transaction types for a user
+   */
   static async getTransactionTypes(cookie: string, userId: number): Promise<TransactionTypes> {
     try {
       return await request(transactionTypesSchema, {
-        url: `https:
+        url: `https://apis.roblox.com/transaction-records/v1/users/${userId}/transaction-types`,
         cookie
       })
     } catch (error) {
@@ -42,9 +42,9 @@ export class TransactionService {
     }
   }
 
-
-
-
+  /**
+   * Get transactions for a user
+   */
   static async getTransactions(
     cookie: string,
     userId: number,
@@ -64,7 +64,7 @@ export class TransactionService {
 
     try {
       return await request(transactionsResponseSchema, {
-        url: `https:
+        url: `https://apis.roblox.com/transaction-records/v1/users/${userId}/transactions?${params.toString()}`,
         cookie
       })
     } catch (error) {
@@ -79,22 +79,22 @@ export class TransactionService {
     }
   }
 
-
-
-
-
+  /**
+   * Get transaction totals/summary using the efficient single-request API
+   * This replaces the old getTransactionSummary that made 12+ requests
+   */
   static async getTransactionTotals(
     cookie: string,
     userId: number,
     timeFrame: TransactionTimeFrame = 'Month'
   ): Promise<TransactionTotals> {
-
-
-    const usedTypes = 6735032
+    // Get the usedTypes bitmask - we can use a large number to get all types
+    // The API uses this to filter which types to include in the summary
+    const usedTypes = 6735032 // This value includes all common transaction types
 
     try {
       return await request(transactionTotalsSchema, {
-        url: `https:
+        url: `https://apis.roblox.com/transaction-records/v1/users/${userId}/transaction-totals?usedTypes=${usedTypes}&timeFrame=${timeFrame}&transactionType=summary`,
         cookie
       })
     } catch (error) {

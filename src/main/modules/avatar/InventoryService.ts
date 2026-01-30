@@ -10,7 +10,7 @@ export class RobloxInventoryService {
     cursor?: string,
     limit: number = 100
   ) {
-    let url = `https:
+    let url = `https://inventory.roblox.com/v2/users/${userId}/inventory/${assetTypeId}?limit=${limit}`
     if (cursor) {
       url += `&cursor=${cursor}`
     }
@@ -29,7 +29,7 @@ export class RobloxInventoryService {
     limit: number = 100,
     sortOrder: 'Asc' | 'Desc' = 'Desc'
   ) {
-    let url = `https:
+    let url = `https://inventory.roblox.com/v2/users/${userId}/inventory?limit=${limit}&sortOrder=${sortOrder}`
 
     if (assetTypes.length > 0) {
       assetTypes.forEach((assetType) => {
@@ -57,7 +57,7 @@ export class RobloxInventoryService {
             console.error(`[InventoryV2] Invalid asset types provided: ${assetTypes.join(', ')}`)
           }
         } catch {
-
+          // Ignore invalid JSON in error body
         }
       }
       throw error
@@ -66,7 +66,7 @@ export class RobloxInventoryService {
 
   static async getCollectibles(_cookie: string, userId: number) {
     try {
-      const url = `https:
+      const url = `https://apis.roblox.com/showcases-api/v1/users/profile/robloxcollections-json?userId=${userId}`
       return await request(collectiblesSchema, {
         url,
         method: 'GET'
@@ -83,14 +83,14 @@ export class RobloxInventoryService {
     assetId: number,
     itemType: string = 'Asset'
   ) {
-
+    // itemType: 0 = Asset, 1 = GamePass, 2 = Badge, 3 = Bundle
     let itemTypeId = 0
     if (itemType === 'GamePass') itemTypeId = 1
     else if (itemType === 'Badge') itemTypeId = 2
     else if (itemType === 'Bundle') itemTypeId = 3
 
     try {
-      const url = `https:
+      const url = `https://inventory.roblox.com/v1/users/${userId}/items/${itemTypeId}/${assetId}/is-owned`
       const isOwned = await request(z.boolean(), {
         url,
         cookie,

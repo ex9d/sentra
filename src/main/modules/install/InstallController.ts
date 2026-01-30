@@ -5,9 +5,9 @@ import { handle } from '../core/utils/handle'
 import { RobloxInstallService } from './InstallService'
 import { AccountBackupService } from '../backup/BackupService'
 
-
-
-
+/**
+ * Registers Roblox installation-related IPC handlers
+ */
 export const registerInstallHandlers = (): void => {
   handle('get-deploy-history', z.tuple([]), async () => {
     return RobloxInstallService.getDeployHistory()

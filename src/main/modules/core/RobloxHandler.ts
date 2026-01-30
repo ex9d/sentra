@@ -10,10 +10,10 @@ import { registerGroupHandlers } from '../groups/GroupController'
 import { registerTransactionHandlers } from '../transactions/TransactionController'
 import { registerAccountSettingsHandlers } from '../accountSettings/AccountSettingsController'
 
-
-
-
-
+/**
+ * Main Roblox controller that registers all Roblox-related IPC handlers.
+ * This is the entry point that delegates to specialized controllers.
+ */
 export const registerRobloxHandlers = (): void => {
   registerAuthHandlers()
   registerUserHandlers()

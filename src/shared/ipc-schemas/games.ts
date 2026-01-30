@@ -2,9 +2,9 @@ import { z } from 'zod'
 
 const stringOrNumberSchema = z.union([z.string(), z.number()])
 
-
-
-
+// ============================================================================
+// GAME SERVER SCHEMAS
+// ============================================================================
 
 export const gameServerSchema = z
   .object({
@@ -42,9 +42,9 @@ export type RegionLookup = z.infer<typeof regionsBatchSchema>
 export type GameServerPayload = z.infer<typeof gameServerSchema>
 export type ServerPage = z.infer<typeof pagedServerSchema>
 
-
-
-
+// ============================================================================
+// GAME DETAILS SCHEMAS
+// ============================================================================
 
 export const gameDetailsSchema = z
   .object({
@@ -223,9 +223,9 @@ export const gamePassesResponseSchema = z.object({
 export type GamePass = z.infer<typeof gamePassSchema>
 export type GamePassesResponse = z.infer<typeof gamePassesResponseSchema>
 
-
-
-
+// ============================================================================
+// GROUP SCHEMAS
+// ============================================================================
 
 export const groupOwnerSchema = z.object({
   hasVerifiedBadge: z.boolean().optional(),

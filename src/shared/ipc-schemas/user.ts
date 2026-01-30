@@ -2,9 +2,9 @@ import { z } from 'zod'
 import { AccountStatus } from '../../renderer/src/types'
 import { cursorResultSchema } from './common'
 
-
-
-
+// ============================================================================
+// USER SCHEMAS
+// ============================================================================
 
 export const userSummarySchema = z.object({
   id: z.number(),
@@ -148,9 +148,9 @@ export type RobloxBadge = z.infer<typeof robloxBadgeSchema>
 export type PlayerBadge = z.infer<typeof playerBadgeSchema>
 export type UsernameHistory = z.infer<typeof usernameHistorySchema>
 
-
-
-
+// ============================================================================
+// PRESENCE SCHEMAS
+// ============================================================================
 
 export const presenceSchema = z.object({
   userPresenceType: z.number(),
@@ -180,9 +180,9 @@ export const batchAccountStatusSchema = z.record(
 export type Presence = z.infer<typeof presenceSchema>
 export type BatchAccountStatus = z.infer<typeof batchAccountStatusSchema>
 
-
-
-
+// ============================================================================
+// ACCOUNT SCHEMAS
+// ============================================================================
 
 export const accountStatusSchema = z.nativeEnum(AccountStatus)
 
@@ -213,9 +213,9 @@ export const accountSchema = z
 
 export type AccountSnapshot = z.infer<typeof accountSchema>
 
-
-
-
+// ============================================================================
+// FRIENDS SCHEMAS
+// ============================================================================
 
 export const friendSchema = z.object({
   id: z.number(),
@@ -268,9 +268,9 @@ export const followersResponseSchema = z.object({
 export type Friend = z.infer<typeof friendSchema>
 export type FriendRequest = z.infer<typeof friendRequestSchema>
 
-
-
-
+// ============================================================================
+// PROFILE PLATFORM API SCHEMAS
+// ============================================================================
 
 export const profileHeaderCountsSchema = z.object({
   friendsCount: z.number().optional(),

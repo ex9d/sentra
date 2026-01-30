@@ -2,16 +2,16 @@ import { z } from 'zod'
 import { handle } from '../core/utils/handle'
 import { RobloxCatalogService, CatalogSearchParams } from './CatalogService'
 
-
-
-
+/**
+ * Registers catalog-related IPC handlers
+ */
 export const registerCatalogHandlers = (): void => {
-
+  // Get navigation menu (categories and subcategories)
   handle('get-catalog-navigation', z.tuple([]), async () => {
     return RobloxCatalogService.getNavigationMenu()
   })
 
-
+  // Get search suggestions
   handle(
     'get-catalog-search-suggestions',
     z.tuple([z.string(), z.number().optional()]),
@@ -20,7 +20,7 @@ export const registerCatalogHandlers = (): void => {
     }
   )
 
-
+  // Search catalog items (with optional cookie for authenticated requests)
   handle(
     'search-catalog-items',
     z.tuple([
@@ -47,7 +47,7 @@ export const registerCatalogHandlers = (): void => {
     }
   )
 
-
+  // Get item thumbnails
   handle(
     'get-catalog-thumbnails',
     z.tuple([
@@ -63,7 +63,7 @@ export const registerCatalogHandlers = (): void => {
     }
   )
 
-
+  // Download shirt/pants template
   handle(
     'download-catalog-template',
     z.tuple([z.number(), z.string(), z.string().optional()]),

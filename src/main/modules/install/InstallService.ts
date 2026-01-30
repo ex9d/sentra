@@ -133,18 +133,18 @@ const readMacBundleVersion = (bundlePath: string): string | null => {
 export class RobloxInstallService {
   private static historyCache: Record<string, string[]> | null = null
   private static lastHistoryFetch = 0
-  private static readonly CACHE_DURATION = 1000 * 60 * 15
+  private static readonly CACHE_DURATION = 1000 * 60 * 15 // 15 minutes
 
   static async runSpoofer(): Promise<void> {
     try {
       let spooferExe = ''
 
-
+      // Try production path first (spoofer next to executable)
       let prodPath = path.join(path.dirname(process.execPath), 'spoofer', 'SENTRA Spoofer.exe')
       if (fs.existsSync(prodPath)) {
         spooferExe = prodPath
       } else {
-
+        // Fallback to dev path (in assets folder)
         let devPath = path.join(app.getAppPath(), 'assets', 'spoofer', 'SENTRA Spoofer.exe')
         if (fs.existsSync(devPath)) {
           spooferExe = devPath
@@ -155,7 +155,7 @@ export class RobloxInstallService {
         throw new Error(`SENTRA Spoofer not found in production path or dev assets folder`)
       }
 
-
+      // Use shell.openPath to execute the file natively
       const result = await shell.openPath(spooferExe)
       if (result) {
         throw new Error(result)
@@ -257,7 +257,7 @@ export class RobloxInstallService {
       const appSettingsContent = `<?xml version="1.0" encoding="UTF-8"?>
 <Settings>
 \t<ContentFolder>content</ContentFolder>
-\t<BaseUrl>http:
+\t<BaseUrl>http://www.roblox.com</BaseUrl>
 </Settings>
 `
       fs.writeFileSync(appSettingsPath, appSettingsContent)
@@ -276,7 +276,7 @@ export class RobloxInstallService {
         const zipPath = path.join(installPath, pkg)
         const rootDir = roots[pkg]
 
-
+        // Pass all necessary data to the worker
         const workerData = {
           url,
           zipPath,
@@ -373,7 +373,7 @@ export class RobloxInstallService {
                       normalizedEntryPath !== normalizedRoot &&
                       !normalizedEntryPath.startsWith(rootWithSep)
                     ) {
-
+                      // escape
                     } else {
                       if (fileNameStr.endsWith('/') || fileNameStr.endsWith('\\')) {
                         await fs.promises.mkdir(normalizedEntryPath, { recursive: true })
@@ -410,11 +410,11 @@ export class RobloxInstallService {
             }
             await extractZip(data.zipPath, targetExtractPath)
 
-
+            // Cleanup
             try {
               await fs.promises.unlink(data.zipPath)
             } catch {
-
+              // Ignore cleanup failures
             }
           }
 
@@ -424,11 +424,11 @@ export class RobloxInstallService {
 
       const activeWorkers: Promise<any>[] = []
 
-
+      // Initial fill
       while (queue.length > 0 && activeWorkers.length < concurrency) {
         const pkg = queue.shift()!
         const workerPromise = processPackage(pkg).then((handle) => handle.join())
-
+        // We need to track the promise itself to remove it from the pool
         const trackedPromise = workerPromise.then(() => {
           activeWorkers.splice(activeWorkers.indexOf(trackedPromise), 1)
           completed++
@@ -437,7 +437,7 @@ export class RobloxInstallService {
         activeWorkers.push(trackedPromise)
       }
 
-
+      // Replenish
       while (activeWorkers.length > 0) {
         await Promise.race(activeWorkers)
         while (queue.length > 0 && activeWorkers.length < concurrency) {
@@ -645,14 +645,14 @@ export class RobloxInstallService {
       throw new Error('RobloxPlayerBeta.exe not found in ' + installPath)
     }
 
-
-
-
-
-
-
-
-
+    // We need to set registry keys for roblox-player protocol
+    // HKCU\Software\Classes\roblox-player
+    //   (Default) = "URL: Roblox Protocol"
+    //   "URL Protocol" = ""
+    //   DefaultIcon
+    //     (Default) = "path\to\exe,0"
+    //   shell\open\command
+    //     (Default) = "path\to\exe" "%1"
 
     const cmds = [
       [
@@ -755,9 +755,9 @@ export class RobloxInstallService {
           return
         }
 
-
-
-
+        // Output looks like:
+        // HKEY_CURRENT_USER\Software\Classes\roblox-player\DefaultIcon
+        //    (Default)    REG_SZ    C:\Path\To\RobloxPlayerBeta.exe,0
 
         const match = stdout.match(/REG_SZ\s+([^\r\n]+),0/)
         if (match && match[1]) {
@@ -780,7 +780,7 @@ export class RobloxInstallService {
     if (process.platform === 'darwin') {
       const openArgs: string[] = []
 
-
+      // If a specific app path is provided, attempt to target it
       if (installPath && fs.existsSync(installPath)) {
         const appPath = installPath.endsWith('.app')
           ? installPath
@@ -812,11 +812,11 @@ export class RobloxInstallService {
     }
   }
 
-
-
-
-
-
+  /**
+   * Detects default Roblox installations from the standard Roblox Versions directory
+   * Windows: C:\Users\<user>\AppData\Local\Roblox\Versions\
+   * macOS: /Applications/Roblox.app or ~/Applications/Roblox.app
+   */
   static async detectDefaultInstallations(): Promise<DetectedInstallation[]> {
     const detected: DetectedInstallation[] = []
 

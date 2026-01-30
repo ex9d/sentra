@@ -53,7 +53,7 @@ export class RobloxLauncherService {
 
       if (friendId) {
         placeLauncherUrl =
-          `https:
+          `https://www.roblox.com/Game/PlaceLauncher.ashx?` +
           `request=RequestFollowUser` +
           `&browserTrackerId=${browserTrackerId}` +
           `&userId=${friendId}` +
@@ -62,7 +62,7 @@ export class RobloxLauncherService {
           `&joinAttemptOrigin=followUser`
       } else if (jobId) {
         placeLauncherUrl =
-          `https:
+          `https://www.roblox.com/Game/PlaceLauncher.ashx?` +
           `request=RequestGameJob` +
           `&browserTrackerId=${browserTrackerId}` +
           `&placeId=${placeId}` +
@@ -72,7 +72,7 @@ export class RobloxLauncherService {
           `&joinAttemptOrigin=publicServerListJoin`
       } else {
         placeLauncherUrl =
-          `https:
+          `https://www.roblox.com/Game/PlaceLauncher.ashx?` +
           `request=RequestGame` +
           `&browserTrackerId=${browserTrackerId}` +
           `&placeId=${placeId}` +

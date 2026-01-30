@@ -2,9 +2,9 @@ import path from 'path'
 import fs from 'fs'
 import { net } from 'electron'
 
-
-
-
+/**
+ * Helper function to compute CDN server from hash
+ */
 export const hashToServer = (hash: string): number => {
   let i = 31
   for (const c of hash) {
@@ -13,9 +13,9 @@ export const hashToServer = (hash: string): number => {
   return i % 8
 }
 
-
-
-
+/**
+ * Helper function to download a file from URL
+ */
 export const downloadFileToPath = (url: string, dest: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const dir = path.dirname(dest)

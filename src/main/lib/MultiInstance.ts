@@ -1,6 +1,6 @@
 import koffi from 'koffi'
 
-
+// Multi-instance is a Windows-only feature. Bail out quietly on other platforms.
 const isWindows = process.platform === 'win32'
 
 let kernel32: any

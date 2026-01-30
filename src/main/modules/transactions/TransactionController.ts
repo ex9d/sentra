@@ -8,9 +8,9 @@ import {
   transactionTimeFrameSchema
 } from '@shared/ipc-schemas/transactions'
 
-
-
-
+/**
+ * Registers transaction-related IPC handlers
+ */
 export const registerTransactionHandlers = (): void => {
   handle('get-transaction-types', z.tuple([z.string()]), async (_, cookieRaw) => {
     const cookie = RobloxAuthService.extractCookie(cookieRaw)

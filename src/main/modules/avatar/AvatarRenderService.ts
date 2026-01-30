@@ -13,7 +13,7 @@ const avatarRenderResponseSchema = z.object({
 export class RobloxAvatarRenderService {
   static async getCurrentAvatar(cookie: string, userId?: number) {
     const url = userId
-      ? `https:
+      ? `https://avatar.roblox.com/v1/users/${userId}/avatar`
       : 'https://avatar.roblox.com/v1/avatar'
 
     return request(avatarStateSchema, {
@@ -22,10 +22,10 @@ export class RobloxAvatarRenderService {
     })
   }
 
-
-
-
-
+  /**
+   * Renders a preview of what the user's avatar would look like with an additional asset
+   * without actually modifying the avatar. Uses the /v1/avatar/render endpoint.
+   */
   static async renderAvatarWithAsset(
     cookie: string,
     userId: number,

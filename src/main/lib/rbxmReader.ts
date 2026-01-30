@@ -1,7 +1,7 @@
-
-
-
-
+/**
+ * Roblox Binary Model (.rbxm/.rbxl) Reader
+ * Decodes binary Roblox files into a structured format compatible with xmlReader.ts
+ */
 
 import lz4 from 'lz4js'
 import * as fzstd from 'fzstd'
@@ -296,14 +296,14 @@ class ByteReader {
     const raw = this.getBytes(count * 4)
     return ByteReader.convertInterleaved(raw, count, (b) => {
       const i = Buffer.from(b).readInt32BE(0)
-      return (i >> 1) ^ -(i & 1)
+      return (i >> 1) ^ -(i & 1) // un-zigzag
     })
   }
 
   getInterleavedFloat32(count: number) {
     const raw = this.getBytes(count * 4)
     return ByteReader.convertInterleaved(raw, count, (b) => {
-
+      // Roblox float format transform
       const rbxBits = bytesToBitArray(b)
       const stdBits = new Uint8Array(32)
       for (let i = 0; i < 31; i++) stdBits[i + 1] = rbxBits[i]
@@ -411,13 +411,13 @@ const Parsers: Partial<Record<DataType, TypeParser>> = {
   },
   [DataType.CFrame]: {
     read(r, count, out) {
-
+      // Orientation matrices are complex (compressed as rotation IDs or raw floats)
       const orientations: number[][] = []
       for (let i = 0; i < count; ++i) {
         const id = r.getUint8()
         if (id > 0) {
-
-
+          // In a full implementation, we'd map IDs to rotation matrices
+          // For brevity, we'll push Identity for known IDs
           orientations.push([1, 0, 0, 0, 1, 0, 0, 0, 1])
         } else {
           const mat: number[] = []
@@ -543,7 +543,7 @@ const Parsers: Partial<Record<DataType, TypeParser>> = {
         const bytes = r.getBytes(8)
         const low = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | ((bytes[3] << 24) >>> 0)
         const high = bytes[4] | (bytes[5] << 8) | (bytes[6] << 16) | ((bytes[7] << 24) >>> 0)
-
+        // For simplicity, return as BigInt or string
         const value = BigInt(high) * BigInt(0x100000000) + BigInt(low >>> 0)
         out.push({ type: DataType.Int64, value: value.toString() })
       }
@@ -696,10 +696,10 @@ class RobloxFileDOMReader {
   }
 }
 
-
-
-
-
+/**
+ * Converts a CoreInstance from binary format to the Instance class used by xmlReader.ts
+ * This allows the same data structure to be used regardless of whether the file was XML or binary
+ */
 function convertToXmlInstance(coreInst: CoreInstance): Instance {
   const inst = new Instance(coreInst.ClassName)
   inst.referent = coreInst.referent
@@ -717,9 +717,9 @@ function convertToXmlInstance(coreInst: CoreInstance): Instance {
   return inst
 }
 
-
-
-
+/**
+ * Converts a RobloxValue to a Property format compatible with xmlReader
+ */
 function convertRobloxValueToProperty(_name: string, rVal: RobloxValue): Property {
   const typeMap: Record<DataType, string> = {
     [DataType.String]: 'string',
@@ -776,9 +776,9 @@ function convertRobloxValueToProperty(_name: string, rVal: RobloxValue): Propert
   return { value, type: typeName }
 }
 
-
-
-
+/**
+ * Checks if a buffer contains a binary Roblox file
+ */
 export function isBinaryRobloxFile(content: string | Buffer): boolean {
   if (Buffer.isBuffer(content)) {
     return content.length >= 8 && content.slice(0, 8).toString() === '<roblox!'
@@ -786,10 +786,10 @@ export function isBinaryRobloxFile(content: string | Buffer): boolean {
   return content.startsWith('<roblox!')
 }
 
-
-
-
-
+/**
+ * Main entry point: Parse a binary Roblox file and return an Instance tree
+ * compatible with the xmlReader format
+ */
 export function parseBinaryRobloxFile(buffer: Buffer): Instance {
   const file = RobloxBinaryFile.ReadFromBuffer(buffer)
 

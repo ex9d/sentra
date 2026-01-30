@@ -2,9 +2,9 @@ import { z } from 'zod'
 import { BinaryType } from '../../renderer/src/types'
 import { LOCKED_SIDEBAR_TABS, SIDEBAR_TAB_IDS } from '../navigation'
 
-
-
-
+// ============================================================================
+// UPDATE & INSTALL SCHEMAS
+// ============================================================================
 
 export const updateCheckSchema = z.object({
   hasUpdate: z.boolean(),
@@ -37,9 +37,9 @@ export const robloxInstallationsSchema = z.array(robloxInstallationSchema)
 import type { RobloxInstallation as RobloxInstallationType } from '../../renderer/src/types'
 export type RobloxInstallation = RobloxInstallationType
 
-
-
-
+// ============================================================================
+// DETECTED INSTALLATIONS SCHEMA
+// ============================================================================
 
 export const detectedInstallationSchema = z.object({
   path: z.string(),
@@ -52,9 +52,9 @@ export const detectedInstallationsSchema = z.array(detectedInstallationSchema)
 
 export type DetectedInstallation = z.infer<typeof detectedInstallationSchema>
 
-
-
-
+// ============================================================================
+// SETTINGS SCHEMAS
+// ============================================================================
 
 const nullableIdentifierSchema = z.union([z.string().min(1), z.null()])
 const optionalPathSchema = z.union([z.string().min(1), z.null()]).optional()
@@ -109,9 +109,9 @@ export const settingsPatchSchema = z.object({
 export type SettingsSnapshot = z.infer<typeof settingsSchema>
 export type SettingsPatch = z.infer<typeof settingsPatchSchema>
 
-
-
-
+// ============================================================================
+// LOGS SCHEMAS
+// ============================================================================
 
 export const logMetadataSchema = z.object({
   filename: z.string(),
@@ -129,9 +129,9 @@ export const logMetadataSchema = z.object({
 
 export type LogMetadata = z.infer<typeof logMetadataSchema>
 
-
-
-
+// ============================================================================
+// NET-LOG SCHEMAS
+// ============================================================================
 
 export const netLogStatusSchema = z.object({
   isLogging: z.boolean(),
@@ -153,9 +153,9 @@ export type NetLogStatus = z.infer<typeof netLogStatusSchema>
 export type NetLogStopResponse = z.infer<typeof netLogStopResponseSchema>
 export type NetLogStartResponse = z.infer<typeof netLogStartResponseSchema>
 
-
-
-
+// ============================================================================
+// PIN SCHEMAS
+// ============================================================================
 
 export const pinVerifyResultSchema = z.object({
   success: z.boolean(),
@@ -182,9 +182,9 @@ export type PinVerifyResult = z.infer<typeof pinVerifyResultSchema>
 export type PinSetResult = z.infer<typeof pinSetResultSchema>
 export type PinLockoutStatus = z.infer<typeof pinLockoutStatusSchema>
 
-
-
-
+// ============================================================================
+// CATALOG DATABASE SCHEMAS
+// ============================================================================
 
 export const catalogDbStatusSchema = z.object({
   exists: z.boolean(),

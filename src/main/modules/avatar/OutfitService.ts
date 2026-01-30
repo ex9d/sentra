@@ -24,14 +24,14 @@ export class RobloxOutfitService {
     itemsPerPage: number = 25
   ) {
     return request(userOutfitCollectionSchema, {
-      url: `https:
+      url: `https://avatar.roblox.com/v1/users/${userId}/outfits?isEditable=${isEditable}&itemsPerPage=${itemsPerPage}&page=${page}`,
       cookie
     })
   }
 
   static async getOutfitDetails(cookie: string, outfitId: number) {
     return request(outfitDetailsSchema, {
-      url: `https:
+      url: `https://avatar.roblox.com/v1/outfits/${outfitId}/details`,
       cookie
     })
   }
@@ -56,7 +56,7 @@ export class RobloxOutfitService {
       await RobloxAvatarMutationService.setAvatarScales(cookie, outfit.scale as any)
     }
 
-
+    // Use V2 API with full asset objects for better compatibility
     if (outfit.assets && outfit.assets.length > 0) {
       const assetsPayload = outfit.assets.map((asset: any) => ({
         id: asset.id,
@@ -90,7 +90,7 @@ export class RobloxOutfitService {
 
     const response = await requestWithCsrf(updateOutfitResultSchema, {
       method: 'PATCH',
-      url: `https:
+      url: `https://avatar.roblox.com/v3/outfits/${outfitId}`,
       cookie,
       headers: {
         'Content-Type': 'application/json'
@@ -100,7 +100,7 @@ export class RobloxOutfitService {
 
     return {
       ...response,
-      success: response.success
+      success: response.success // Zod schema ensures success boolean
     }
   }
 
@@ -108,7 +108,7 @@ export class RobloxOutfitService {
     try {
       await requestWithCsrf(z.object({ success: z.boolean().optional() }), {
         method: 'POST',
-        url: `https:
+        url: `https://avatar.roblox.com/v1/outfits/${outfitId}/delete`,
         cookie,
         headers: {
           'Content-Type': 'application/json'

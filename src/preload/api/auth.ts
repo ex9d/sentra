@@ -2,9 +2,9 @@ import { z } from 'zod'
 import { invoke } from './invoke'
 import * as S from '../../shared/ipc-schemas'
 
-
-
-
+// ============================================================================
+// AUTH API
+// ============================================================================
 
 export const authApi = {
   generateQuickLoginCode: () => invoke('generate-quick-login-code', S.quickLoginCodeSchema),

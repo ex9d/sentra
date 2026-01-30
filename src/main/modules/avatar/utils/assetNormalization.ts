@@ -1,6 +1,6 @@
-
-
-
+/**
+ * Normalize asset data from various input formats
+ */
 export function normalizeAssets(
   assets?: Array<{
     id?: number
@@ -41,9 +41,9 @@ export function normalizeAssets(
   return normalized.length > 0 ? normalized : undefined
 }
 
-
-
-
+/**
+ * Extract asset IDs from assets array
+ */
 export function extractAssetIds(assets?: { id?: number; assetId?: number }[]): number[] {
   if (!assets || !Array.isArray(assets)) return []
 
@@ -56,6 +56,6 @@ export function extractAssetIds(assets?: { id?: number; assetId?: number }[]): n
     })
     .filter((id): id is number => typeof id === 'number')
 
-
+  // Roblox expects unique asset IDs
   return Array.from(new Set(ids))
 }

@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { existsSync } from 'fs'
 import { spawn } from 'child_process'
 import { z } from 'zod'
-
+// LogMetadata defined locally to avoid import issues
 interface LogMetadata {
   filename: string
   path: string
@@ -74,7 +74,7 @@ export const registerLogsHandlers = () => {
           return spawn(move(fileInfo), async (info) => {
             const fs = await import('fs/promises')
 
-
+            // Inline parsing logic to avoid relative import issues in bundled worker
             const parseLogContent = (content: string) => {
               const metadata: any = {}
 

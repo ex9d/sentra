@@ -2,9 +2,9 @@ import { z } from 'zod'
 import { invoke } from './invoke'
 import * as S from '../../shared/ipc-schemas'
 
-
-
-
+// ============================================================================
+// GAMES API
+// ============================================================================
 
 const gamePassPurchaseResponseSchema = z
   .object({
@@ -93,9 +93,9 @@ export const gamesApi = {
     invoke('save-game-image', S.downloadResultSchema, imageUrl, gameName)
 }
 
-
-
-
+// ============================================================================
+// GROUPS API
+// ============================================================================
 
 export const groupsApi = {
   getGroupDetails: (groupId: number, cookie?: string) =>

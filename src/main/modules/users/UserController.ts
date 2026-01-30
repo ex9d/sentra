@@ -3,9 +3,9 @@ import { handle } from '../core/utils/handle'
 import { RobloxAuthService } from '../auth/RobloxAuthService'
 import { RobloxUserService } from './UserService'
 
-
-
-
+/**
+ * Registers user-related IPC handlers
+ */
 export const registerUserHandlers = (): void => {
   handle('get-avatar-url', z.tuple([z.string()]), async (_, userId) => {
     return RobloxUserService.getAvatarUrl(userId)
@@ -50,7 +50,7 @@ export const registerUserHandlers = (): void => {
   })
 
   handle('get-batch-account-statuses', z.tuple([z.array(z.string())]), async (_, cookieRaws) => {
-
+    // Extract cookies for the service, but keep original cookies for the result keys
     const cookieMap = new Map<string, string>()
     const extractedCookies: string[] = []
 

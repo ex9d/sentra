@@ -1,6 +1,6 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 
-
+// Duplicate of Account interface from renderer to avoid import issues
 export interface Account {
   id: string
   displayName: string
@@ -28,6 +28,6 @@ declare global {
   interface Window {
     electron: ElectronAPI
     platform: PlatformInfo
-
+    // api types are defined in renderer/src/window.d.ts
   }
 }

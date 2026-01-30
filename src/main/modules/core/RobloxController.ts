@@ -567,11 +567,11 @@ export const registerRobloxHandlers = (): void => {
   handle(
     'purchase-limited-item',
     z.tuple([
-      z.string(),
-      z.string(),
-      z.number(),
-      z.number(),
-      z.string()
+      z.string(), // cookie
+      z.string(), // collectibleItemInstanceId
+      z.number(), // expectedPrice
+      z.number(), // sellerId
+      z.string() // collectibleProductId
     ]),
     async (
       _,
@@ -728,7 +728,7 @@ export const registerRobloxHandlers = (): void => {
   })
 
   handle('get-rolimons-player', z.tuple([z.number()]), async (_, userId) => {
-    const response = await net.fetch(`https:
+    const response = await net.fetch(`https://api.rolimons.com/players/v1/playerinfo/${userId}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
@@ -752,7 +752,7 @@ export const registerRobloxHandlers = (): void => {
     z.tuple([z.number(), z.enum(['obj', 'texture']), z.string()]),
     async (event, assetId, type, assetName) => {
       const thumbResponse = await net.fetch(
-        `https:
+        `https://thumbnails.roblox.com/v1/assets-thumbnail-3d?assetId=${assetId}`
       )
       if (!thumbResponse.ok)
         throw new Error(`Failed to fetch 3D thumbnail data: ${thumbResponse.status}`)
@@ -774,7 +774,7 @@ export const registerRobloxHandlers = (): void => {
       const win = BrowserWindow.fromWebContents(event.sender)
 
       if (type === 'obj') {
-        const objUrl = `https:
+        const objUrl = `https://t${hashToServer(objHash)}.rbxcdn.com/${objHash}`
         const safeName = assetName.replace(/[^a-zA-Z0-9_-]/g, '_')
 
         const result = await dialog.showSaveDialog(win!, {
@@ -788,7 +788,7 @@ export const registerRobloxHandlers = (): void => {
         await downloadFileToPath(objUrl, result.filePath)
         return { success: true, path: result.filePath }
       } else {
-        const mtlUrl = `https:
+        const mtlUrl = `https://t${hashToServer(mtlHash)}.rbxcdn.com/${mtlHash}`
         const mtlResponse = await net.fetch(mtlUrl)
         if (!mtlResponse.ok) throw new Error(`Failed to fetch MTL: ${mtlResponse.status}`)
         const mtlText = await mtlResponse.text()
@@ -806,7 +806,7 @@ export const registerRobloxHandlers = (): void => {
 
         if (!textureHash) throw new Error('No texture found in material file')
 
-        const textureUrl = `https:
+        const textureUrl = `https://t${hashToServer(textureHash)}.rbxcdn.com/${textureHash}`
         const safeName = assetName.replace(/[^a-zA-Z0-9_-]/g, '_')
 
         const result = await dialog.showSaveDialog(win!, {

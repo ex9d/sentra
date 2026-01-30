@@ -1,9 +1,9 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron'
 import { z } from 'zod'
 
-
-
-
+/**
+ * Helper function to register IPC handlers with validation
+ */
 export function handle<T extends any[]>(
   channel: string,
   schema: z.ZodTuple<any, any>,
@@ -11,7 +11,7 @@ export function handle<T extends any[]>(
 ) {
   ipcMain.handle(channel, async (event, ...args) => {
     try {
-
+      // args comes in as an array, so we validate against a tuple schema
       const validated = schema.parse(args) as T
       return await handler(event, ...validated)
     } catch (err) {

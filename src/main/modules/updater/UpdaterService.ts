@@ -4,7 +4,7 @@ import log from 'electron-log'
 import path from 'path'
 import fs from 'fs'
 
-
+// Configure logging for auto-updater
 autoUpdater.logger = log
 autoUpdater.autoDownload = false
 autoUpdater.autoInstallOnAppQuit = true
@@ -131,7 +131,7 @@ class UpdaterService {
     return this.state
   }
 
-
+  // For development/testing - set a custom feed URL
   setFeedURL(url: string): void {
     autoUpdater.setFeedURL({
       provider: 'generic',

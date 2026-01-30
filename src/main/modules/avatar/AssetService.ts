@@ -17,11 +17,11 @@ export class RobloxAssetService {
   static async getAssetDetails(cookie: string, assetId: number) {
     const [catalogDetails, economyDetails] = await Promise.allSettled([
       request(assetDetailsSchema, {
-        url: `https:
+        url: `https://catalog.roblox.com/v1/catalog/items/${assetId}/details?itemType=Asset`,
         cookie
       }),
       request(assetDetailsSchema, {
-        url: `https:
+        url: `https://economy.roblox.com/v2/assets/${assetId}/details`,
         cookie
       })
     ])
@@ -57,7 +57,7 @@ export class RobloxAssetService {
   static async getAssetHierarchy(assetId: number) {
     try {
       const buffer = await safeFetchBuffer(
-        `https:
+        `https://assetdelivery.roblox.com/v1/asset?id=${assetId}`
       )
 
       let dataModel: Instance
@@ -94,15 +94,15 @@ export class RobloxAssetService {
     }
   }
 
-
-
-
-
-
-
-
-
-
+  /**
+   * Batch fetch catalog item details for multiple assets at once.
+   * Uses POST https://catalog.roblox.com/v1/catalog/items/details
+   * Much more efficient than individual requests when fetching multiple items.
+   * @param cookie Authentication cookie
+   * @param assetIds Array of asset IDs to fetch details for
+   * @param itemType Type of items (default: 'Asset')
+   * @returns Array of catalog item details
+   */
   static async getBatchAssetDetails(
     cookie: string,
     assetIds: number[],
@@ -112,7 +112,7 @@ export class RobloxAssetService {
       return []
     }
 
-
+    // Roblox API has a limit of ~120 items per batch request
     const BATCH_LIMIT = 120
     const chunks = this.chunkArray(assetIds, BATCH_LIMIT)
     const allResults: CatalogItemDetail[] = []
@@ -151,7 +151,7 @@ export class RobloxAssetService {
       const assetTypeId = details.AssetTypeId || details.assetType || 8
 
       return await request(recommendationsSchema, {
-        url: `https:
+        url: `https://catalog.roblox.com/v2/recommendations/assets?assetId=${assetId}&assetTypeId=${assetTypeId}&details=false&numItems=10`,
         cookie
       })
     } catch (error) {
@@ -160,19 +160,19 @@ export class RobloxAssetService {
     }
   }
 
-
-
-
-
-
-
+  /**
+   * Fetch resellers for a limited/collectible item
+   * @param collectibleItemId The collectible item ID (UUID) from asset details
+   * @param limit Number of resellers to fetch (default 100)
+   * @param cursor Pagination cursor
+   */
   static async getAssetResellers(
     collectibleItemId: string,
     limit: number = 100,
     cursor?: string
   ): Promise<ResellersResponse> {
     try {
-      let url = `https:
+      let url = `https://apis.roblox.com/marketplace-sales/v1/item/${collectibleItemId}/resellers?limit=${limit}`
       if (cursor) {
         url += `&cursor=${cursor}`
       }
@@ -187,14 +187,14 @@ export class RobloxAssetService {
     }
   }
 
-
-
-
-
-
-
-
-
+  /**
+   * Fetch owners for a limited asset
+   * @param cookie Authentication cookie (required for owner details)
+   * @param assetId The asset ID
+   * @param limit Number of owners to fetch (default 100)
+   * @param sortOrder Sort order (Asc or Desc)
+   * @param cursor Pagination cursor
+   */
   static async getAssetOwners(
     cookie: string,
     assetId: number,
@@ -203,7 +203,7 @@ export class RobloxAssetService {
     cursor?: string
   ): Promise<AssetOwnersResponse> {
     try {
-      let url = `https:
+      let url = `https://inventory.roblox.com/v2/assets/${assetId}/owners?limit=${limit}&sortOrder=${sortOrder}`
       if (cursor) {
         url += `&cursor=${cursor}`
       }
@@ -255,7 +255,7 @@ export class RobloxAssetService {
 
   static async getResaleData(assetId: number) {
     return request(resaleDataSchema, {
-      url: `https:
+      url: `https://economy.roblox.com/v1/assets/${assetId}/resale-data`,
       method: 'GET'
     })
   }
@@ -282,7 +282,7 @@ export class RobloxAssetService {
 
     return requestWithCsrf(purchaseResponseSchema, {
       method: 'POST',
-      url: `https:
+      url: `https://economy.roblox.com/v1/purchases/products/${productId}`,
       cookie,
       headers: {
         'Content-Type': 'application/json'

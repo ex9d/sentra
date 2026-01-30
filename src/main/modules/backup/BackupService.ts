@@ -12,13 +12,13 @@ export interface BackupData {
 export class AccountBackupService {
   private static readonly BACKUP_DIR = path.join(app.getPath('documents'), 'Sentra', 'Backups')
 
-
-
-
+  /**
+   * Create encrypted backup file with accounts
+   */
   static async createBackup(accounts: any[], backupPin: string): Promise<string> {
     try {
       backupPin = String(backupPin || '')
-
+      
       if (!fs.existsSync(this.BACKUP_DIR)) {
         fs.mkdirSync(this.BACKUP_DIR, { recursive: true })
       }
@@ -48,13 +48,13 @@ export class AccountBackupService {
     }
   }
 
-
-
-
+  /**
+   * Restore accounts from encrypted backup file
+   */
   static async restoreBackup(filepath: string, backupPin: string): Promise<any[]> {
     try {
       backupPin = String(backupPin || '')
-
+      
       if (!fs.existsSync(filepath)) {
         throw new Error('Backup file not found: ' + filepath)
       }
@@ -69,7 +69,7 @@ export class AccountBackupService {
         throw new Error('Invalid backup format: accounts list missing')
       }
 
-
+      // Normalize accounts to ensure required fields exist and types match expectations
       const normalized = backupData.accounts.map((a: any) => {
         const id = a?.id ?? a?.uuid ?? a?.uid ?? crypto.randomUUID()
         const displayName = a?.displayName ?? a?.display_name ?? a?.name ?? ''
@@ -97,10 +97,10 @@ export class AccountBackupService {
     }
   }
 
-
-
-
-
+  /**
+   * Encrypt data using PIN as key
+   * Produces base64:base64 (IV:cipher) for safe text storage.
+   */
   private static encryptData(data: string, pin: string): string {
     try {
       const salt = 'sentra-backup-salt-v1'
@@ -118,13 +118,13 @@ export class AccountBackupService {
     }
   }
 
-
-
-
-
+  /**
+   * Decrypt data using PIN as key
+   * Supports legacy hex:hex (IV:cipher) and new base64:base64 formats.
+   */
   private static decryptData(combined: string, pin: string): string {
     try {
-
+      // Do not log PIN or derived key for security
 
       const idx = combined.indexOf(':')
       if (idx === -1) throw new Error('Invalid backup file format')

@@ -1,10 +1,10 @@
-
-
-
-
+/**
+ * Query Key Factory
+ * Centralized query key management for consistent cache invalidation
+ */
 
 export const queryKeys = {
-
+  // Accounts
   accounts: {
     all: ['accounts'] as const,
     list: () => [...queryKeys.accounts.all, 'list'] as const,
@@ -13,7 +13,7 @@ export const queryKeys = {
     voice: (cookie: string) => [...queryKeys.accounts.all, 'voice', cookie] as const
   },
 
-
+  // Settings
   settings: {
     all: ['settings'] as const,
     snapshot: () => [...queryKeys.settings.all, 'snapshot'] as const,
@@ -22,7 +22,7 @@ export const queryKeys = {
     avatarRenderWidth: () => [...queryKeys.settings.all, 'avatarRenderWidth'] as const
   },
 
-
+  // Friends
   friends: {
     all: ['friends'] as const,
     list: (accountId: string) => [...queryKeys.friends.all, 'list', accountId] as const,
@@ -31,7 +31,7 @@ export const queryKeys = {
     requests: (accountId: string) => [...queryKeys.friends.all, 'requests', accountId] as const
   },
 
-
+  // Games
   games: {
     all: ['games'] as const,
     sorts: (_sessionId?: string) => [...queryKeys.games.all, 'sorts'] as const,
@@ -44,7 +44,7 @@ export const queryKeys = {
     recentlyPlayed: () => [...queryKeys.games.all, 'recentlyPlayed'] as const
   },
 
-
+  // Avatar
   avatar: {
     all: ['avatar'] as const,
     current: (accountId: string) => [...queryKeys.avatar.all, 'current', accountId] as const,
@@ -55,7 +55,7 @@ export const queryKeys = {
     favorites: () => [...queryKeys.avatar.all, 'favorites'] as const
   },
 
-
+  // Thumbnails
   thumbnails: {
     all: ['thumbnails'] as const,
     batch: (targetIds: number[], type?: string) =>
@@ -68,7 +68,7 @@ export const queryKeys = {
       [...queryKeys.thumbnails.all, 'asset3D', String(assetId)] as const
   },
 
-
+  // User Profile (for viewing other users' profiles)
   userProfile: {
     all: ['userProfile'] as const,
     platform: (userId: number) => [...queryKeys.userProfile.all, 'platform', userId] as const,
@@ -99,7 +99,7 @@ export const queryKeys = {
       [...queryKeys.userProfile.all, 'presence', userId, cookie] as const
   },
 
-
+  // Game Servers
   servers: {
     all: ['servers'] as const,
     list: (placeId: string, excludeFull: boolean) =>
@@ -107,7 +107,7 @@ export const queryKeys = {
     gameName: (placeId: string) => [...queryKeys.servers.all, 'gameName', placeId] as const
   },
 
-
+  // Rolimons (Limited item data)
   rolimons: {
     all: ['rolimons'] as const,
     itemDetails: () => [...queryKeys.rolimons.all, 'itemDetails'] as const,
@@ -115,7 +115,7 @@ export const queryKeys = {
     itemPage: (itemId: number) => [...queryKeys.rolimons.all, 'itemPage', itemId] as const
   },
 
-
+  // Catalog
   catalog: {
     all: ['catalog'] as const,
     navigation: () => [...queryKeys.catalog.all, 'navigation'] as const,
@@ -125,7 +125,7 @@ export const queryKeys = {
     thumbnails: (ids: number[]) => [...queryKeys.catalog.all, 'thumbnails', ids] as const
   },
 
-
+  // Logs
   logs: {
     all: ['logs'] as const,
     list: () => [...queryKeys.logs.all, 'list'] as const,
@@ -133,7 +133,7 @@ export const queryKeys = {
       [...queryKeys.logs.all, 'content', filename ?? 'unknown'] as const
   },
 
-
+  // Inventory
   inventory: {
     all: ['inventory'] as const,
     v2: (cookie: string, userId: number, assetTypes: string[], sortOrder: 'Asc' | 'Desc') =>
@@ -149,7 +149,7 @@ export const queryKeys = {
       [...queryKeys.inventory.all, 'thumbnails', assetIds] as const
   },
 
-
+  // Groups
   groups: {
     all: ['groups'] as const,
     userGroups: (userId: number) => [...queryKeys.groups.all, 'userGroups', userId] as const,
@@ -166,7 +166,7 @@ export const queryKeys = {
       [...queryKeys.groups.all, 'store', groupId, keyword] as const
   },
 
-
+  // Asset Details (for AccessoryDetailsModal)
   assets: {
     all: ['assets'] as const,
     details: (assetId: number) => [...queryKeys.assets.all, 'details', assetId] as const,
@@ -178,7 +178,7 @@ export const queryKeys = {
     resaleData: (assetId: number) => [...queryKeys.assets.all, 'resaleData', assetId] as const
   },
 
-
+  // Batch operations (for user avatars, thumbnails, etc.)
   batch: {
     all: ['batch'] as const,
     userAvatars: (userIds: number[]) =>
@@ -189,7 +189,7 @@ export const queryKeys = {
       [...queryKeys.batch.all, 'thumbnails', assetIds.sort((a, b) => a - b)] as const
   },
 
-
+  // Transactions
   transactions: {
     all: ['transactions'] as const,
     types: (cookie: string) => [...queryKeys.transactions.all, 'types', cookie] as const,

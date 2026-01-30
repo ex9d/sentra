@@ -4,16 +4,16 @@ import { RobloxAuthService } from '../auth/RobloxAuthService'
 import { RobloxFriendService } from './FriendService'
 import { RobloxUserService } from '../users/UserService'
 
-
-
-
+/**
+ * Registers friend-related IPC handlers
+ */
 export const registerFriendHandlers = (): void => {
   handle(
     'get-friends',
     z.tuple([z.string(), z.number().optional(), z.boolean().optional()]),
     async (_, cookieRaw, targetUserId, forceRefresh) => {
       const cookie = RobloxAuthService.extractCookie(cookieRaw)
-
+      // If targetUserId is provided, use it. Otherwise, use the authenticated user's ID.
       const userId = targetUserId || (await RobloxUserService.getAuthenticatedUser(cookie)).id
       return RobloxFriendService.getFriends(cookie, userId, forceRefresh || false)
     }
@@ -48,7 +48,7 @@ export const registerFriendHandlers = (): void => {
 
   handle('fetch-friend-stats', z.tuple([z.string(), z.number()]), async (_, cookieRaw, userId) => {
     const cookie = RobloxAuthService.extractCookie(cookieRaw)
-
+    // userId is passed explicitly for the friend we want to check
     return RobloxFriendService.getFriendStats(cookie, userId)
   })
 
@@ -63,7 +63,7 @@ export const registerFriendHandlers = (): void => {
 
   handle('get-friend-requests', z.tuple([z.string()]), async (_, cookieRaw) => {
     const cookie = RobloxAuthService.extractCookie(cookieRaw)
-
+    // getFriendRequests doesn't need userId - the endpoint uses the authenticated user from the cookie
     return RobloxFriendService.getFriendRequests(cookie)
   })
 

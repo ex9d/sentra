@@ -2,9 +2,9 @@ import { z } from 'zod'
 import { invoke } from './invoke'
 import * as S from '../../shared/ipc-schemas'
 
-
-
-
+// ============================================================================
+// AVATAR API
+// ============================================================================
 
 export const avatarApi = {
   getAvatarUrl: (userId: string) => invoke('get-avatar-url', z.string(), userId),
@@ -67,9 +67,9 @@ export const avatarApi = {
     invoke('download-asset-3d', S.downloadResultSchema, assetId, type, assetName)
 }
 
-
-
-
+// ============================================================================
+// INVENTORY API
+// ============================================================================
 
 export const inventoryApi = {
   getInventory: (cookie: string, userId: number, assetTypeId: number, cursor?: string) =>
@@ -96,9 +96,9 @@ export const inventoryApi = {
     invoke('get-collectibles', z.any(), cookie, userId)
 }
 
-
-
-
+// ============================================================================
+// CATALOG API
+// ============================================================================
 
 export const catalogApi = {
   getAssetContent: (url: string) => invoke('get-asset-content', z.string(), url),
@@ -198,9 +198,9 @@ export const catalogApi = {
     invoke('download-catalog-template', S.templateDownloadResultSchema, assetId, assetName, cookie)
 }
 
-
-
-
+// ============================================================================
+// CATALOG DATABASE API
+// ============================================================================
 
 export const catalogDatabaseApi = {
   getAllCatalogItems: () => invoke('get-all-catalog-items', z.array(S.catalogDbSearchResultSchema)),

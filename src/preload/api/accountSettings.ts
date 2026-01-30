@@ -8,7 +8,7 @@ const updateResultSchema = z.object({
 })
 
 export const accountSettingsApi = {
-
+  // GET methods
   getAccountSettingsJson: (cookie: string) =>
     invoke('get-account-settings-json', S.accountSettingsJsonSchema, cookie),
 
@@ -20,7 +20,7 @@ export const accountSettingsApi = {
 
   getThemeTypes: (cookie: string) => invoke('get-theme-types', z.array(z.string()), cookie),
 
-
+  // UPDATE methods
   updateInventoryPrivacy: (cookie: string, privacyLevel: S.PrivacyLevel) =>
     invoke('update-inventory-privacy', updateResultSchema, cookie, privacyLevel),
 
@@ -57,30 +57,30 @@ export const accountSettingsApi = {
   redeemPromoCode: (cookie: string, code: string) =>
     invoke('redeem-promo-code', S.redeemPromoCodeResponseSchema, cookie, code),
 
+  // ============================================================================
+  // ACCOUNT INFORMATION API METHODS
+  // ============================================================================
 
-
-
-
-
+  // Description methods
   getDescription: (cookie: string) =>
     invoke('get-description', S.descriptionResponseSchema, cookie),
 
   updateDescription: (cookie: string, description: string) =>
     invoke('update-description', updateResultSchema, cookie, description),
 
-
+  // Gender methods
   getGender: (cookie: string) => invoke('get-gender', S.genderResponseSchema, cookie),
 
   updateGender: (cookie: string, gender: string) =>
     invoke('update-gender', updateResultSchema, cookie, gender),
 
-
+  // Birthdate methods
   getBirthdate: (cookie: string) => invoke('get-birthdate', S.birthdateResponseSchema, cookie),
 
   updateBirthdate: (cookie: string, birthMonth: number, birthDay: number, birthYear: number) =>
     invoke('update-birthdate', updateResultSchema, cookie, birthMonth, birthDay, birthYear),
 
-
+  // Promotion channels methods
   getPromotionChannels: (cookie: string) =>
     invoke('get-promotion-channels', S.promotionChannelsResponseSchema, cookie),
 

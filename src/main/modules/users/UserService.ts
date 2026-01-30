@@ -38,13 +38,13 @@ export class RobloxUserService {
     throw new Error('No avatar URL found in response')
   }
 
-
-
-
-
-
-
-
+  /**
+   * Batch fetch avatar headshots for multiple users at once using the thumbnails batch API.
+   * Much more efficient than individual requests when fetching multiple user avatars.
+   * @param userIds Array of user IDs to fetch avatars for
+   * @param size Thumbnail size (default: '420x420')
+   * @returns Map of userId to imageUrl (null if not found)
+   */
   static async getBatchUserAvatarHeadshots(
     userIds: number[],
     size: string = '420x420',
@@ -120,7 +120,7 @@ export class RobloxUserService {
       }
     }
 
-
+    // Process chunks sequentially to avoid hitting rate limits
     for (const chunk of chunks) {
       await fetchChunk(chunk)
     }
@@ -134,14 +134,14 @@ export class RobloxUserService {
 
     const [followers, following, friends, currency] = await Promise.all([
       request(countSchema, {
-        url: `https:
+        url: `https://friends.roblox.com/v1/users/${userId}/followers/count`
       }),
       request(countSchema, {
-        url: `https:
+        url: `https://friends.roblox.com/v1/users/${userId}/followings/count`
       }),
-      request(countSchema, { url: `https:
+      request(countSchema, { url: `https://friends.roblox.com/v1/users/${userId}/friends/count` }),
       request(currencySchema, {
-        url: `https:
+        url: `https://economy.roblox.com/v1/users/${userId}/currency`,
         cookie
       })
     ])
@@ -176,11 +176,11 @@ export class RobloxUserService {
     })
   }
 
-
-
-
-
-
+  /**
+   * Batch get account statuses for multiple cookies.
+   * This is more efficient than calling getAccountStatus for each cookie individually.
+   * Returns a map of cookie -> presence data (or null if failed).
+   */
   static async getBatchAccountStatuses(
     cookies: string[]
   ): Promise<Map<string, { userId: number; presence: any } | null>> {
@@ -190,7 +190,7 @@ export class RobloxUserService {
       return result
     }
 
-
+    // Process auth checks sequentially to avoid rate limits with many accounts
     const cookieToUserId = new Map<string, number>()
     const userIds: number[] = []
     let firstValidCookie: string | null = null
@@ -210,7 +210,7 @@ export class RobloxUserService {
 
     if (userIds.length > 0 && firstValidCookie) {
       try {
-
+        // Presence API can handle up to 100 userIds at once, but let's chunk to be safe
         const chunkSize = 100
         const presenceMap = new Map<number, any>()
 
@@ -270,7 +270,7 @@ export class RobloxUserService {
       }
     }
 
-
+    // Process chunks sequentially
     for (const chunk of chunks) {
       const chunkResult = await fetchChunk(chunk)
       allPresences.push(...chunkResult)
@@ -291,7 +291,7 @@ export class RobloxUserService {
     })
 
     const result = await request(userSearchResponseSchema, {
-      url: `https:
+      url: `https://users.roblox.com/v1/usernames/users`,
       method: 'POST',
       body: {
         usernames: [username],
@@ -316,7 +316,7 @@ export class RobloxUserService {
     })
 
     const result = await request(groupRolesResponseSchema, {
-      url: `https:
+      url: `https://groups.roblox.com/v1/users/${userId}/groups/roles`
     })
 
     return result.data
@@ -325,11 +325,11 @@ export class RobloxUserService {
   static async getExtendedUserDetails(_cookie: string, userId: number) {
     const [premiumData, avatarThumbnail] = await Promise.all([
       request(z.boolean(), {
-        url: `https:
+        url: `https://premiumfeatures.roblox.com/v1/users/${userId}/validate-membership`
       }).catch(() => false),
 
       request(z.object({ data: z.array(avatarHeadshotSchema) }), {
-        url: `https:
+        url: `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=720x720&format=Png&isCircular=false`
       }).catch(() => ({ data: [] }))
     ])
 
@@ -355,7 +355,7 @@ export class RobloxUserService {
         description: z.string()
       }),
       {
-        url: `https:
+        url: `https://users.roblox.com/v1/users/${userId}`
       }
     )
 
@@ -370,7 +370,7 @@ export class RobloxUserService {
         )
       }),
       {
-        url: `https:
+        url: `https://games.roblox.com/v2/users/${userId}/games?accessFilter=2&limit=50&sortOrder=Desc`
       }
     )
 
@@ -391,7 +391,7 @@ export class RobloxUserService {
 
   static async getRobloxBadges(cookie: string, userId: number) {
     return request(z.array(robloxBadgeSchema), {
-      url: `https:
+      url: `https://accountinformation.roblox.com/v1/users/${userId}/roblox-badges`,
       cookie
     })
   }
@@ -409,7 +409,7 @@ export class RobloxUserService {
         previousPageCursor: z.string().nullable()
       }),
       {
-        url: `https:
+        url: `https://badges.roblox.com/v1/users/${userId}/badges?limit=${limit}&sortOrder=Desc${cursor ? `&cursor=${cursor}` : ''}`
       }
     )
   }
@@ -417,7 +417,7 @@ export class RobloxUserService {
   static async getPastUsernames(_cookie: string, userId: number) {
     try {
       return await request(usernameHistorySchema, {
-        url: `https:
+        url: `https://users.roblox.com/v1/users/${userId}/username-history?limit=100&sortOrder=Desc`
       })
     } catch (e: any) {
       if (e.statusCode === 429) {
@@ -432,18 +432,18 @@ export class RobloxUserService {
   static async blockUser(cookie: string, targetUserId: number) {
     await requestWithCsrf(z.object({}).passthrough(), {
       method: 'POST',
-      url: `https:
+      url: `https://accountsettings.roblox.com/v1/users/${targetUserId}/block`,
       cookie
     })
     return { success: true }
   }
 
-
-
-
-
-
-
+  /**
+   * Batch fetch basic user details (id, name, displayName) for multiple users.
+   * Much more efficient than calling getExtendedUserDetails for each user.
+   * @param userIds Array of user IDs to fetch details for
+   * @returns Map of userId to user details (null if not found)
+   */
   static async getBatchUserDetails(
     userIds: number[]
   ): Promise<Map<number, { id: number; name: string; displayName: string } | null>> {
@@ -511,18 +511,18 @@ export class RobloxUserService {
     return resultMap
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Fetch comprehensive user profile data using the profile platform API.
+   * This consolidates multiple API calls into a single request, providing:
+   * - User header info (premium, verified, admin status, counts)
+   * - About info (description, name history, join date, social links)
+   * - Currently wearing assets
+   * - Favorite experiences
+   * - Collections
+   * - Roblox badges (with full metadata)
+   * - Player badges
+   * - Statistics
+   */
   static async getUserProfile(cookie: string, userId: number): Promise<UserProfileResponse> {
     const requestBody = {
       profileId: String(userId),

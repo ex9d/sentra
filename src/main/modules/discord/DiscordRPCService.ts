@@ -265,7 +265,7 @@ class DiscordRPCService {
           buttons: [
             {
               label: 'See game page',
-              url: `https:
+              url: `https://www.roblox.com/games/${this.currentGame.placeId}`
             }
           ],
           largeImageKey: this.currentGame.thumbnailUrl || undefined,

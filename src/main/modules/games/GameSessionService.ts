@@ -48,7 +48,7 @@ class GameSessionService extends EventEmitter {
         try {
           thumbnailUrl = (await RobloxGameService.getGameIconThumbnail(universeId)) ?? undefined
         } catch {
-
+          // Ignore thumbnail errors
         }
       }
     } catch (error) {

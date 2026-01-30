@@ -1,9 +1,9 @@
 import { ipcRenderer } from 'electron'
 import { z } from 'zod'
 
-
-
-
+/**
+ * Helper to validate IPC responses with Zod schemas
+ */
 export async function invoke<T>(
   channel: string,
   schema: z.ZodType<T>,

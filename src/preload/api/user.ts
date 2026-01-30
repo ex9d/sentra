@@ -2,9 +2,9 @@ import { z } from 'zod'
 import { invoke } from './invoke'
 import * as S from '../../shared/ipc-schemas'
 
-
-
-
+// ============================================================================
+// ACCOUNT API
+// ============================================================================
 
 export const accountApi = {
   validateCookie: (cookie: string) => invoke('validate-cookie', S.userSummarySchema, cookie),
@@ -19,9 +19,9 @@ export const accountApi = {
   saveAccounts: (accounts: unknown[]) => invoke('save-accounts', z.void(), accounts)
 }
 
-
-
-
+// ============================================================================
+// USERS API
+// ============================================================================
 
 export const usersApi = {
   getUserByUsername: (username: string) =>
@@ -50,9 +50,9 @@ export const usersApi = {
     invoke('get-user-profile', S.userProfileResponseSchema, cookie, userId)
 }
 
-
-
-
+// ============================================================================
+// FRIENDS API
+// ============================================================================
 
 export const friendsApi = {
   getFriendsStatuses: (cookie: string, userIds: number[]) =>

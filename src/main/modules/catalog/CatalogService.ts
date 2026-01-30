@@ -5,7 +5,7 @@ import path from 'path'
 import fs from 'fs'
 import { parseStringPromise } from 'xml2js'
 
-
+// Catalog Navigation Menu Item Schema
 const catalogSubcategorySchema = z.object({
   subcategory: z.string().nullable(),
   taxonomy: z.string(),
@@ -32,7 +32,7 @@ const catalogNavigationMenuSchema = z.object({
   categories: z.array(catalogCategorySchema)
 })
 
-
+// Catalog Search Item Schema
 const catalogSearchItemSchema = z.object({
   id: z.number(),
   itemType: z.string(),
@@ -67,7 +67,7 @@ const catalogSearchResponseSchema = z.object({
   data: z.array(catalogSearchItemSchema)
 })
 
-
+// Search Suggestion Schema
 const searchSuggestionSchema = z.object({
   Data: z.array(
     z.object({
@@ -77,13 +77,13 @@ const searchSuggestionSchema = z.object({
   )
 })
 
-
+// Types
 export type CatalogCategory = z.infer<typeof catalogCategorySchema>
 export type CatalogSubcategory = z.infer<typeof catalogSubcategorySchema>
 export type CatalogSearchItem = z.infer<typeof catalogSearchItemSchema>
 export type CatalogSearchResponse = z.infer<typeof catalogSearchResponseSchema>
 
-
+// Sort options enum
 export enum CatalogSortType {
   Relevance = 0,
   MostFavorited = 1,
@@ -93,7 +93,7 @@ export enum CatalogSortType {
   PriceLowToHigh = 5
 }
 
-
+// Sales type filter enum
 export enum CatalogSalesTypeFilter {
   All = 1,
   Collectibles = 2,
@@ -117,9 +117,9 @@ export interface CatalogSearchParams {
 }
 
 export class RobloxCatalogService {
-
-
-
+  /**
+   * Fetches the catalog navigation menu with all categories and subcategories
+   */
   static async getNavigationMenu(): Promise<CatalogCategory[]> {
     const result = await request(catalogNavigationMenuSchema, {
       url: 'https://catalog.roblox.com/v1/search/navigation-menu-items'
@@ -127,11 +127,11 @@ export class RobloxCatalogService {
     return result.categories
   }
 
-
-
-
-
-
+  /**
+   * Get search suggestions for catalog
+   * @param prefix Search prefix
+   * @param limit Number of suggestions
+   */
   static async getSearchSuggestions(prefix: string, limit: number = 10): Promise<string[]> {
     try {
       const queryParams = new URLSearchParams({
@@ -141,7 +141,7 @@ export class RobloxCatalogService {
         q: prefix
       })
 
-      const url = `https:
+      const url = `https://apis.roblox.com/autocomplete-avatar/v2/suggest?${queryParams.toString()}`
 
       const result = await request(searchSuggestionSchema, {
         url,
@@ -155,46 +155,46 @@ export class RobloxCatalogService {
     }
   }
 
-
-
-
-
-
+  /**
+   * Search the catalog with various filters
+   * @param params Search parameters
+   * @param cookie Optional authentication cookie for higher rate limits
+   */
   static async searchCatalog(
     params: CatalogSearchParams,
     cookie?: string
   ): Promise<CatalogSearchResponse> {
     const queryParams = new URLSearchParams()
 
-
+    // Always set a limit
     queryParams.set('limit', String(params.limit || 120))
 
-
+    // Taxonomy (category/subcategory identifier)
     if (params.taxonomy) {
       queryParams.set('taxonomy', params.taxonomy)
     }
 
-
+    // Search keyword
     if (params.keyword && params.keyword.trim()) {
       queryParams.set('keyword', params.keyword.trim())
     }
 
-
+    // Sort type
     if (params.sortType !== undefined) {
       queryParams.set('sortType', String(params.sortType))
     }
 
-
+    // Sort aggregation (used with some sort types)
     if (params.sortAggregation !== undefined) {
       queryParams.set('sortAggregation', String(params.sortAggregation))
     }
 
-
+    // Sales type filter (All, Collectibles, Limited)
     if (params.salesTypeFilter !== undefined) {
       queryParams.set('salesTypeFilter', String(params.salesTypeFilter))
     }
 
-
+    // Price range
     if (params.minPrice !== undefined) {
       queryParams.set('minPrice', String(params.minPrice))
     }
@@ -202,7 +202,7 @@ export class RobloxCatalogService {
       queryParams.set('maxPrice', String(params.maxPrice))
     }
 
-
+    // Creator filter
     if (params.creatorName) {
       queryParams.set('creatorName', params.creatorName)
     }
@@ -210,17 +210,17 @@ export class RobloxCatalogService {
       queryParams.set('creatorType', params.creatorType)
     }
 
-
+    // Pagination cursor
     if (params.cursor) {
       queryParams.set('cursor', params.cursor)
     }
 
-
+    // Include items that are not for sale
     if (params.includeNotForSale) {
       queryParams.set('includeNotForSale', 'true')
     }
 
-    const url = `https:
+    const url = `https://catalog.roblox.com/v2/search/items/details?${queryParams.toString()}`
 
     try {
       const result = await request(catalogSearchResponseSchema, { url, cookie })
@@ -231,9 +231,9 @@ export class RobloxCatalogService {
     }
   }
 
-
-
-
+  /**
+   * Get thumbnails for catalog items
+   */
   static async getItemThumbnails(
     items: Array<{ id: number; itemType: string }>
   ): Promise<Record<number, string>> {
@@ -244,7 +244,7 @@ export class RobloxCatalogService {
 
     const thumbnails: Record<number, string> = {}
 
-
+    // Fetch asset thumbnails
     if (assetIds.length > 0) {
       try {
         const assetChunks = this.chunk(assetIds, 100)
@@ -260,7 +260,7 @@ export class RobloxCatalogService {
               )
             }),
             {
-              url: `https:
+              url: `https://thumbnails.roblox.com/v1/assets?assetIds=${chunk.join(',')}&size=150x150&format=Png&isCircular=false`
             }
           )
 
@@ -275,7 +275,7 @@ export class RobloxCatalogService {
       }
     }
 
-
+    // Fetch bundle thumbnails
     if (bundleIds.length > 0) {
       try {
         const bundleChunks = this.chunk(bundleIds, 100)
@@ -291,7 +291,7 @@ export class RobloxCatalogService {
               )
             }),
             {
-              url: `https:
+              url: `https://thumbnails.roblox.com/v1/bundles/thumbnails?bundleIds=${chunk.join(',')}&size=150x150&format=Png&isCircular=false`
             }
           )
 
@@ -315,11 +315,11 @@ export class RobloxCatalogService {
     )
   }
 
-
-
-
-
-
+  /**
+   * Downloads the template for a shirt or pants asset
+   * @param assetId The asset ID
+   * @param assetName The asset name (for filename)
+   */
   static async downloadShirtPantsTemplate(
     assetId: number,
     assetName: string,
@@ -346,7 +346,7 @@ export class RobloxCatalogService {
 
       const xmlResult = await parseStringPromise(body, { attrkey: 'ATTR' })
 
-
+      // Navigate XML structure safely
       const item = xmlResult?.roblox?.Item?.[0]
       const properties = item?.Properties?.[0]
       const content = properties?.Content?.[0]
@@ -359,7 +359,7 @@ export class RobloxCatalogService {
       if (imageUrlBeforeFix.includes('http://www.roblox.com/asset/?id=')) {
         const imageUrl = imageUrlBeforeFix.replace('http://www.roblox.com/asset/?id=', cdnPath)
 
-
+        // Ask user where to save
         const { canceled, filePath } = await dialog.showSaveDialog({
           title: 'Save Template',
           defaultPath: path.join(

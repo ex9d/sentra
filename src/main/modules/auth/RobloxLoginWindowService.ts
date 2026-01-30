@@ -152,7 +152,7 @@ export class RobloxLoginWindowService {
     let browserWindow: BrowserWindow | null = null
 
     try {
-
+      // Validate and set the security cookie before opening the window
       try {
         await browserSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
       } catch (error) {
@@ -167,7 +167,7 @@ export class RobloxLoginWindowService {
         path: '/',
         httpOnly: true,
         secure: true,
-        expirationDate: Math.floor(Date.now() / 1000) + 31536000
+        expirationDate: Math.floor(Date.now() / 1000) + 31536000 // 1 year from now
       })
 
       const windowOptions: BrowserWindowConstructorOptions = {
@@ -201,7 +201,7 @@ export class RobloxLoginWindowService {
 
       browserWindow.on('closed', async () => {
         browserWindow = null
-
+        // Clean up the session partition
         try {
           await browserSession.clearCache()
           await browserSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
@@ -225,7 +225,7 @@ export class RobloxLoginWindowService {
         browserWindow.close()
         browserWindow = null
       }
-
+      // Clean up on error
       try {
         await browserSession.clearCache()
         await browserSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
@@ -245,7 +245,7 @@ export class RobloxLoginWindowService {
       }
     }
 
-
+    // Fall back to a recent Windows Chrome UA to avoid Electron default signature
     return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
   }
 }

@@ -37,18 +37,18 @@ export class RobloxFriendService {
 
     const [followers, following, friends, userInfo] = await Promise.all([
       request(countSchema, {
-        url: `https:
+        url: `https://friends.roblox.com/v1/users/${userId}/followers/count`,
         cookie
       }),
       request(countSchema, {
-        url: `https:
+        url: `https://friends.roblox.com/v1/users/${userId}/followings/count`,
         cookie
       }),
       request(countSchema, {
-        url: `https:
+        url: `https://friends.roblox.com/v1/users/${userId}/friends/count`,
         cookie
       }),
-      request(userInfoSchema, { url: `https:
+      request(userInfoSchema, { url: `https://users.roblox.com/v1/users/${userId}`, cookie })
     ])
 
     return {
@@ -148,9 +148,9 @@ export class RobloxFriendService {
     return { avatars, userDetails, presences }
   }
 
-
-
-
+  /**
+   * Get friends with pagination support - fetches only one page at a time
+   */
   static async getFriendsPaged(cookie: string, userId: number, cursor?: string) {
     const limit = 50
     const queryParams = new URLSearchParams({
@@ -161,7 +161,7 @@ export class RobloxFriendService {
     }
 
     const friendsResult = await request(friendsPageSchema, {
-      url: `https:
+      url: `https://friends.roblox.com/v1/users/${userId}/friends/find?${queryParams.toString()}`,
       cookie
     })
 
@@ -202,9 +202,9 @@ export class RobloxFriendService {
     }
   }
 
-
-
-
+  /**
+   * Get ALL friends (fetches all pages) - use for FriendsTab where all friends are needed
+   */
   static async getFriends(cookie: string, userId: number, _forceRefresh: boolean = false) {
     void _forceRefresh
     let friends: z.infer<typeof friendSchema>[] = []
@@ -223,7 +223,7 @@ export class RobloxFriendService {
         }
 
         const friendsResult = await request(friendsPageSchema, {
-          url: `https:
+          url: `https://friends.roblox.com/v1/users/${userId}/friends/find?${queryParams.toString()}`,
           cookie
         })
 
@@ -273,7 +273,7 @@ export class RobloxFriendService {
     if (cursor) queryParams.append('cursor', cursor)
 
     const result = await request(followersResponseSchema, {
-      url: `https:
+      url: `https://friends.roblox.com/v1/users/${userId}/followers?${queryParams.toString()}`,
       cookie
     })
 
@@ -320,7 +320,7 @@ export class RobloxFriendService {
     if (cursor) queryParams.append('cursor', cursor)
 
     const result = await request(followersResponseSchema, {
-      url: `https:
+      url: `https://friends.roblox.com/v1/users/${userId}/followings?${queryParams.toString()}`,
       cookie
     })
 
@@ -359,7 +359,7 @@ export class RobloxFriendService {
   }
 
   static async sendFriendRequest(cookie: string, targetUserId: number) {
-    const url = `https:
+    const url = `https://friends.roblox.com/v1/users/${targetUserId}/request-friendship`
     const payload = { friendshipOriginSourceType: 0 }
 
     const result = await requestWithCsrf(
@@ -377,7 +377,7 @@ export class RobloxFriendService {
 
   static async getFriendRequests(cookie: string) {
     const result = await request(z.object({ data: z.array(z.any()) }), {
-      url: `https:
+      url: `https://friends.roblox.com/v1/my/friends/requests?sortOrder=Desc&limit=100`,
       cookie
     })
 
@@ -415,7 +415,7 @@ export class RobloxFriendService {
   }
 
   static async acceptFriendRequest(cookie: string, requesterUserId: number) {
-    const url = `https:
+    const url = `https://friends.roblox.com/v1/users/${requesterUserId}/accept-friend-request`
     await requestWithCsrf(z.object({ success: z.boolean().optional() }), {
       method: 'POST',
       url,
@@ -425,7 +425,7 @@ export class RobloxFriendService {
   }
 
   static async declineFriendRequest(cookie: string, requesterUserId: number) {
-    const url = `https:
+    const url = `https://friends.roblox.com/v1/users/${requesterUserId}/decline-friend-request`
     await requestWithCsrf(z.object({ success: z.boolean().optional() }), {
       method: 'POST',
       url,
@@ -435,7 +435,7 @@ export class RobloxFriendService {
   }
 
   static async unfriend(cookie: string, targetUserId: number) {
-    const url = `https:
+    const url = `https://friends.roblox.com/v1/users/${targetUserId}/unfriend`
     await requestWithCsrf(z.object({ success: z.boolean().optional() }), {
       method: 'POST',
       url,

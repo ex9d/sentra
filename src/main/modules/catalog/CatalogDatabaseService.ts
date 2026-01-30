@@ -51,7 +51,7 @@ class CatalogDatabaseService {
   private indexPromise: Promise<CatalogIndexExport> | null = null
 
   constructor() {
-
+    // Always store in userData directory for persistence
     const userDataPath = app.getPath('userData')
     const dbDir = path.join(userDataPath, 'data')
     if (!fs.existsSync(dbDir)) {
@@ -60,9 +60,9 @@ class CatalogDatabaseService {
     this.dbPath = path.join(dbDir, 'roblox_items.db')
   }
 
-
-
-
+  /**
+   * Get the current database status
+   */
   getStatus(): DatabaseStatus {
     return {
       exists: fs.existsSync(this.dbPath),
@@ -72,16 +72,16 @@ class CatalogDatabaseService {
     }
   }
 
-
-
-
+  /**
+   * Check if the database exists
+   */
   isDatabaseReady(): boolean {
     return fs.existsSync(this.dbPath)
   }
 
-
-
-
+  /**
+   * Download the database from GitHub
+   */
   async downloadDatabase(): Promise<{ success: boolean; error?: string }> {
     if (this.isDownloading) {
       return { success: false, error: 'Download already in progress' }
@@ -102,7 +102,7 @@ class CatalogDatabaseService {
 
       const buffer = await this.fetchWithRedirects(DATABASE_DOWNLOAD_URL)
 
-
+      // Write the downloaded file
       fs.writeFileSync(this.dbPath, buffer)
       console.log('[CatalogDatabaseService] Database downloaded successfully to:', this.dbPath)
 
@@ -117,9 +117,9 @@ class CatalogDatabaseService {
     }
   }
 
-
-
-
+  /**
+   * Fetch a URL following redirects (GitHub releases use redirects)
+   */
   private fetchWithRedirects(url: string, maxRedirects: number = 10): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       if (maxRedirects <= 0) {
@@ -166,9 +166,9 @@ class CatalogDatabaseService {
     })
   }
 
-
-
-
+  /**
+   * Initialize the database connection
+   */
   initialize(): void {
     if (this.db) return
 
@@ -186,13 +186,13 @@ class CatalogDatabaseService {
     }
   }
 
-
-
-
+  /**
+   * Ensure database is initialized, downloading if necessary
+   */
   private async ensureInitializedAsync(): Promise<Database.Database> {
     if (this.db) return this.db
 
-
+    // If database doesn't exist, download it first
     if (!fs.existsSync(this.dbPath)) {
       console.log('[CatalogDatabaseService] Database not found, downloading...')
       const result = await this.downloadDatabase()
@@ -253,7 +253,7 @@ class CatalogDatabaseService {
         const rows = db
           .prepare(
             `
-            SELECT
+            SELECT 
               AssetId,
               Name,
               COALESCE(Description, '') as Description,
@@ -307,14 +307,14 @@ class CatalogDatabaseService {
     return this.indexPromise
   }
 
-
-
-
+  /**
+   * Get all catalog items for search indexing
+   */
   async getAllItems(): Promise<CatalogSearchResult[]> {
     const db = await this.ensureInitializedAsync()
 
     const stmt = db.prepare(`
-      SELECT
+      SELECT 
         AssetId,
         Name,
         COALESCE(Description, '') as Description,
@@ -353,14 +353,14 @@ class CatalogDatabaseService {
     }))
   }
 
-
-
-
+  /**
+   * Search items by name (prefix search)
+   */
   async searchByName(query: string, limit: number = 50): Promise<CatalogSearchResult[]> {
     const db = await this.ensureInitializedAsync()
 
     const stmt = db.prepare(`
-      SELECT
+      SELECT 
         AssetId,
         Name,
         COALESCE(Description, '') as Description,
@@ -372,7 +372,7 @@ class CatalogDatabaseService {
         COALESCE(Sales, 0) as Sales
       FROM items
       WHERE Name LIKE ?
-      ORDER BY
+      ORDER BY 
         CASE WHEN Name LIKE ? THEN 0 ELSE 1 END,
         Sales DESC
       LIMIT ?
@@ -406,9 +406,9 @@ class CatalogDatabaseService {
     }))
   }
 
-
-
-
+  /**
+   * Get item by asset ID
+   */
   async getItemById(assetId: number): Promise<CatalogDbItem | null> {
     const db = await this.ensureInitializedAsync()
 
@@ -457,9 +457,9 @@ class CatalogDatabaseService {
     }
   }
 
-
-
-
+  /**
+   * Get sales data for an asset
+   */
   async getSalesData(assetId: number): Promise<{ id: number; sales: number } | null> {
     const db = await this.ensureInitializedAsync()
 
@@ -479,9 +479,9 @@ class CatalogDatabaseService {
     }
   }
 
-
-
-
+  /**
+   * Get batch sales data for multiple assets
+   */
   async getBatchSalesData(assetIds: number[]): Promise<Record<number, number>> {
     if (assetIds.length === 0) return {}
 
@@ -503,9 +503,9 @@ class CatalogDatabaseService {
     return result
   }
 
-
-
-
+  /**
+   * Get total item count
+   */
   async getItemCount(): Promise<number> {
     const db = await this.ensureInitializedAsync()
 
@@ -514,9 +514,9 @@ class CatalogDatabaseService {
     return row.count
   }
 
-
-
-
+  /**
+   * Close the database connection
+   */
   close(): void {
     if (this.db) {
       this.db.close()
@@ -526,5 +526,5 @@ class CatalogDatabaseService {
   }
 }
 
-
+// Singleton instance
 export const catalogDatabaseService = new CatalogDatabaseService()

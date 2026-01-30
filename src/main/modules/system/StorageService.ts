@@ -35,7 +35,7 @@ const storeDataSchema = z.object({
   avatarRenderWidth: z.number().optional(),
   windowWidth: z.number().optional(),
   windowHeight: z.number().optional(),
-
+  // Encrypted accounts stored as base64 string
   encryptedAccounts: z.string().optional(),
   favoriteGames: z.array(z.string()).optional(),
   favoriteItems: z.array(favoriteItemSchema).optional(),
@@ -55,7 +55,7 @@ const storeDataSchema = z.object({
       showSidebarProfileCard: z.boolean().optional(),
       sidebarTabOrder: z.array(sidebarTabIdEnum).optional(),
       sidebarHiddenTabs: z.array(sidebarTabIdEnum).optional(),
-
+      // pinCodeHash stores the encrypted, hashed PIN (not plain text)
       pinCodeHash: z.string().nullable().optional()
     })
     .optional()
@@ -111,7 +111,7 @@ class StorageService {
         this.data = {}
       }
 
-
+      // Disable multi-instance on non-Windows to avoid no-op / confusion
       if (process.platform !== 'win32') {
         if (this.data.settings) {
           this.data.settings.allowMultipleInstances = false
@@ -130,7 +130,7 @@ class StorageService {
   }
 
   private migratePin(): void {
-
+    // Remove any legacy unencrypted PIN data for security
     if (this.data.settings && 'pinCode' in this.data.settings) {
       delete (this.data.settings as any).pinCode
       this.save()
@@ -145,28 +145,28 @@ class StorageService {
     }
   }
 
-
-
-
+  /**
+   * Encrypt accounts with PIN using AES-256-GCM
+   */
   private encryptAccountsWithPin(accounts: Account[], pin: string): string | null {
     try {
-
+      // Derive key from PIN using PBKDF2 (256-bit key)
       const salt = crypto.randomBytes(16)
       const key = crypto.pbkdf2Sync(pin, salt, 100000, 32, 'sha256')
 
-
+      // Generate IV and encryption cipher
       const iv = crypto.randomBytes(12)
       const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
 
-
+      // Encrypt the accounts JSON
       const plaintext = JSON.stringify(accounts)
       let encrypted = cipher.update(plaintext, 'utf-8', 'hex')
       encrypted += cipher.final('hex')
 
-
+      // Get authentication tag
       const authTag = cipher.getAuthTag()
 
-
+      // Combine: salt + iv + authTag + encrypted data (all hex encoded)
       const combined = salt.toString('hex') + iv.toString('hex') + authTag.toString('hex') + encrypted
 
       return combined
@@ -176,21 +176,21 @@ class StorageService {
     }
   }
 
-
-
-
+  /**
+   * Decrypt accounts with PIN using AES-256-GCM
+   */
   private decryptAccountsWithPin(encryptedData: string, pin: string): Account[] | null {
     try {
-
+      // Parse: salt (32 chars) + iv (24 chars) + authTag (32 chars) + encrypted data (rest)
       const salt = Buffer.from(encryptedData.substring(0, 32), 'hex')
       const iv = Buffer.from(encryptedData.substring(32, 56), 'hex')
       const authTag = Buffer.from(encryptedData.substring(56, 88), 'hex')
       const encrypted = encryptedData.substring(88)
 
-
+      // Derive key from PIN
       const key = crypto.pbkdf2Sync(pin, salt, 100000, 32, 'sha256')
 
-
+      // Decrypt
       const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
       decipher.setAuthTag(authTag)
 
@@ -232,18 +232,18 @@ class StorageService {
     this.save()
   }
 
-
-
-
+  /**
+   * Get accounts - returns empty array if PIN not verified
+   */
   public getAccounts(): Account[] {
     const pinHash = this.getPinHash()
 
-
+    // If PIN is set but not verified, return empty array
     if (pinHash && !pinService.isPinCurrentlyVerified()) {
       return []
     }
 
-
+    // If we haven't decrypted yet, try to decrypt
     if (this.decryptedAccounts === null && this.data.encryptedAccounts) {
       if (this.currentVerifiedPin) {
         this.decryptedAccounts = this.decryptAccountsWithPin(
@@ -258,9 +258,9 @@ class StorageService {
     return this.decryptedAccounts || []
   }
 
-
-
-
+  /**
+   * Set accounts - encrypts and saves
+   */
   public setAccounts(accounts: Account[]): void {
     const pinHash = this.getPinHash()
 
@@ -274,7 +274,7 @@ class StorageService {
       return
     }
 
-
+    // If PIN is set, encrypt
     if (this.currentVerifiedPin && pinHash) {
       const encrypted = this.encryptAccountsWithPin(accounts, this.currentVerifiedPin)
       if (encrypted) {
@@ -285,7 +285,7 @@ class StorageService {
         console.error('Failed to encrypt accounts')
       }
     } else {
-
+      // No PIN set - just store plaintext (but still as JSON)
       this.data.encryptedAccounts = JSON.stringify(accounts)
       this.decryptedAccounts = accounts
       this.save()
@@ -362,7 +362,7 @@ class StorageService {
           : storedAccent!
         : DEFAULT_ACCENT_COLOR
 
-
+    // Persist the migration so future sessions match.
     if (legacyAccent && LEGACY_DEFAULT_ACCENT_COLORS.includes(legacyAccent)) {
       if (!this.data.settings) this.data.settings = {}
       if (this.data.settings.accentColor !== DEFAULT_ACCENT_COLOR) {
@@ -387,16 +387,16 @@ class StorageService {
     }
   }
 
-
-
-
+  /**
+   * Get the raw encrypted PIN hash for verification
+   */
   public getPinHash(): string | null {
     return this.data.settings?.pinCodeHash ?? null
   }
 
-
-
-
+  /**
+   * Set a new PIN (will be hashed and encrypted)
+   */
   public setPin(
     pin: string | null,
     currentPin?: string
@@ -459,11 +459,11 @@ class StorageService {
 
     this.data.settings.pinCodeHash = hash
 
-
+    // Verify the new PIN to set the internal encryption key state
     pinService.verifyPin(pin, hash)
     this.currentVerifiedPin = pin
 
-
+    // Re-encrypt accounts with new PIN
     if (accounts.length > 0) {
       const encrypted = this.encryptAccountsWithPin(accounts, pin)
       if (encrypted) {
@@ -475,9 +475,9 @@ class StorageService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Verify a PIN attempt for app unlock
+   */
   public verifyPin(pin: string): {
     success: boolean
     locked: boolean
@@ -500,7 +500,7 @@ class StorageService {
       this.save()
     }
 
-
+    // Clear and reset decrypted accounts cache after PIN verification
     if (result.success) {
       this.currentVerifiedPin = pin
       this.decryptedAccounts = null
@@ -514,16 +514,16 @@ class StorageService {
     }
   }
 
-
-
-
+  /**
+   * Check if PIN is currently verified (delegates to PinService)
+   */
   public isPinCurrentlyVerified(): boolean {
     return pinService.isPinCurrentlyVerified()
   }
 
-
-
-
+  /**
+   * Get PIN lockout status
+   */
   public getPinLockoutStatus(): {
     locked: boolean
     lockoutSeconds?: number
@@ -695,3 +695,4 @@ class StorageService {
 }
 
 export const storageService = new StorageService()
+

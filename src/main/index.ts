@@ -1,4 +1,4 @@
-
+/// <reference types="electron-vite/node" />
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
@@ -37,7 +37,7 @@ function createWindow(): BrowserWindow {
     }
   })
 
-
+  // Debounce window resize saving
   let resizeTimeout: NodeJS.Timeout | null = null
   mainWindow.on('resized', () => {
     if (resizeTimeout) clearTimeout(resizeTimeout)
@@ -51,7 +51,7 @@ function createWindow(): BrowserWindow {
   })
 
   mainWindow.on('ready-to-show', () => {
-
+    // Apply saved size non-blocking
     if (storageService) {
       const savedWidth = storageService.getWindowWidth()
       const savedHeight = storageService.getWindowHeight()
@@ -67,7 +67,7 @@ function createWindow(): BrowserWindow {
   mainWindow.webContents.once('dom-ready', () => logPerf('dom-ready'))
   mainWindow.webContents.once('did-finish-load', () => logPerf('did-finish-load'))
 
-
+  // Standardize console log output from renderer
   mainWindow.webContents.on('console-message', (_event, ...args: any[]) => {
     if (args.length === 1 && typeof args[0] === 'object') {
       const { level = 0, message = '', lineNumber: line = 0, sourceId = '' } = args[0]
@@ -129,12 +129,12 @@ app.whenReady().then(async () => {
 
   const loadedModules = await loadModules()
 
-
+  // Update global references
   storageService = loadedModules.storageService
 
   logPerf('modules-loaded')
 
-
+  // Register handlers
   loadedModules.registerRobloxHandlers()
   loadedModules.registerStorageHandlers()
   loadedModules.registerLogsHandlers()

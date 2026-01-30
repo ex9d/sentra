@@ -31,7 +31,7 @@ export class RobloxGameService {
           )
         }),
         {
-          url: `https:
+          url: `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${universeId}&countPerUniverse=10&defaults=true&size=768x432&format=Png&isCircular=false`
         }
       )
 
@@ -48,9 +48,9 @@ export class RobloxGameService {
     }
   }
 
-
-
-
+  /**
+   * Get game icon thumbnail (square icon - better for Discord RPC)
+   */
   static async getGameIconThumbnail(universeId: number): Promise<string | null> {
     try {
       const thumbResult = await request(
@@ -64,7 +64,7 @@ export class RobloxGameService {
           )
         }),
         {
-          url: `https:
+          url: `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=Png&isCircular=false`
         }
       )
 
@@ -80,7 +80,7 @@ export class RobloxGameService {
 
   static async getGameSorts(sessionId: string = randomUUID()) {
     const result = await request(gameSortsSchema, {
-      url: `https:
+      url: `https://apis.roblox.com/explore-api/v1/get-sorts?sessionId=${sessionId}&gameSortsContext=GamesDefaultSorts`
     })
 
     let rawSorts: any[] = []
@@ -112,7 +112,7 @@ export class RobloxGameService {
         gameSortContents: z.array(z.any()).optional()
       }),
       {
-        url: `https:
+        url: `https://apis.roblox.com/explore-api/v1/get-sort-content?sortId=${sortId}&sessionId=${sessionId}&count=${count}`
       }
     )
 
@@ -129,7 +129,7 @@ export class RobloxGameService {
 
   static async searchGames(query: string, sessionId: string = randomUUID()) {
     const result = await request(searchResponseSchema, {
-      url: `https:
+      url: `https://apis.roblox.com/search-api/omni-search?searchQuery=${encodeURIComponent(query)}&sessionId=${sessionId}&pageType=Games`
     })
 
     if (!result.searchResults || result.searchResults.length === 0) return []
@@ -171,7 +171,7 @@ export class RobloxGameService {
           data: z.array(z.any()).optional()
         }),
         {
-          url: `https:
+          url: `https://games.roblox.com/v1/games/list?modelType=Played&count=${count}&sortFilter=LastPlayed&sessionId=${sessionId}`,
           cookie
         }
       )
@@ -219,7 +219,7 @@ export class RobloxGameService {
       for (const ids of chunks) {
         try {
           const detailsResult = await request(z.object({ data: z.array(gameDetailsSchema) }), {
-            url: `https:
+            url: `https://games.roblox.com/v1/games?universeIds=${ids.join(',')}`
           })
           const detailsData = detailsResult.data || []
 
@@ -242,7 +242,7 @@ export class RobloxGameService {
       for (const ids of chunks) {
         try {
           const thumbResult = await request(z.object({ data: z.array(gameThumbnailSchema) }), {
-            url: `https:
+            url: `https://thumbnails.roblox.com/v1/games/icons?universeIds=${ids.join(',')}&size=150x150&format=Png&isCircular=false`
           })
           const thumbData = thumbResult.data || []
 
@@ -267,7 +267,7 @@ export class RobloxGameService {
         for (const ids of chunks) {
           try {
             const votesResult = await request(z.object({ data: z.array(gameVoteSchema) }), {
-              url: `https:
+              url: `https://games.roblox.com/v1/games/votes?universeIds=${ids.join(',')}`
             })
             const votesData = votesResult.data || []
 
@@ -356,7 +356,7 @@ export class RobloxGameService {
       await Promise.all(
         placeIdChunks.map(async (ids) => {
           const result = await request(z.array(placeDetailsSchema), {
-            url: `https:
+            url: `https://games.roblox.com/v1/games/multiget-place-details?placeIds=${ids.join(',')}`,
             headers: { accept: 'application/json' },
             cookie
           })
@@ -392,7 +392,7 @@ export class RobloxGameService {
   static async getUniverseIdFromPlaceId(placeId: number, cookie?: string): Promise<number | null> {
     try {
       const result = await request(z.array(placeDetailsSchema), {
-        url: `https:
+        url: `https://games.roblox.com/v1/games/multiget-place-details?placeIds=${placeId}`,
         headers: {
           accept: 'application/json'
         },
@@ -417,7 +417,7 @@ export class RobloxGameService {
   ) {
     try {
       return await request(pagedServerSchema, {
-        url: `https:
+        url: `https://games.roblox.com/v1/games/${placeId}/servers/Public?limit=${limit}&sortOrder=${sortOrder}${cursor ? `&cursor=${cursor}` : ''}${excludeFullGames ? '&excludeFullGames=true' : ''}`,
         cookie
       })
     } catch (error: any) {
@@ -426,7 +426,7 @@ export class RobloxGameService {
         const universeId = await this.getUniverseIdFromPlaceId(Number(placeId), cookie)
         if (universeId && universeId !== Number(placeId)) {
           return await request(pagedServerSchema, {
-            url: `https:
+            url: `https://games.roblox.com/v1/games/${universeId}/servers/Public?limit=${limit}&sortOrder=${sortOrder}${cursor ? `&cursor=${cursor}` : ''}${excludeFullGames ? '&excludeFullGames=true' : ''}`,
             cookie
           })
         }
@@ -489,7 +489,7 @@ export class RobloxGameService {
           region: z.string().optional()
         }),
         {
-          url: `http:
+          url: `http://ip-api.com/json/${cleanIp}`
         }
       )
       let region = 'Unknown'
@@ -630,7 +630,7 @@ export class RobloxGameService {
   static async getGameSocialLinks(universeId: number, cookie?: string) {
     try {
       const result = await request(socialLinksResponseSchema, {
-        url: `https:
+        url: `https://games.roblox.com/v1/games/${universeId}/social-links/list`,
         cookie
       })
       return result.data || []
@@ -643,7 +643,7 @@ export class RobloxGameService {
   static async voteOnGame(placeId: number, vote: boolean | null, cookie: string) {
     try {
       const result = await requestWithCsrf(voteResponseSchema, {
-        url: `https:
+        url: `https://apis.roblox.com/voting-api/vote/asset/${placeId}?vote=${vote}`,
         method: 'POST',
         cookie
       })
@@ -657,7 +657,7 @@ export class RobloxGameService {
   static async getGamePasses(universeId: number, cookie?: string, pageSize: number = 50) {
     try {
       const result = await request(gamePassesResponseSchema, {
-        url: `https:
+        url: `https://apis.roblox.com/game-passes/v1/universes/${universeId}/game-passes?pageSize=${pageSize}&passView=Full`,
         cookie
       })
       return result
@@ -703,7 +703,7 @@ export class RobloxGameService {
 
     return requestWithCsrf(purchaseResponseSchema, {
       method: 'POST',
-      url: `https:
+      url: `https://economy.roblox.com/v1/purchases/products/${productId}`,
       cookie,
       headers: {
         'Content-Type': 'application/json'

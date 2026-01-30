@@ -25,9 +25,9 @@ const ROBLOX_BASE_URL = 'https://www.roblox.com'
 const USER_SETTINGS_API_URL = 'https://apis.roblox.com/user-settings-api/v1/user-settings'
 const BILLING_API_URL = 'https://billing.roblox.com/v1'
 
-
-
-
+/**
+ * Fetches CSRF token for authenticated requests
+ */
 async function getCsrfToken(cookie: string): Promise<string> {
   const response = await fetch('https://auth.roblox.com/v2/logout', {
     method: 'POST',
@@ -38,13 +38,13 @@ async function getCsrfToken(cookie: string): Promise<string> {
   return response.headers.get('x-csrf-token') || ''
 }
 
-
-
-
+/**
+ * Service for fetching and updating Roblox account settings
+ */
 export class AccountSettingsService {
-
-
-
+  /**
+   * Fetches the account settings JSON from /my/settings/json
+   */
   static async getAccountSettingsJson(cookie: string): Promise<AccountSettingsJson> {
     const response = await fetch(`${ROBLOX_BASE_URL}/my/settings/json`, {
       method: 'GET',
@@ -62,9 +62,9 @@ export class AccountSettingsService {
     return accountSettingsJsonSchema.parse(data)
   }
 
-
-
-
+  /**
+   * Fetches the user settings and options from /user-settings-api
+   */
   static async getUserSettingsAndOptions(cookie: string): Promise<UserSettingsAndOptions> {
     const response = await fetch(`${USER_SETTINGS_API_URL}/settings-and-options`, {
       method: 'GET',
@@ -82,9 +82,9 @@ export class AccountSettingsService {
     return userSettingsAndOptionsSchema.parse(data)
   }
 
-
-
-
+  /**
+   * Fetches both account settings and user settings in parallel
+   */
   static async getCombinedSettings(
     cookie: string
   ): Promise<{ accountSettings: AccountSettingsJson; userSettings: UserSettingsAndOptions }> {
@@ -96,13 +96,13 @@ export class AccountSettingsService {
     return { accountSettings, userSettings }
   }
 
+  // ============================================================================
+  // UPDATE METHODS
+  // ============================================================================
 
-
-
-
-
-
-
+  /**
+   * Updates the user's inventory privacy setting
+   */
   static async updateInventoryPrivacy(
     cookie: string,
     inventoryPrivacy: PrivacyLevel
@@ -125,9 +125,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Updates the user's trade privacy setting
+   */
   static async updateTradePrivacy(
     cookie: string,
     tradePrivacy: TradePrivacy
@@ -150,9 +150,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Updates the user's trade value/quality filter setting
+   */
   static async updateTradeValue(
     cookie: string,
     tradeValue: TradeValue
@@ -175,9 +175,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Updates the user's app chat privacy setting
+   */
   static async updateAppChatPrivacy(
     cookie: string,
     appChatPrivacy: PrivacyLevel
@@ -200,9 +200,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Updates the user's game chat privacy setting
+   */
   static async updateGameChatPrivacy(
     cookie: string,
     gameChatPrivacy: PrivacyLevel
@@ -225,9 +225,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Updates the user's phone discovery/privacy setting
+   */
   static async updatePrivacy(
     cookie: string,
     phoneDiscovery: PrivacyLevel
@@ -250,9 +250,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Updates the user's theme type
+   */
   static async updateTheme(
     cookie: string,
     userId: number,
@@ -276,9 +276,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Updates the user's content restriction level
+   */
   static async updateContentRestriction(
     cookie: string,
     contentRestrictionLevel: ContentRestrictionLevel
@@ -301,9 +301,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Updates the user's online status privacy setting (who can see when you're online / join you)
+   */
   static async updateOnlineStatusPrivacy(
     cookie: string,
     whoCanSeeMyOnlineStatus: OnlineStatusPrivacy
@@ -326,9 +326,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Updates the user's join privacy setting (who can join me in experiences)
+   */
   static async updateWhoCanJoinMeInExperiences(
     cookie: string,
     whoCanJoinMeInExperiences: PrivacyLevel
@@ -351,9 +351,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Sends a verification email
+   */
   static async sendVerificationEmail(
     cookie: string,
     freeItem = false
@@ -376,9 +376,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Gets available theme types
+   */
   static async getThemeTypes(cookie: string): Promise<string[]> {
     const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/themes/types`, {
       method: 'GET',
@@ -396,9 +396,9 @@ export class AccountSettingsService {
     return data.data || []
   }
 
-
-
-
+  /**
+   * Redeems a promo code
+   */
   static async redeemPromoCode(cookie: string, code: string): Promise<RedeemPromoCodeResponse> {
     const csrfToken = await getCsrfToken(cookie)
     const response = await fetch(`${BILLING_API_URL}/promocodes/redeem`, {
@@ -428,13 +428,13 @@ export class AccountSettingsService {
     }
   }
 
+  // ============================================================================
+  // ACCOUNT INFORMATION API METHODS
+  // ============================================================================
 
-
-
-
-
-
-
+  /**
+   * Gets the user's description
+   */
   static async getDescription(cookie: string): Promise<DescriptionResponse> {
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/description`, {
       method: 'GET',
@@ -452,9 +452,9 @@ export class AccountSettingsService {
     return descriptionResponseSchema.parse(data)
   }
 
-
-
-
+  /**
+   * Updates the user's description
+   */
   static async updateDescription(
     cookie: string,
     description: string
@@ -477,9 +477,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Gets the user's gender
+   */
   static async getGender(cookie: string): Promise<GenderResponse> {
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/gender`, {
       method: 'GET',
@@ -497,9 +497,9 @@ export class AccountSettingsService {
     return genderResponseSchema.parse(data)
   }
 
-
-
-
+  /**
+   * Updates the user's gender
+   */
   static async updateGender(
     cookie: string,
     gender: string
@@ -522,9 +522,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Gets the user's birthdate
+   */
   static async getBirthdate(cookie: string): Promise<BirthdateResponse> {
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/birthdate`, {
       method: 'GET',
@@ -542,9 +542,9 @@ export class AccountSettingsService {
     return birthdateResponseSchema.parse(data)
   }
 
-
-
-
+  /**
+   * Updates the user's birthdate
+   */
   static async updateBirthdate(
     cookie: string,
     birthMonth: number,
@@ -569,9 +569,9 @@ export class AccountSettingsService {
     return { success: true }
   }
 
-
-
-
+  /**
+   * Gets the user's promotion channels (social links)
+   */
   static async getPromotionChannels(cookie: string): Promise<PromotionChannelsResponse> {
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/promotion-channels`, {
       method: 'GET',
@@ -591,9 +591,9 @@ export class AccountSettingsService {
     return promotionChannelsResponseSchema.parse(data)
   }
 
-
-
-
+  /**
+   * Updates the user's promotion channels (social links)
+   */
   static async updatePromotionChannels(
     cookie: string,
     channels: {

@@ -9,11 +9,11 @@ import {
   onlineStatusPrivacyValues
 } from '@shared/ipc-schemas/accountSettings'
 
-
-
-
+/**
+ * Registers IPC handlers for account settings
+ */
 export const registerAccountSettingsHandlers = (): void => {
-
+  // GET handlers
   handle('get-account-settings-json', z.tuple([z.string()]), async (_, cookie) => {
     return AccountSettingsService.getAccountSettingsJson(cookie)
   })
@@ -30,7 +30,7 @@ export const registerAccountSettingsHandlers = (): void => {
     return AccountSettingsService.getThemeTypes(cookie)
   })
 
-
+  // UPDATE handlers
   handle(
     'update-inventory-privacy',
     z.tuple([z.string(), z.enum(privacyLevelValues)]),
@@ -126,11 +126,11 @@ export const registerAccountSettingsHandlers = (): void => {
     return AccountSettingsService.redeemPromoCode(cookie, code)
   })
 
+  // ============================================================================
+  // ACCOUNT INFORMATION API HANDLERS
+  // ============================================================================
 
-
-
-
-
+  // Description handlers
   handle('get-description', z.tuple([z.string()]), async (_, cookie) => {
     return AccountSettingsService.getDescription(cookie)
   })
@@ -143,7 +143,7 @@ export const registerAccountSettingsHandlers = (): void => {
     }
   )
 
-
+  // Gender handlers
   handle('get-gender', z.tuple([z.string()]), async (_, cookie) => {
     return AccountSettingsService.getGender(cookie)
   })
@@ -152,7 +152,7 @@ export const registerAccountSettingsHandlers = (): void => {
     return AccountSettingsService.updateGender(cookie, gender)
   })
 
-
+  // Birthdate handlers
   handle('get-birthdate', z.tuple([z.string()]), async (_, cookie) => {
     return AccountSettingsService.getBirthdate(cookie)
   })
@@ -165,7 +165,7 @@ export const registerAccountSettingsHandlers = (): void => {
     }
   )
 
-
+  // Promotion channels handlers
   handle('get-promotion-channels', z.tuple([z.string()]), async (_, cookie) => {
     return AccountSettingsService.getPromotionChannels(cookie)
   })
