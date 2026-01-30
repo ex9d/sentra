@@ -70,7 +70,7 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({ isOpen, onClose }) => {
 
           <div className="mt-4 pt-4 border-t border-neutral-800">
             <p className="text-center text-xs text-neutral-500">
-              Thanks for using our product.{' '}
+              Currently solo project by experimentid.{' '}
               <span role="img" aria-label="heart">
                 ❤️
               </span>

@@ -41,6 +41,7 @@ import {
 } from '@shared/navigation'
 import { useCommandPaletteStore } from './features/command-palette/stores/useCommandPaletteStore'
 import { initCatalogSearchIndex } from './features/command-palette/hooks'
+import ErrorBoundary from './components/ErrorBoundary'
 import { useFriendPresenceNotifications } from './hooks/useFriendPresenceNotifications'
 import {
   useNotificationTrayStore,
@@ -1112,11 +1113,13 @@ const App: React.FC = () => {
       <AnimatePresence>
         {isCommandPaletteOpen && (
           <Suspense fallback={null}>
-            <CommandPalette
-              onViewProfile={handleCommandPaletteViewProfile}
-              onLaunchGame={handleCommandPaletteLaunchGame}
-              onViewAccessory={handleCommandPaletteViewAccessory}
-            />
+            <ErrorBoundary>
+              <CommandPalette
+                onViewProfile={handleCommandPaletteViewProfile}
+                onLaunchGame={handleCommandPaletteLaunchGame}
+                onViewAccessory={handleCommandPaletteViewAccessory}
+              />
+            </ErrorBoundary>
           </Suspense>
         )}
       </AnimatePresence>
