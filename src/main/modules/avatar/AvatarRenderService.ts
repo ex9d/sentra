@@ -134,7 +134,7 @@ export class RobloxAvatarRenderService {
       return this.normalizeRenderResult(finalImageUrl)
     }
 
-    const maxAttempts = 20
+    const maxAttempts = 60
     const pollInterval = 1000
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -157,6 +157,7 @@ export class RobloxAvatarRenderService {
         }
 
         if (statusResponse.state === 'Completed' && finalImageUrl) {
+          console.log(`[AvatarRenderService] Render completed after ${attempt + 1} attempts`)
           break
         }
 

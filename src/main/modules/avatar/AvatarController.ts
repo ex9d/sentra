@@ -478,16 +478,29 @@ export const registerAvatarHandlers = (): void => {
         throw new Error(`Failed to fetch manifest: ${manifestResponse.status}`)
       const manifest = await manifestResponse.json()
 
-      const mtlHash = manifest.mtl
-      const objHash = manifest.obj
-      if (!mtlHash || !objHash) throw new Error('MTL or OBJ hash missing in manifest')
+      // Manifest formats can vary; accept hashes or full URLs
+      const resolveField = (val: any): string | null => {
+        if (!val) return null
+        if (typeof val === 'string') return val
+        if (typeof val === 'object') {
+          if (typeof val.hash === 'string') return val.hash
+          if (typeof val.url === 'string') return val.url
+        }
+        return null
+      }
+
+      const mtlVal = resolveField(manifest.mtl) || resolveField(manifest.mtlHash) || resolveField(manifest.material)
+      const objVal = resolveField(manifest.obj) || resolveField(manifest.objHash) || resolveField(manifest.object)
+      if (!mtlVal || !objVal) throw new Error('MTL or OBJ hash missing in manifest')
+
+      const makeUrl = (val: string) => (val.startsWith('http') ? val : `https://t${hashToServer(val)}.rbxcdn.com/${val}`)
 
       // Get the parent window for the dialog
       const win = BrowserWindow.fromWebContents(event.sender)
 
       if (type === 'obj') {
         // Download OBJ file
-        const objUrl = `https://t${hashToServer(objHash)}.rbxcdn.com/${objHash}`
+        const objUrl = makeUrl(objVal)
         const safeName = assetName.replace(/[^a-zA-Z0-9_-]/g, '_')
 
         const result = await dialog.showSaveDialog(win!, {
@@ -501,27 +514,29 @@ export const registerAvatarHandlers = (): void => {
         await downloadFileToPath(objUrl, result.filePath)
         return { success: true, path: result.filePath }
       } else {
-        // Download texture - need to parse MTL to find texture hash
-        const mtlUrl = `https://t${hashToServer(mtlHash)}.rbxcdn.com/${mtlHash}`
+        // Download texture - need to parse MTL to find texture hash or URL
+        const mtlUrl = makeUrl(mtlVal)
         const mtlResponse = await net.fetch(mtlUrl)
         if (!mtlResponse.ok) throw new Error(`Failed to fetch MTL: ${mtlResponse.status}`)
         const mtlText = await mtlResponse.text()
 
-        // Parse MTL to find texture hash (map_Kd line)
+        // Parse MTL to find texture reference (map_Kd line)
         const lines = mtlText.split(/\r?\n/)
-        let textureHash: string | null = null
+        let textureRef: string | null = null
         for (const line of lines) {
           const trimmed = line.trim()
           if (trimmed.startsWith('map_Kd ')) {
             const parts = trimmed.split(/\s+/)
-            textureHash = parts[parts.length - 1]
+            textureRef = parts[parts.length - 1]
             break
           }
         }
 
-        if (!textureHash) throw new Error('No texture found in material file')
+        if (!textureRef) throw new Error('No texture found in material file')
 
-        const textureUrl = `https://t${hashToServer(textureHash)}.rbxcdn.com/${textureHash}`
+        const textureUrl = textureRef.startsWith('http')
+          ? textureRef
+          : `https://t${hashToServer(textureRef)}.rbxcdn.com/${textureRef}`
         const safeName = assetName.replace(/[^a-zA-Z0-9_-]/g, '_')
 
         const result = await dialog.showSaveDialog(win!, {
