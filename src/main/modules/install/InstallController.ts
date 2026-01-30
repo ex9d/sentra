@@ -132,13 +132,18 @@ export const registerInstallHandlers = (): void => {
   )
 
   handle('pick-backup-file', z.tuple([]), async (event) => {
-    const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender)!, {
+    const ownerWindow = BrowserWindow.fromWebContents(event.sender)
+    const options: Electron.OpenDialogOptions = {
       filters: [
         { name: 'Sentra Backup', extensions: ['bak'] },
         { name: 'All Files', extensions: ['*'] }
       ],
       properties: ['openFile']
-    })
+    }
+
+    const result = ownerWindow
+      ? await dialog.showOpenDialog(ownerWindow, options)
+      : await dialog.showOpenDialog(options)
 
     if (result.canceled) {
       throw new Error('File selection canceled')
