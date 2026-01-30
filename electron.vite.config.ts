@@ -19,7 +19,7 @@ export default defineConfig({
     },
     plugins: [
       externalizeDepsPlugin({
-
+        // Explicitly externalize koffi and other potential native deps
         exclude: []
       })
     ],
@@ -42,7 +42,7 @@ export default defineConfig({
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version)
     },
-    assetsInclude: ['**/*.dds'],
+    assetsInclude: ['**/*.dds'], // Include DDS files as assets
     plugins: [react(), tailwindcss()],
     worker: {
       format: 'es'
@@ -52,7 +52,7 @@ export default defineConfig({
     },
     build: {
       commonjsOptions: {
-        exclude: [/node_modules\/multithreading\
+        exclude: [/node_modules\/multithreading\//]
       }
     }
   }
