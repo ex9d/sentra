@@ -51,7 +51,15 @@ class CatalogDatabaseService {
   private indexPromise: Promise<CatalogIndexExport> | null = null
 
   constructor() {
-    // Always store in userData directory for persistence
+    // First, check if database exists in bundled resources (app.asar or dist)
+    const appPath = app.getAppPath()
+    const bundledDbPath = path.join(appPath, '..', 'assets', 'lists', 'roblox_items.db')
+    if (fs.existsSync(bundledDbPath)) {
+      this.dbPath = bundledDbPath
+      return
+    }
+
+    // Fall back to userData directory for persistence
     const userDataPath = app.getPath('userData')
     const dbDir = path.join(userDataPath, 'data')
     if (!fs.existsSync(dbDir)) {
@@ -95,22 +103,15 @@ class CatalogDatabaseService {
     this.downloadError = null
 
     try {
-      console.log(
-        '[CatalogDatabaseService] Starting database download from:',
-        DATABASE_DOWNLOAD_URL
-      )
-
       const buffer = await this.fetchWithRedirects(DATABASE_DOWNLOAD_URL)
 
       // Write the downloaded file
       fs.writeFileSync(this.dbPath, buffer)
-      console.log('[CatalogDatabaseService] Database downloaded successfully to:', this.dbPath)
 
       this.isDownloading = false
       return { success: true }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('[CatalogDatabaseService] Failed to download database:', errorMessage)
       this.downloadError = errorMessage
       this.isDownloading = false
       return { success: false, error: errorMessage }
@@ -132,8 +133,7 @@ class CatalogDatabaseService {
         url
       })
 
-      request.on('redirect', (statusCode, _method, redirectUrl) => {
-        console.log(`[CatalogDatabaseService] Redirect ${statusCode} to:`, redirectUrl)
+      request.on('redirect', () => {
         request.followRedirect()
       })
 
@@ -173,15 +173,12 @@ class CatalogDatabaseService {
     if (this.db) return
 
     if (!fs.existsSync(this.dbPath)) {
-      console.error('[CatalogDatabaseService] Database not found at:', this.dbPath)
       throw new Error(`Database not found. Please download it first.`)
     }
 
     try {
       this.db = new Database(this.dbPath, { readonly: true })
-      console.log('[CatalogDatabaseService] Database opened:', this.dbPath)
     } catch (error) {
-      console.error('[CatalogDatabaseService] Failed to open database:', error)
       throw error
     }
   }
@@ -194,7 +191,6 @@ class CatalogDatabaseService {
 
     // If database doesn't exist, download it first
     if (!fs.existsSync(this.dbPath)) {
-      console.log('[CatalogDatabaseService] Database not found, downloading...')
       const result = await this.downloadDatabase()
       if (!result.success) {
         throw new Error(result.error || 'Failed to download database')
@@ -521,7 +517,6 @@ class CatalogDatabaseService {
     if (this.db) {
       this.db.close()
       this.db = null
-      console.log('[CatalogDatabaseService] Database closed')
     }
   }
 }

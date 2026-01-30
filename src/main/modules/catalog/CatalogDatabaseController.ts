@@ -42,12 +42,22 @@ export const registerCatalogDatabaseHandlers = (): void => {
 
   // Get sales data for a single asset
   handle('get-sales-data', z.tuple([z.number()]), async (_, assetId) => {
-    return catalogDatabaseService.getSalesData(assetId)
+    try {
+      return await catalogDatabaseService.getSalesData(assetId)
+    } catch (error) {
+      // Database not available, return null gracefully
+      return null
+    }
   })
 
   // Get batch sales data for multiple assets
   handle('get-batch-sales-data', z.tuple([z.array(z.number())]), async (_, assetIds) => {
-    return catalogDatabaseService.getBatchSalesData(assetIds)
+    try {
+      return await catalogDatabaseService.getBatchSalesData(assetIds)
+    } catch (error) {
+      // Database not available, return empty object gracefully
+      return {}
+    }
   })
 
   // Get total item count
