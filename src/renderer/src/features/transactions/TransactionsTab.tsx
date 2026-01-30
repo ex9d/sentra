@@ -90,7 +90,7 @@ const SummaryTableRow = ({
 }: SummaryTableRowProps) => {
   const displayValue = isNegative ? -Math.abs(value) : value
 
-
+  // Don't render rows with 0 value (unless it's the total row)
   if (value === 0 && !isTotal) {
     return null
   }
@@ -184,7 +184,7 @@ const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
   )
 }
 
-
+// Grouped transaction type
 interface GroupedTransaction {
   itemName: string
   transactions: Transaction[]
@@ -203,7 +203,7 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
   const isTickets = group.currencyType === 'Tickets'
   const colorClass = isTickets ? 'text-[#cc9e71]' : isPositive ? 'text-emerald-400' : 'text-red-400'
 
-
+  // If only one transaction, render a normal row
   if (group.transactions.length === 1) {
     return <TransactionRow transaction={group.transactions[0]} onAgentClick={onAgentClick} />
   }
@@ -212,7 +212,7 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
 
   return (
     <>
-      {}
+      {/* Group Header Row */}
       <tr
         className="hover:bg-neutral-800/30 transition-colors border-b border-neutral-800/50 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -259,7 +259,7 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
         </td>
       </tr>
 
-      {}
+      {/* Expanded Child Rows */}
       <AnimatePresence>
         {isExpanded && (
           <>
@@ -273,7 +273,7 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
               >
                 <td className="py-2.5 px-4 text-sm text-neutral-400">
                   <div className="flex items-center gap-2">
-                    {}
+                    {/* Vertical line and indent */}
                     <div className="relative flex items-center">
                       <div
                         className={`absolute left-0 w-0.5 bg-neutral-700 ${
@@ -355,22 +355,22 @@ interface TransactionsTabProps {
 const TransactionsTab = ({ account }: TransactionsTabProps) => {
   const cookie = account?.cookie
 
-
+  // Store state
   const selectedType = useSelectedTransactionType()
   const setSelectedType = useSetSelectedTransactionType()
   const timeFrame = useTimeFrame()
   const setTimeFrame = useSetTimeFrame()
 
-
+  // Dropdown states
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false)
   const [isTimeFrameDropdownOpen, setIsTimeFrameDropdownOpen] = useState(false)
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
 
-
+  // Modal states
   const [profileModalUserId, setProfileModalUserId] = useState<number | null>(null)
   const [groupModalGroupId, setGroupModalGroupId] = useState<number | null>(null)
 
-
+  // Queries
   const {
     data: transactionTypes,
     isLoading: isLoadingTypes,
@@ -398,7 +398,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
     selectedType !== 'all'
   )
 
-
+  // Available transaction types based on user's access
   const availableTypes = useMemo(() => {
     if (!transactionTypes) return []
 
@@ -419,7 +419,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
     return types
   }, [transactionTypes])
 
-
+  // Flatten and sort transactions
   const transactions = useMemo(() => {
     if (!transactionsData) return []
     const flatTransactions = transactionsData.pages.flatMap((page) => page.data)
@@ -431,7 +431,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
     })
   }, [transactionsData, sortOrder])
 
-
+  // Group transactions by item name
   const groupedTransactions = useMemo(() => {
     const groups = new Map<string, GroupedTransaction>()
 
@@ -452,7 +452,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
       }
     }
 
-
+    // Convert to array and sort by the latest transaction date
     return Array.from(groups.values()).sort((a, b) => {
       const dateA = new Date(a.transactions[0].created).getTime()
       const dateB = new Date(b.transactions[0].created).getTime()
@@ -460,7 +460,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
     })
   }, [transactions, sortOrder])
 
-
+  // Handle agent click - open profile or group modal
   const handleAgentClick = useCallback((agent: { id: number; type: string; name: string }) => {
     if (agent.type === 'Group') {
       setGroupModalGroupId(agent.id)
@@ -469,20 +469,20 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
     }
   }, [])
 
-
+  // Parse rate limit error
   const parseRateLimitError = useCallback(
     (error: unknown): { isRateLimited: boolean; resetSeconds: number } => {
       if (!error) return { isRateLimited: false, resetSeconds: 0 }
 
       const errorMessage = error instanceof Error ? error.message : String(error)
 
-
+      // Check if error message contains rate limit info with seconds
       const rateLimitMatch = errorMessage.match(/Rate limited.*?(\d+)\s*seconds/i)
       if (rateLimitMatch) {
         return { isRateLimited: true, resetSeconds: parseInt(rateLimitMatch[1], 10) }
       }
 
-
+      // Check for generic rate limit error
       if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.includes('429')) {
         return { isRateLimited: true, resetSeconds: 60 }
       }
@@ -492,7 +492,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
     []
   )
 
-
+  // Get rate limit status from any error
   const rateLimitStatus = useMemo(() => {
     const errors = [typesError, totalsError, transactionsError]
     for (const error of errors) {
@@ -502,7 +502,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
     return { isRateLimited: false, resetSeconds: 0 }
   }, [typesError, totalsError, transactionsError, parseRateLimitError])
 
-
+  // Summary totals computed from API response
   const incomingTotal = useMemo(() => {
     if (!totals) return 0
     return (
@@ -544,7 +544,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
     }
   }, [refetchTotals, refetchTransactions, selectedType])
 
-
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setIsTypeDropdownOpen(false)
@@ -554,7 +554,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
 
-
+  // Toggle sort order
   const toggleSortOrder = useCallback(() => {
     setSortOrder((prev) => (prev === 'newest' ? 'oldest' : 'newest'))
   }, [])
@@ -573,7 +573,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full bg-neutral-950">
-        {}
+        {/* Toolbar */}
         <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
@@ -583,7 +583,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
           </div>
 
           <div className="flex items-center gap-3">
-            {}
+            {/* Time Frame Dropdown - only shown for summary view */}
             {selectedType === 'all' && (
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button
@@ -635,7 +635,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
               </div>
             )}
 
-            {}
+            {/* Transaction Type Dropdown */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => {
@@ -711,9 +711,9 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
           </div>
         </div>
 
-        {}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-          {}
+          {/* Rate Limit Banner */}
           {rateLimitStatus.isRateLimited && (
             <div className="max-w-4xl mx-auto mb-4">
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-center gap-3">
@@ -739,9 +739,9 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
               <Loader2 size={32} className="animate-spin text-neutral-500" />
             </div>
           ) : selectedType === 'all' ? (
-
+            /* Summary View */
             <div className="max-w-4xl mx-auto space-y-6">
-              {}
+              {/* Summary Cards */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5">
                   <div className="flex items-center gap-3">
@@ -773,7 +773,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                 </div>
               </div>
 
-              {}
+              {/* Incoming Robux Table */}
               <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-neutral-800">
                   <h2 className="text-lg font-semibold text-white">Incoming Robux</h2>
@@ -850,7 +850,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                 </table>
               </div>
 
-              {}
+              {/* Outgoing Robux Table */}
               <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-neutral-800">
                   <h2 className="text-lg font-semibold text-white">Outgoing Robux</h2>
@@ -902,7 +902,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                 </table>
               </div>
 
-              {}
+              {/* Net Summary */}
               <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5">
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-semibold text-white">Net Total</span>
@@ -919,7 +919,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
               </div>
             </div>
           ) : (
-
+            /* Transaction List View */
             <div className="max-w-5xl mx-auto">
               {isLoadingTransactions && transactions.length === 0 ? (
                 <div className="flex items-center justify-center h-64">
@@ -974,7 +974,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                     </tbody>
                   </table>
 
-                  {}
+                  {/* Pagination */}
                   {hasNextPage && (
                     <div className="p-4 border-t border-neutral-800 flex justify-center">
                       <Button
@@ -1004,7 +1004,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
         </div>
       </div>
 
-      {}
+      {/* Profile Modal */}
       <UniversalProfileModal
         isOpen={profileModalUserId !== null}
         onClose={() => setProfileModalUserId(null)}
@@ -1012,7 +1012,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
         selectedAccount={account}
       />
 
-      {}
+      {/* Group Details Modal */}
       <GroupDetailsModal
         isOpen={groupModalGroupId !== null}
         onClose={() => setGroupModalGroupId(null)}

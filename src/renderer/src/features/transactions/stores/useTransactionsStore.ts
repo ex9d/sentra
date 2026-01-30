@@ -3,11 +3,11 @@ import { devtools, persist } from 'zustand/middleware'
 import type { TransactionTypeEnum, TransactionTimeFrame } from '@shared/ipc-schemas/transactions'
 
 interface TransactionsState {
-
+  // Filters
   selectedTransactionType: TransactionTypeEnum | 'all'
   timeFrame: TransactionTimeFrame
 
-
+  // View state
   showSummary: boolean
 }
 
@@ -61,7 +61,7 @@ export const useTransactionsStore = create<TransactionsStore>()(
   )
 )
 
-
+// Selectors
 export const useSelectedTransactionType = () =>
   useTransactionsStore((state) => state.selectedTransactionType)
 export const useSetSelectedTransactionType = () =>

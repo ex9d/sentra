@@ -52,21 +52,20 @@ export const CollectionsSection: React.FC<CollectionsSectionProps> = ({
       </div>
 
       {useGrid ? (
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <div className="grid gap-3 justify-start pl-3 [grid-template-columns:repeat(auto-fit,minmax(8.5rem,8.5rem))]">
           {collections.map((item) => {
             const isLimited = item.cssTag === 'limited' || item.cssTag === 'limited-unique'
             const isLimitedUnique = item.cssTag === 'limited-unique'
             const isSoundHat = SOUND_HAT_IDS.includes(item.id)
             return (
-              <div key={item.id} className="w-32 sm:w-36 md:w-40 lg:w-44 shrink-0">
-                <CollectionItemCard
-                  item={item}
-                  isLimited={isLimited}
-                  isLimitedUnique={isLimitedUnique}
-                  isSoundHat={isSoundHat}
-                  onItemClick={onItemClick}
-                />
-              </div>
+              <CollectionItemCard
+                key={item.id}
+                item={item}
+                isLimited={isLimited}
+                isLimitedUnique={isLimitedUnique}
+                isSoundHat={isSoundHat}
+                onItemClick={onItemClick}
+              />
             )
           })}
         </div>
@@ -112,8 +111,8 @@ export const CollectionsSection: React.FC<CollectionsSectionProps> = ({
           {canScrollRight && (
             <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[var(--color-surface-strong)] to-transparent z-10 pointer-events-none" />
           )}
-          <div ref={scrollRef} className="overflow-x-auto pb-2 scrollbar-hide">
-            <div className="flex gap-3 px-1">
+          <div ref={scrollRef} className="overflow-x-auto pb-2 pt-2 scrollbar-hide">
+            <div className="flex gap-4 pl-3 pr-3">
               {isLoading
                 ? Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="w-32 sm:w-36 md:w-40 lg:w-44 shrink-0">
@@ -164,7 +163,6 @@ const CollectionItemCard: React.FC<CollectionItemCardProps> = ({
   isSoundHat,
   onItemClick
 }) => {
-  // Get rolimons data for limited items
   const rolimonsItem = useRolimonsItem(isLimited ? item.id : null)
 
   return (

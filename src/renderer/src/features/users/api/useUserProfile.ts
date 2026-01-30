@@ -24,7 +24,7 @@ interface DetailedStats {
   joinDate?: string
 }
 
-
+// Fetch extended user details
 export function useExtendedUserDetails(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.extended(userId, cookie),
@@ -36,11 +36,11 @@ export function useExtendedUserDetails(userId: number, cookie: string) {
       }
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 
-
+// Fetch friend stats (includes basic profile info)
 export function useFriendStats(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.stats(userId, cookie),
@@ -48,11 +48,11 @@ export function useFriendStats(userId: number, cookie: string) {
       return window.api.fetchFriendStats(cookie, userId.toString())
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 
-
+// Fetch detailed stats
 export function useDetailedStats(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.details(userId, cookie),
@@ -60,11 +60,11 @@ export function useDetailedStats(userId: number, cookie: string) {
       return window.api.getDetailedStats(cookie, userId)
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 
-
+// Fetch user friends (paginated, limited to 15 for preview)
 export function useUserFriends(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.friends(userId, cookie),
@@ -73,11 +73,11 @@ export function useUserFriends(userId: number, cookie: string) {
       return result.data.slice(0, 15)
     },
     enabled: !!cookie && !!userId,
-    staleTime: 30 * 1000
+    staleTime: 30 * 1000 // 30 seconds
   })
 }
 
-
+// Fetch user groups
 export function useUserGroups(userId: number) {
   return useQuery({
     queryKey: queryKeys.userProfile.groups(userId),
@@ -96,11 +96,11 @@ export function useUserGroups(userId: number) {
       return []
     },
     enabled: !!userId,
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 
-
+// Fetch user collections (collectibles)
 export function useUserCollections(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.collections(userId, cookie),
@@ -121,11 +121,11 @@ export function useUserCollections(userId: number, cookie: string) {
       return []
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 
-
+// Fetch Roblox badges
 export function useRobloxBadges(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.badges.roblox(userId, cookie),
@@ -134,11 +134,11 @@ export function useRobloxBadges(userId: number, cookie: string) {
       return Array.isArray(badges) ? badges.slice(0, 12) : []
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 
-
+// Fetch experience badges
 export function useExperienceBadges(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.badges.experience(userId, cookie),
@@ -173,11 +173,11 @@ export function useExperienceBadges(userId: number, cookie: string) {
       return []
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 
-
+// Fetch currently wearing items
 export function useUserWearingItems(userId: number, cookie: string, enabled: boolean = false) {
   return useQuery({
     queryKey: queryKeys.userProfile.wearing(userId, cookie),
@@ -195,11 +195,11 @@ export function useUserWearingItems(userId: number, cookie: string, enabled: boo
       }))
     },
     enabled: enabled && !!cookie && !!userId,
-    staleTime: 30 * 1000
+    staleTime: 30 * 1000 // 30 seconds
   })
 }
 
-
+// Fetch user outfits
 export function useUserOutfits(userId: number, cookie: string, enabled: boolean = false) {
   return useQuery({
     queryKey: queryKeys.userProfile.outfits(userId, cookie, false),
@@ -229,11 +229,11 @@ export function useUserOutfits(userId: number, cookie: string, enabled: boolean 
       return []
     },
     enabled: enabled && !!cookie && !!userId,
-    staleTime: 30 * 1000
+    staleTime: 30 * 1000 // 30 seconds
   })
 }
 
-
+// Fetch past usernames
 export function usePastUsernames(userId: number, cookie: string, enabled: boolean = false) {
   return useQuery({
     queryKey: queryKeys.userProfile.pastUsernames(userId, cookie),
@@ -245,11 +245,11 @@ export function usePastUsernames(userId: number, cookie: string, enabled: boolea
       return []
     },
     enabled: enabled && !!cookie && !!userId,
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000 // 5 minutes (rarely changes)
   })
 }
 
-
+// Fetch user presence (for status polling)
 export function useUserPresence(userId: number, cookie: string, enabled: boolean = true) {
   return useQuery({
     queryKey: queryKeys.userProfile.presence(userId, cookie),
@@ -257,12 +257,12 @@ export function useUserPresence(userId: number, cookie: string, enabled: boolean
       return window.api.getUserPresence(cookie, userId)
     },
     enabled: enabled && !!cookie && !!userId,
-    refetchInterval: 60000,
-    staleTime: 55000
+    refetchInterval: 60000, // Poll every 60 seconds
+    staleTime: 55000 // Slightly less than refetch interval
   })
 }
 
-
+// Fetch friends statuses (for polling friend list statuses)
 export function useUserFriendsStatuses(
   userId: number,
   cookie: string,
@@ -276,7 +276,7 @@ export function useUserFriendsStatuses(
       return window.api.getFriendsStatuses(cookie, friendIds)
     },
     enabled: enabled && !!cookie && !!userId && friendIds.length > 0,
-    refetchInterval: 60000,
+    refetchInterval: 60000, // Poll every 60 seconds
     staleTime: 55000
   })
 }

@@ -227,6 +227,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
   const queryClient = useQueryClient()
   const setAppUnlocked = useSetAppUnlocked()
   const addNotification = useNotificationTrayStore((s) => s.addNotification)
+  
 
   // Use shared installations store instead of local state + localStorage
   const installations = useInstallations()

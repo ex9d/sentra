@@ -66,7 +66,7 @@ function transformProfileResponse(response: UserProfileResponse): ProfilePlatfor
       name: badge.type?.value ?? '',
       description: badge.type?.description ?? '',
       imageUrl: badge.type?.imageName
-        ? `https:
+        ? `https://images.rbxcdn.com/img/${badge.type.imageName}`
         : '',
       awardedAt: badge.createdTime?.seconds ? new Date(badge.createdTime.seconds * 1000) : undefined
     })),
@@ -78,7 +78,7 @@ export function useUserProfilePlatform(userId: number, cookie: string, enabled: 
   return useQuery({
     queryKey: queryKeys.userProfile.platform(userId),
     queryFn: async (): Promise<ProfilePlatformData> => {
-
+      // Add a timeout to the renderer-side promise to prevent indefinite loading
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Request timed out')), 15000)
       })
