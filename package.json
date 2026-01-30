@@ -1,6 +1,6 @@
 {
   "name": "sentra",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "The open-source Roblox launcher.",
   "main": "./out/main/index.js",
   "author": "experimentid (sashaga2a24)",
