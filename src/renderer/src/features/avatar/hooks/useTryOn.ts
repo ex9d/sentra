@@ -16,28 +16,23 @@ export function useTryOn(currentAssetId: number | null, account: Account | null)
   const [tryOnImageUrl, setTryOnImageUrl] = useState<string | null>(null)
   const [tryOnManifestUrl, setTryOnManifestUrl] = useState<string | null>(null)
 
-  const detectRenderType = (url: string, renderType?: '2d' | '3d') => {
-    if (renderType === '3d') return '3d'
-    const normalized = url.toLowerCase()
-    if (
-      normalized.endsWith('.json') ||
-      normalized.includes('avatar-3d') ||
-      normalized.includes('thumbnail-3d')
-    ) {
-      return '3d'
-    }
-    return '2d'
-  }
-
   const handleTryOn = async () => {
-    if (!account?.cookie || !currentAssetId || !account.userId) return
+    if (!account?.cookie || !currentAssetId || !account.userId) {
+      console.error('[useTryOn] Missing required data', { cookie: !!account?.cookie, assetId: currentAssetId, userId: account?.userId })
+      return
+    }
 
     const userId = parseInt(account.userId)
-    if (isNaN(userId)) return
+    if (isNaN(userId)) {
+      console.error('[useTryOn] Invalid userId', account.userId)
+      return
+    }
 
     setTryOnLoading(true)
     setTryOnImageUrl(null)
     setTryOnManifestUrl(null)
+    setIsTryingOn(false)
+    
     try {
       // Use the render preview API to generate a preview without modifying the avatar
       const result = await (window as any).api.renderAvatarPreview(
@@ -46,19 +41,54 @@ export function useTryOn(currentAssetId: number | null, account: Account | null)
         currentAssetId
       )
 
+      console.log('[useTryOn] Got render result:', result)
+      console.log('[useTryOn] imageUrl type:', typeof result.imageUrl, 'value:', result.imageUrl)
+
       if (result.imageUrl) {
-        const renderType = detectRenderType(result.imageUrl, result.renderType)
+        // Extract URL string - handle case where it might be wrapped
+        const imageUrlStr = typeof result.imageUrl === 'string' 
+          ? result.imageUrl 
+          : (result.imageUrl as any)?.imageUrl || String(result.imageUrl)
+        
+        console.log('[useTryOn] Extracted URL string:', imageUrlStr)
+        
+        // Trust the API's renderType if provided, otherwise auto-detect
+        let renderType = result.renderType
+        
+        if (!renderType) {
+          // Fallback detection based on URL
+          const normalized = imageUrlStr.toLowerCase()
+          renderType = (
+            normalized.endsWith('.json') ||
+            normalized.includes('.json?') ||
+            normalized.includes('avatar-3d') ||
+            normalized.includes('thumbnail-3d') ||
+            normalized.includes('/manifest')
+          ) ? '3d' : '2d'
+        }
+
+        console.log('[useTryOn] Using render type:', renderType)
+        
         if (renderType === '3d') {
-          setTryOnManifestUrl(result.imageUrl)
+          console.log('[useTryOn] Setting manifest URL:', imageUrlStr)
+          setTryOnManifestUrl(imageUrlStr)
           setTryOnImageUrl(null)
         } else {
-          setTryOnImageUrl(result.imageUrl)
+          console.log('[useTryOn] Setting image URL:', imageUrlStr)
+          setTryOnImageUrl(imageUrlStr)
           setTryOnManifestUrl(null)
         }
+        
         setIsTryingOn(true)
+      } else {
+        console.error('[useTryOn] No imageUrl in result:', result)
       }
     } catch (err) {
-      console.error('Failed to generate try-on preview:', err)
+      console.error('[useTryOn] Failed to generate try-on preview:', err)
+      const errorMsg = (err as Error)?.message || 'Try-on failed'
+      if (errorMsg.includes('timeout') || errorMsg.includes('timed out')) {
+        console.warn('[useTryOn] Try-on timed out - Roblox API was slow. Try again.')
+      }
     } finally {
       setTryOnLoading(false)
     }

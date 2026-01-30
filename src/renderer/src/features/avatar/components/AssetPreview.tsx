@@ -41,8 +41,23 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
   onTryOn,
   onRevertTryOn
 }) => {
-  const shouldShowTryOnModel = isTryingOn && !!tryOnManifestUrl
-  const shouldShowTryOnImage = isTryingOn && !!tryOnImageUrl
+  const [tryOn3DFallback, setTryOn3DFallback] = React.useState<string | null>(null)
+
+  // Clear fallback when try-on state changes
+  React.useEffect(() => {
+    if (!isTryingOn) {
+      setTryOn3DFallback(null)
+    }
+  }, [isTryingOn])
+
+  const shouldShowTryOnModel = isTryingOn && (!!tryOnManifestUrl || !!tryOn3DFallback)
+  const shouldShowTryOnImage = isTryingOn && !!tryOnImageUrl && !tryOn3DFallback
+
+  if (shouldShowTryOnModel) {
+    console.log('[AssetPreview] Showing try-on 3D model, manifestUrl:', tryOnManifestUrl || tryOn3DFallback)
+  } else if (shouldShowTryOnImage) {
+    console.log('[AssetPreview] Showing try-on 2D image, imageUrl:', tryOnImageUrl)
+  }
 
   return (
     <div className="w-full lg:w-1/2 relative flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-800 bg-neutral-950 overflow-hidden group">
@@ -64,7 +79,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
       >
         {shouldShowTryOnModel ? (
           <Avatar3DThumbnail
-            manifestUrl={tryOnManifestUrl || undefined}
+            manifestUrl={tryOnManifestUrl || tryOn3DFallback || undefined}
             type="avatar"
             cookie={cookie}
             className="w-full h-full"
@@ -79,9 +94,16 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
           // Show 2D rendered preview when the render API returns a PNG image
           <div className="w-full h-full flex items-center justify-center p-8">
             <img
-              src={tryOnImageUrl}
+              src={typeof tryOnImageUrl === 'string' ? tryOnImageUrl : String(tryOnImageUrl)}
               alt="Try-on preview"
               className="w-full h-full object-contain drop-shadow-2xl transition-transform duration-300"
+              onError={(e) => {
+                console.error('[AssetPreview] Image failed to load, attempting as 3D manifest:', tryOnImageUrl)
+                // Fallback: treat the URL as a 3D manifest if the image load fails
+                // This handles cases where the render API returns a manifest URL without .json extension
+                setTryOn3DFallback(tryOnImageUrl)
+                e.currentTarget.style.display = 'none'
+              }}
             />
           </div>
         ) : viewMode === '2d' ? (
