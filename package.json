@@ -1,7 +1,7 @@
 {
   "name": "sentra",
-  "version": "1.0.4",
-  "description": "The open-source Roblox launcher.",
+  "version": "1.0.6",
+  "description": "Open source roblox account manager.",
   "main": "./out/main/index.js",
   "author": "experimentid (sashaga2a24)",
   "homepage": "https://github.com/sashaga2a24/sentra",
