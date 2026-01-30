@@ -46,7 +46,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
 
   return (
     <div className="w-full lg:w-1/2 relative flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-800 bg-neutral-950 overflow-hidden group">
-      {}
+      {/* Background Effects */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-800 via-neutral-900 to-neutral-950" />
       <div
         className="absolute inset-0 opacity-20 pointer-events-none"
@@ -76,7 +76,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
             onError={on3DError}
           />
         ) : shouldShowTryOnImage ? (
-
+          // Show 2D rendered preview when the render API returns a PNG image
           <div className="w-full h-full flex items-center justify-center p-8">
             <img
               src={tryOnImageUrl}
@@ -106,7 +106,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
           />
         )}
 
-        {}
+        {/* Try-on indicator */}
         {isTryingOn && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-emerald-500/90 backdrop-blur text-white text-xs font-medium rounded-full flex items-center gap-2 shadow-lg z-20">
             <Eye size={14} />
@@ -114,7 +114,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
           </div>
         )}
 
-        {}
+        {/* View Toggle & Try On Controls */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
           {!isTryingOn && has3DView && (
             <div className="flex items-center p-1 bg-neutral-950/80 backdrop-blur border border-neutral-800 rounded-lg shadow-xl">
@@ -143,7 +143,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
             </div>
           )}
 
-          {}
+          {/* Try On Controls */}
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>

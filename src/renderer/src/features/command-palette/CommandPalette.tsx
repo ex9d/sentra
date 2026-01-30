@@ -160,7 +160,7 @@ const categoryOrder = [
   'catalog'
 ]
 
-
+// Theme-aware surfaces that animate cleanly with framer-motion
 const SELECTED_BG = 'color-mix(in srgb, var(--color-text-primary) 10%, transparent)'
 const UNSELECTED_BG = 'color-mix(in srgb, var(--color-text-primary) 0%, transparent)'
 const PANEL_BACKDROP = 'color-mix(in srgb, var(--color-app-bg) 82%, transparent)'
@@ -179,8 +179,8 @@ interface CatalogResultItemForAccessory {
   imageUrl?: string
 }
 
-
-
+// Memoized row components to prevent re-renders when selectedIndex changes
+// Only re-render when the item becomes selected or deselected
 
 interface UniversalLimitedRowProps {
   result: LimitedSearchResult
@@ -561,7 +561,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-
+  // State selectors
   const isOpen = useCommandPaletteOpen()
   const step = useCommandPaletteStep()
   const query = useCommandPaletteQuery()
@@ -573,7 +573,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const searchResults = useCommandPaletteSearchResults()
   const resultSelectedIndex = useCommandPaletteResultSelectedIndex()
 
-
+  // Action selectors (individual to prevent re-renders)
   const close = useCommandPaletteClose()
   const setQuery = useCommandPaletteSetQuery()
   const setSelectedIndex = useCommandPaletteSetSelectedIndex()
@@ -608,7 +608,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   const { data: friends = [] } = useFriends(selectedAccount)
 
-
+  // Limiteds search (FlexSearch powered)
   const {
     searchLimiteds,
     resetSearch: resetLimitedsSearch,
@@ -617,7 +617,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     itemCount: limitedsCount
   } = useLimitedsSearch({ maxResults: 20 })
 
-
+  // Catalog search (FlexSearch powered)
   const {
     searchCatalog,
     resetSearch: resetCatalogSearch,
@@ -626,7 +626,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     itemCount: catalogCount
   } = useCatalogSearch({ maxResults: 20 })
 
-
+  // Player search (username lookup + friends)
   const {
     searchPlayer,
     reset: resetPlayerSearch,
@@ -682,7 +682,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     return createAllCommands(callbacksProxy)
   }, [callbacksProxy])
 
-
+  // Trigger searches when query changes
   useEffect(() => {
     if (step === 'search' && query.trim()) {
       searchLimiteds(query)
@@ -691,14 +691,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [step, query, searchLimiteds, searchCatalog, searchPlayer])
 
-
+  // Universal search results - combines players, limiteds, catalog items, and commands
   const universalSearchResults = useMemo<UniversalSearchResult[]>(() => {
     if (step !== 'search' || !query.trim()) return []
 
     const results: UniversalSearchResult[] = []
     const addedPlayerIds = new Set<number>()
 
-
+    // Add matching friends first (friends should rank above general player lookup)
     playerFriends.forEach((friend) => {
       if (!addedPlayerIds.has(friend.id)) {
         results.push(friend)
@@ -706,7 +706,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       }
     })
 
-
+    // Add best player match (from API) after friend matches
     if (playerResult && !addedPlayerIds.has(playerResult.id)) {
       results.push(playerResult)
       addedPlayerIds.add(playerResult.id)
@@ -733,7 +733,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       }
     })
 
-
+    // Search commands
     const lowerQuery = query.toLowerCase()
     const matchingCommands = commands
       .filter((cmd) => {
@@ -742,7 +742,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         const matchKeywords = cmd.keywords?.some((k) => k.includes(lowerQuery))
         return matchLabel || matchDesc || matchKeywords
       })
-      .slice(0, 5)
+      .slice(0, 5) // Limit commands to 5 in universal search
 
     matchingCommands.forEach((cmd) => {
       results.push({ type: 'command', command: cmd })
@@ -770,7 +770,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     })
   }, [commands, query, recentCommandIds])
 
-
+  // Group filtered commands by category
   const groupedCommands = useMemo(() => {
     const groups: Record<string, CommandType[]> = {}
 
@@ -791,7 +791,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     return sortedGroups
   }, [filteredCommands])
 
-
+  // Flatten for keyboard navigation
   const flatCommands = useMemo(() => {
     return groupedCommands.flatMap((g) => g.commands)
   }, [groupedCommands])
@@ -855,7 +855,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [isOpen, step, resetLimitedsSearch, resetCatalogSearch, resetPlayerSearch])
 
-
+  // Keyboard navigation
   useEffect(() => {
     if (!isOpen) return
 
@@ -872,7 +872,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       }
 
       if (step === 'search') {
-
+        // In command mode (query starts with >)
         if (query.startsWith('>')) {
           const cmdQuery = query.slice(1).trim().toLowerCase()
           const filteredCmds = cmdQuery
@@ -899,7 +899,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             setQuery('')
           }
         } else {
-
+          // Normal universal search mode
           if (e.key === 'ArrowDown') {
             e.preventDefault()
             setSelectedIndex(Math.min(selectedIndex + 1, universalSearchResults.length - 1))
@@ -931,7 +931,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           setSuggestionIndex(Math.max(suggestionIndex - 1, 0))
         } else if (e.key === 'Tab' && filteredFriends.length > 0) {
           e.preventDefault()
-
+          // Auto-complete with selected friend
           const selectedFriend = filteredFriends[suggestionIndex]
           if (selectedFriend) {
             setInputValue(selectedFriend.username)
@@ -942,7 +942,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             const selectedFriend = filteredFriends[suggestionIndex]
             if (selectedFriend) {
               setInputValue(selectedFriend.username)
-
+              // Submit after setting the value
               setTimeout(() => submitInput(), 0)
               return
             }
@@ -993,7 +993,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     commands
   ])
 
-
+  // Scroll selected item into view
   useEffect(() => {
     if (!listRef.current) return
     const selected = listRef.current.querySelector('[data-selected="true"]')
@@ -1002,7 +1002,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [selectedIndex])
 
-
+  // Scroll selected suggestion into view
   useEffect(() => {
     if (!suggestionsRef.current) return
     const selected = suggestionsRef.current.querySelector('[data-suggestion-selected="true"]')
@@ -1011,7 +1011,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [suggestionIndex])
 
-
+  // Scroll selected result into view
   useEffect(() => {
     if (!resultsRef.current) return
     const selected = resultsRef.current.querySelector('[data-result-selected="true"]')
@@ -1082,7 +1082,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {}
+          {/* Header */}
           <div
             className="flex items-center gap-3 px-4 py-3.5 border-b"
             style={{ borderColor: 'var(--color-border-subtle)', background: STRIP_BG }}
@@ -1192,7 +1192,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             )}
           </div>
 
-          {}
+          {/* Universal Search Results */}
           {step === 'search' && (
             <div ref={listRef} className="overflow-y-auto" style={{ maxHeight: listMaxHeight }}>
               {!query.trim() ? (
@@ -1443,7 +1443,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </div>
           )}
 
-          {}
+          {/* Command List */}
           {step === 'select' && (
             <div ref={listRef} className="overflow-y-auto" style={{ maxHeight: listMaxHeight }}>
               {flatCommands.length === 0 ? (
@@ -1548,10 +1548,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </div>
           )}
 
-          {}
+          {/* Input Step Content */}
           {step === 'input' && (
             <div>
-              {}
+              {/* Friend Suggestions */}
               {filteredFriends.length > 0 && (
                 <div
                   ref={suggestionsRef}
@@ -1619,7 +1619,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 </div>
               )}
 
-              {}
+              {/* Help text */}
               <div
                 className="px-4 py-3 flex items-center justify-between border-t"
                 style={{ borderColor: 'var(--color-border-subtle)', background: STRIP_BG }}
@@ -1661,10 +1661,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </div>
           )}
 
-          {}
+          {/* Results Step Content */}
           {step === 'results' && (
             <div>
-              {}
+              {/* Results Header */}
               <div
                 className="px-4 py-3 border-b flex items-center gap-3"
                 style={{ borderColor: 'var(--color-border-subtle)', background: STRIP_BG }}
@@ -1687,7 +1687,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 </div>
               </div>
 
-              {}
+              {/* Results List */}
               <div ref={resultsRef} style={{ height: listMaxHeight }}>
                 {searchResults.length === 0 ? (
                   <div className="px-6 py-12 text-center">
@@ -1797,7 +1797,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 )}
               </div>
 
-              {}
+              {/* Results Help text */}
               <div
                 className="px-4 py-3 flex items-center justify-between border-t"
                 style={{ borderColor: 'var(--color-border-subtle)', background: STRIP_BG }}
@@ -1823,7 +1823,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </div>
           )}
 
-          {}
+          {/* Footer */}
           <div
             className="flex items-center justify-between px-4 py-2.5 border-t"
             style={{ borderColor: 'var(--color-border-subtle)', background: STRIP_BG }}

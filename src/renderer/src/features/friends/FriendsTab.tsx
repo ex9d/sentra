@@ -58,7 +58,7 @@ type FilterType = 'All' | 'Online' | 'InGame'
 const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: FriendsTabProps) => {
   const queryClient = useQueryClient()
 
-
+  // Store State
   const {
     searchQuery: friendSearchQuery,
     scrollPosition,
@@ -84,7 +84,7 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
   } | null>(null)
   const friendsListRef = useRef<HTMLDivElement>(null)
 
-
+  // TanStack Query hooks
   const {
     data: friends = [],
     isLoading,
@@ -98,13 +98,13 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
 
   const unfriendMutation = useUnfriend(selectedAccount)
 
-
+  // Effects
   useEffect(() => {
     onFriendsCountChange?.(friends.length)
   }, [friends.length, onFriendsCountChange])
 
-
-
+  // Status polling is handled by TanStack Query's refetchInterval in useFriends hook
+  // No need for custom interval here to avoid duplicate polling and memory leaks
 
   useEffect(() => {
     if (!selectedAccount) onFriendsCountChange?.(0)
@@ -116,7 +116,7 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
     }
   }, [isLoading, scrollPosition])
 
-
+  // Filtering & Sorting
   const filteredFriends = useMemo(() => {
     if (!selectedAccount) return []
 
@@ -129,7 +129,7 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
       return matchesSearch
     })
 
-
+    // Apply Active Filter
     if (activeFilter === 'Online') {
       filtered = filtered.filter(
         (f) =>
@@ -144,13 +144,13 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
     }
 
     return filtered.sort((a, b) => {
-
+      // Favorites first
       const isAFav = favorites.includes(a.userId)
       const isBFav = favorites.includes(b.userId)
       if (isAFav && !isBFav) return -1
       if (!isAFav && isBFav) return 1
 
-
+      // Then status
       const statusOrder = {
         [AccountStatus.InGame]: 0,
         [AccountStatus.Online]: 1,
@@ -163,7 +163,7 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
 
       if (orderA !== orderB) return orderA - orderB
 
-
+      // Then name
       return a.displayName.localeCompare(b.displayName)
     })
   }, [selectedAccount, friendSearchQuery, friends, activeFilter, favorites])
@@ -244,7 +244,7 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full bg-neutral-950">
-        {}
+        {/* Toolbar */}
         <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
           <div className="flex items-center gap-4 shrink-0">
             <h1 className="text-xl font-bold text-white">Friends</h1>
@@ -334,7 +334,7 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
           </div>
         </div>
 
-        {}
+        {/* Content */}
         <div
           ref={friendsListRef}
           className="flex-1 overflow-y-auto p-6 scrollbar-thin"

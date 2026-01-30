@@ -159,7 +159,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                           : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
                     }`}
                   >
-                    {}
+                    {/* Loading Overlay */}
                     {isItemLoading && (
                       <div className="absolute inset-0 z-30 bg-neutral-900/70 backdrop-blur-sm flex items-center justify-center">
                         <div className="flex flex-col items-center gap-2">
@@ -189,7 +189,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                       )}
                     </div>
 
-                    {}
+                    {/* Favorite Indicator */}
                     {isFavorite && (
                       <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-neutral-900/80 flex items-center justify-center text-yellow-400 shadow-sm z-10 pointer-events-none relative overflow-visible">
                         <Star size={18} className="fill-current" style={{ strokeWidth: 0 }} />
@@ -200,7 +200,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                       </div>
                     )}
 
-                    {}
+                    {/* Selection Indicator */}
                     <div
                       className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${
                         isEquipped
@@ -211,7 +211,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                       <Check size={14} strokeWidth={3} />
                     </div>
 
-                    {}
+                    {/* Hover Overlay */}
                     <div className="absolute inset-x-0 bottom-0 z-20 w-full translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
                       <div
                         className="absolute inset-0 pointer-events-none"

@@ -39,7 +39,7 @@ export function useTryOn(currentAssetId: number | null, account: Account | null)
     setTryOnImageUrl(null)
     setTryOnManifestUrl(null)
     try {
-
+      // Use the render preview API to generate a preview without modifying the avatar
       const result = await (window as any).api.renderAvatarPreview(
         account.cookie,
         userId,
@@ -65,7 +65,7 @@ export function useTryOn(currentAssetId: number | null, account: Account | null)
   }
 
   const handleRevertTryOn = () => {
-
+    // Simply clear the try-on state - no need to revert anything since we didn't modify the avatar
     setIsTryingOn(false)
     setTryOnImageUrl(null)
     setTryOnManifestUrl(null)

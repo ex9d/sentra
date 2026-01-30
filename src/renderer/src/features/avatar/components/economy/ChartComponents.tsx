@@ -14,9 +14,9 @@ import { cn } from '@renderer/lib/utils'
 import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
 import { DateRange, formatPrice, formatPercentChange } from './index'
 
-
-
-
+// ============================================================================
+// Stat Badge Component
+// ============================================================================
 
 interface StatBadgeProps {
   label: string
@@ -40,9 +40,9 @@ export const StatBadge: React.FC<StatBadgeProps> = ({
   </div>
 )
 
-
-
-
+// ============================================================================
+// Date Range Button Component
+// ============================================================================
 
 interface DateRangeButtonProps {
   range: DateRange
@@ -91,9 +91,9 @@ export const DateRangeButton: React.FC<DateRangeButtonProps> = ({
   )
 }
 
-
-
-
+// ============================================================================
+// Chart Skeleton Component
+// ============================================================================
 
 interface ChartSkeletonProps {
   height: number
@@ -112,25 +112,25 @@ export const ChartSkeleton: React.FC<ChartSkeletonProps> = ({ height }) => (
   </div>
 )
 
-
-
-
+// ============================================================================
+// Chart Controls Component
+// ============================================================================
 
 interface ChartControlsProps {
-
+  // Zoom controls
   onZoomIn: () => void
   onZoomOut: () => void
   onResetView: () => void
 
-
+  // Moving average
   showMovingAverage?: boolean
   showMA: boolean
   onToggleMA: () => void
   movingAveragePeriod?: number
 
+  // Prediction (removed)
 
-
-
+  // Export
   allowExport?: boolean
   onExportPNG: () => void
   onExportCSV: () => void
@@ -149,7 +149,7 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
   onExportCSV
 }) => (
   <div className="flex items-center gap-1 border-r border-neutral-700 pr-2">
-    {}
+    {/* Moving average toggle */}
     {showMovingAverage && (
       <button
         onClick={onToggleMA}
@@ -187,7 +187,7 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
       <RotateCcw size={14} />
     </button>
 
-    {}
+    {/* Export dropdown */}
     {allowExport && (
       <div className="relative group">
         <button
@@ -215,9 +215,9 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
   </div>
 )
 
-
-
-
+// ============================================================================
+// Statistics Panel Component
+// ============================================================================
 
 interface StatisticsPanelProps {
   statistics: {
@@ -256,9 +256,9 @@ export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ statistics }) 
   </div>
 )
 
-
-
-
+// ============================================================================
+// Chart Legend Component
+// ============================================================================
 
 interface ChartLegendProps {
   color: string
@@ -293,9 +293,9 @@ export const ChartLegend: React.FC<ChartLegendProps> = ({
   )
 }
 
-
-
-
+// ============================================================================
+// Chart Tooltip Component
+// ============================================================================
 
 interface ChartTooltipProps {
   visible: boolean
@@ -345,9 +345,9 @@ export const ChartTooltip: React.FC<ChartTooltipProps> = ({
   )
 }
 
-
-
-
+// ============================================================================
+// Stats Toggle Button Component
+// ============================================================================
 
 interface StatsToggleProps {
   showStats: boolean

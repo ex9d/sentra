@@ -62,7 +62,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@shared/queryKeys'
 import type { ChangeEvent } from 'react'
 
-
+// Social Link Icon Component
 const SocialIcon = ({ type }: { type: string }) => {
   const iconProps = { size: 16 }
   switch (type.toLowerCase()) {
@@ -77,7 +77,7 @@ const SocialIcon = ({ type }: { type: string }) => {
   }
 }
 
-
+// Game Card Component
 interface GameCardProps {
   game: GroupGame
 }
@@ -85,7 +85,7 @@ interface GameCardProps {
 const GameCard = ({ game }: GameCardProps) => {
   const handleOpenGame = () => {
     if (game.rootPlace?.id) {
-      window.open(`https:
+      window.open(`https://www.roblox.com/games/${game.rootPlace.id}`, '_blank')
     }
   }
 
@@ -167,7 +167,7 @@ const MemberAvatar = ({
   )
 }
 
-
+// Members Section Component with scroll functionality
 interface MembersSectionProps {
   members: (GroupMember | GroupRoleMember)[]
   membersLoading: boolean
@@ -210,7 +210,7 @@ const MembersSection = ({
       </div>
 
       <div className="relative flex items-center">
-        {}
+        {/* Left scroll button */}
         <AnimatePresence>
           {canScrollLeft && (
             <motion.button
@@ -226,7 +226,7 @@ const MembersSection = ({
             </motion.button>
           )}
         </AnimatePresence>
-        {}
+        {/* Right scroll button */}
         <AnimatePresence>
           {canScrollRight && (
             <motion.button
@@ -339,7 +339,7 @@ const WallPost = ({
   )
 }
 
-
+// Group Details Panel Component
 export interface GroupDetailsPanelProps {
   groupId: number | null
   selectedAccount: Account | null
@@ -347,11 +347,11 @@ export interface GroupDetailsPanelProps {
   userRole?: { name: string; rank: number }
   onViewProfile?: (userId: number) => void
   onStoreItemSelect?: (item: { id: number; name: string; imageUrl?: string }) => void
-
+  /** Custom empty state message when no group is selected */
   emptyStateMessage?: string
-
+  /** Whether to show the leave/cancel buttons */
   showActions?: boolean
-
+  /** Layout ID for tab animations (to avoid conflicts when used in multiple places) */
   tabLayoutId?: string
 }
 
@@ -375,7 +375,7 @@ export const GroupDetailsPanel = ({
   const [debouncedStoreSearch, setDebouncedStoreSearch] = useState('')
   const [leaveGroupConfirmOpen, setLeaveGroupConfirmOpen] = useState(false)
 
-
+  // Debounce store search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedStoreSearch(storeSearchQuery)
@@ -383,16 +383,16 @@ export const GroupDetailsPanel = ({
     return () => clearTimeout(timer)
   }, [storeSearchQuery])
 
-
+  // Ref for tracking fetched store thumbnail IDs (store items use catalog thumbnails API, not user avatars)
   const fetchedStoreIdsRef = useRef<Set<number>>(new Set())
 
-
+  // Reset selected role when group changes
   useEffect(() => {
     setSelectedRoleId(null)
     setActiveDetailsTab('about')
     setStoreSearchQuery('')
     setDebouncedStoreSearch('')
-
+    // Reset store thumbnail cache
     setStoreThumbnails({})
     fetchedStoreIdsRef.current.clear()
   }, [groupId])
@@ -415,7 +415,7 @@ export const GroupDetailsPanel = ({
     selectedRoleId ? parseInt(selectedRoleId) : undefined
   )
 
-
+  // Group store query
   const {
     data: storeData,
     isLoading: storeLoading,
@@ -433,7 +433,7 @@ export const GroupDetailsPanel = ({
     return storeData.pages.flatMap((page: GroupStoreResponse) => page.data)
   }, [storeData])
 
-
+  // Store item thumbnails (uses catalog thumbnails API, not user avatars)
   const [storeThumbnails, setStoreThumbnails] = useState<Record<number, string>>({})
 
   useEffect(() => {
@@ -443,7 +443,7 @@ export const GroupDetailsPanel = ({
     )
     if (itemsToFetch.length === 0) return
 
-
+    // Mark as fetched immediately to prevent duplicate requests
     itemsToFetch.forEach((item) => fetchedStoreIdsRef.current.add(item.id))
 
     window.api
@@ -467,7 +467,7 @@ export const GroupDetailsPanel = ({
 
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('')
 
-
+  // Fetch group thumbnail
   useEffect(() => {
     if (groupId) {
       window.api
@@ -484,7 +484,7 @@ export const GroupDetailsPanel = ({
   const wallPosts = useMemo(() => wallPostsData?.data ?? [], [wallPostsData?.data])
   const members = useMemo(() => membersData?.data ?? [], [membersData?.data])
 
-
+  // Extract user IDs for batch thumbnail fetching using TanStack Query
   const memberUserIds = useMemo(() => {
     return members
       .map((member: GroupMember | GroupRoleMember) =>
@@ -497,14 +497,14 @@ export const GroupDetailsPanel = ({
     const posterIds = wallPosts
       .map((post: GroupWallPost) => post.poster?.user?.userId)
       .filter((id): id is number => !!id)
-    return [...new Set(posterIds)]
+    return [...new Set(posterIds)] // Deduplicate
   }, [wallPosts])
 
   const shoutUserId = details?.shout?.poster?.userId
   const ownerUserId = details?.owner?.userId
   const shoutPosterUserId = details?.shout?.poster?.userId
 
-
+  // Use TanStack Query for batch user avatars - handles caching and deduplication automatically
   const { data: memberThumbnails = {} } = useBatchUserAvatars(memberUserIds)
   const { data: wallPostThumbnails = {} } = useBatchUserAvatars(wallPostUserIds)
   const { data: shoutThumbnailData = {} } = useBatchUserAvatars(shoutUserId ? [shoutUserId] : [])
@@ -612,7 +612,7 @@ export const GroupDetailsPanel = ({
             transition={{ duration: 0.2 }}
             className="p-8 space-y-8 max-w-5xl mx-auto"
           >
-            {}
+            {/* Header Section */}
             <div className="relative">
               <div className="flex flex-col md:flex-row gap-6 items-start">
                 <Avatar className="w-32 h-32 rounded-2xl border-4 border-neutral-800 shadow-xl shrink-0 bg-neutral-800">
@@ -705,14 +705,14 @@ export const GroupDetailsPanel = ({
                     )}
                   </div>
 
-                  {}
+                  {/* Description */}
                   {details.description && (
                     <p className="text-sm text-neutral-400 leading-relaxed max-w-3xl line-clamp-3">
                       {details.description}
                     </p>
                   )}
 
-                  {}
+                  {/* Social Links */}
                   {socialLinks.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2">
                       {socialLinks.map((link: GroupSocialLink) => (
@@ -733,7 +733,7 @@ export const GroupDetailsPanel = ({
               </div>
             </div>
 
-            {}
+            {/* Tabs */}
             <Tabs
               tabs={[
                 { id: 'about', label: 'About', icon: Info },
@@ -752,7 +752,7 @@ export const GroupDetailsPanel = ({
                 transition={{ duration: 0.2 }}
                 className="space-y-8"
               >
-                {}
+                {/* Shout Section */}
                 {details.shout && details.shout.body && details.shout.body.trim() && (
                   <div className="space-y-2">
                     <h3 className="text-lg font-bold text-white">Shout</h3>
@@ -797,7 +797,7 @@ export const GroupDetailsPanel = ({
                   </div>
                 )}
 
-                {}
+                {/* Members Section */}
                 <MembersSection
                   members={members}
                   membersLoading={membersLoading}
@@ -808,7 +808,7 @@ export const GroupDetailsPanel = ({
                   onViewProfile={onViewProfile}
                 />
 
-                {}
+                {/* Wall Section */}
                 {!wallError && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-bold text-white">Wall</h3>
@@ -853,7 +853,7 @@ export const GroupDetailsPanel = ({
                   </div>
                 )}
 
-                {}
+                {/* Games Section */}
                 {games.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -869,14 +869,14 @@ export const GroupDetailsPanel = ({
                 )}
               </motion.div>
             ) : (
-
+              /* Store Tab Content */
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
-                {}
+                {/* Store Search Bar */}
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <Search size={16} className="text-neutral-500" />
@@ -892,7 +892,7 @@ export const GroupDetailsPanel = ({
                   />
                 </div>
 
-                {}
+                {/* Store Items Grid */}
                 {storeLoading && storeItems.length === 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
@@ -916,7 +916,7 @@ export const GroupDetailsPanel = ({
                             return
                           }
 
-
+                          // If creator is a User, open their profile, otherwise open catalog page
                           if (
                             item.creatorType === 'User' &&
                             item.creatorTargetId &&
@@ -924,7 +924,7 @@ export const GroupDetailsPanel = ({
                           ) {
                             onViewProfile(item.creatorTargetId)
                           } else {
-                            window.open(`https:
+                            window.open(`https://www.roblox.com/catalog/${item.id}`, '_blank')
                           }
                         }
 
@@ -946,7 +946,7 @@ export const GroupDetailsPanel = ({
                       })}
                     </div>
 
-                    {}
+                    {/* Load More Button */}
                     {hasNextStorePage && (
                       <div className="flex justify-center pt-4">
                         <Button

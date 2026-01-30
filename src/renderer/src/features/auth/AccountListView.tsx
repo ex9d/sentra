@@ -7,7 +7,7 @@ import { getStatusBorderColor, getStatusColor } from '@renderer/utils/statusUtil
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
 import { TableVirtuoso, TableComponents } from 'react-virtuoso'
 
-
+// Context for row-level handlers
 interface AccountRowContext {
   selectedIds: Set<string>
   onToggleSelect: (id: string) => void
@@ -72,8 +72,8 @@ const AccountListView = ({
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id)
     e.dataTransfer.effectAllowed = 'move'
-
-
+    // Optional: Set a drag image or style opacity
+    // (e.target as HTMLElement).style.opacity = '0.5'
   }, [])
 
   const handleDragOver = useCallback(
@@ -244,7 +244,7 @@ const AccountListView = ({
                     >
                       {account.displayName}
                     </div>
-                    <div
+                    <div 
                       className="text-sm text-neutral-500"
                       style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                     >@{account.username}</div>
@@ -253,7 +253,7 @@ const AccountListView = ({
               </td>
               <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center group/id">
-                  <span
+                  <span 
                     className="text-[15px] text-neutral-500 font-mono"
                     style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                   >{account.userId}</span>

@@ -10,9 +10,9 @@ import {
 } from '@shared/ipc-schemas/avatar'
 import { normalizeAssetDetails } from '../utils/assetNormalization'
 
-
-
-
+// ============================================================================
+// Asset Details Query
+// ============================================================================
 
 interface UseAssetDetailsQueryOptions {
   assetId: number | null
@@ -32,24 +32,24 @@ export function useAssetDetailsQuery({
 
       const data = await (window as any).api.getAssetDetails(cookie, assetId)
 
-
+      // Validate with Zod schema
       const parsed = assetDetailsSchema.safeParse(data)
       if (!parsed.success) {
         console.warn('[useAssetDetailsQuery] Validation warning:', parsed.error.issues)
-
+        // Still return data even if validation fails (Zod schema is flexible with .optional())
       }
 
       return normalizeAssetDetails(data)
     },
     enabled: enabled && !!assetId && !!cookie,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000 // 10 minutes garbage collection
   })
 }
 
-
-
-
+// ============================================================================
+// Asset Recommendations Query
+// ============================================================================
 
 export function useAssetRecommendationsQuery({
   assetId,
@@ -66,7 +66,7 @@ export function useAssetRecommendationsQuery({
 
       const data = await (window as any).api.getAssetRecommendations(cookie, assetId)
 
-
+      // Validate with Zod schema
       const parsed = recommendationsSchema.safeParse(data)
       if (!parsed.success) {
         console.warn('[useAssetRecommendationsQuery] Validation warning:', parsed.error.issues)
@@ -75,11 +75,11 @@ export function useAssetRecommendationsQuery({
       return data
     },
     enabled: enabled && !!assetId && !!cookie,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000
   })
 
-
+  // Process recommendations and fetch batch details
   useEffect(() => {
     if (!query.data?.data || !Array.isArray(query.data.data) || !cookie) {
       setRecommendations([])
@@ -93,7 +93,7 @@ export function useAssetRecommendationsQuery({
       return
     }
 
-
+    // Create placeholder items
     const placeholders: RecommendationItem[] = recIds.map((id: number) => ({
       id,
       name: 'Loading...',
@@ -103,7 +103,7 @@ export function useAssetRecommendationsQuery({
     }))
     setRecommendations(placeholders)
 
-
+    // Fetch batch details
     ;(window as any).api
       .getBatchAssetDetails(cookie, recIds)
       .then((batchResults: any[]) => {
@@ -137,11 +137,11 @@ export function useAssetRecommendationsQuery({
         console.error('Failed to fetch batch recommendation details:', err)
       })
 
-
+    // Fetch thumbnails
     ;(window as any).api
       .getBatchThumbnails(recIds)
       .then((res: any) => {
-
+        // Validate with Zod schema
         const parsed = thumbnailBatchSchema.safeParse(res)
         if (!parsed.success) {
           console.warn(
@@ -172,9 +172,9 @@ export function useAssetRecommendationsQuery({
   }
 }
 
-
-
-
+// ============================================================================
+// Combined Hook (replaces useAssetDetails)
+// ============================================================================
 
 interface UseAssetDetailsResult {
   details: AssetDetails | null
@@ -204,11 +204,11 @@ export function useAssetDetailsWithRecommendations(
     enabled: isOpen && !!assetId && !!cookie
   })
 
-
+  // Reset cache when modal closes
   useEffect(() => {
     if (!isOpen && assetId) {
-
-
+      // Optionally invalidate queries when modal closes
+      // This is optional - you may want to keep the cache
     }
   }, [isOpen, assetId, queryClient])
 

@@ -128,7 +128,7 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
       id: asset.id,
       name: asset.name,
       type: asset.assetType?.name || 'Equipped Item',
-      imageUrl: ''
+      imageUrl: '' // Will be fetched separately if needed
     }))
   }, [currentAvatarData])
 

@@ -13,7 +13,7 @@ export const PriceInput = ({ value, onChange, placeholder, label, className }: P
   const [isFocused, setIsFocused] = useState(false)
   const [localValue, setLocalValue] = useState(value)
 
-
+  // Update local value when prop changes (e.g., when cleared externally)
   React.useEffect(() => {
     setLocalValue(value)
   }, [value])
@@ -21,7 +21,7 @@ export const PriceInput = ({ value, onChange, placeholder, label, className }: P
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
 
-
+    // Only allow numbers
     if (newValue === '' || /^\d+$/.test(newValue)) {
       setLocalValue(newValue)
     }
@@ -29,7 +29,7 @@ export const PriceInput = ({ value, onChange, placeholder, label, className }: P
 
   const handleBlur = useCallback(() => {
     setIsFocused(false)
-
+    // Only update parent on blur to reduce re-renders and lag
     onChange(localValue)
   }, [localValue, onChange])
 

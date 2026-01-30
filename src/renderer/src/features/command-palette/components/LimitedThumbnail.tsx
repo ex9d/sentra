@@ -3,7 +3,7 @@ import { Boxes } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 import { thumbnailLoader } from '../utils/thumbnailLoader'
 
-
+// Shared IntersectionObserver for all thumbnails - much more efficient
 const observerCallbacks = new Map<Element, () => void>()
 let sharedObserver: IntersectionObserver | null = null
 
@@ -63,7 +63,7 @@ export const LimitedThumbnail: React.FC<LimitedThumbnailProps> = memo(
       }
     }, [imageUrl, hasTriggered, hasError])
 
-
+    // Request thumbnail once triggered
     useEffect(() => {
       if (!hasTriggered || imageUrl || hasError) return
 

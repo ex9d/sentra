@@ -99,7 +99,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
     try {
       await onAdd(cookie)
       setCookie('')
-      onClose()
+      onClose() // Close on success
     } finally {
       setIsLoading(false)
     }
@@ -129,7 +129,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
           <DialogClose disabled={isLoading && method === 'cookie'} />
         </div>
 
-        {}
+        {/* Tabs */}
         <Tabs
           tabs={[
             { id: 'cookie', label: 'Cookie', icon: Cookie },

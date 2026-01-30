@@ -7,214 +7,214 @@ import { useNotification } from '@renderer/features/system/stores/useSnackbarSto
 import { useSetBodyColors } from '../api/useAvatar'
 
 const BRICK_COLOR_TO_HEX: Record<number, string> = {
-  1: 'F2F3F3',
-  2: 'A1A5A2',
-  3: 'F9E999',
-  5: 'D7C59A',
-  6: 'C2DAB8',
-  9: 'E8BAC8',
-  11: '80BBDB',
-  12: 'CB8442',
-  18: 'CC8E69',
-  21: 'C4281C',
-  22: 'C470A0',
-  23: '0D69AC',
-  24: 'F5CD30',
-  25: '624732',
-  26: '1B2A35',
-  27: '6D6E6C',
-  28: '287F47',
-  29: 'A1C48C',
-  36: 'F3CF9B',
-  37: '4B974B',
-  38: 'A05F35',
-  39: 'C1CADE',
-  40: 'ECECEC',
-  41: 'CD544B',
-  42: 'C1DFF0',
-  43: '7BB6E8',
-  44: 'F7F18D',
-  45: 'B4D2E4',
-  47: 'D9856C',
-  48: '84B68D',
-  49: 'F8F184',
-  50: 'ECE8DE',
-  100: 'EEC4B6',
-  101: 'DA867A',
-  102: '6E99CA',
-  103: 'C7C1B7',
-  104: '6B327C',
-  105: 'E29B40',
-  106: 'DA8541',
-  107: '008F9C',
-  108: '685C43',
-  110: '435493',
-  111: 'BFB7B1',
-  112: '6874AC',
-  113: 'E5ADC8',
-  115: 'C7D23C',
-  116: '55A5AF',
-  118: 'B7D7D5',
-  119: 'A4BD47',
-  120: 'D9E4A7',
-  121: 'E7AC58',
-  123: 'D36F4C',
-  124: '923978',
-  125: 'EAB892',
-  126: 'A5A5CB',
-  127: 'DCBC81',
-  128: 'AE7A59',
-  131: '9CA3A8',
-  133: 'D5733D',
-  134: 'D8DD56',
-  135: '74869D',
-  136: '877C90',
-  137: 'E09864',
-  138: '958A73',
-  140: '203A56',
-  141: '27462D',
-  143: 'CFE2F7',
-  145: '7988A1',
-  146: '958EA3',
-  147: '938767',
-  148: '575857',
-  149: '161D32',
-  150: 'ABADAC',
-  151: '789082',
-  153: '957977',
-  154: '7B2E2F',
-  157: 'FFF67B',
-  158: 'E1A4C2',
-  168: '756C62',
-  176: '97695B',
-  178: 'B48455',
-  179: '898788',
-  180: 'D7A94B',
-  190: 'F9D62E',
-  191: 'E8AB2D',
-  192: '694028',
-  193: 'CF6024',
-  194: 'A3A2A5',
-  195: '4667A4',
-  196: '23478B',
-  198: '8E4285',
-  199: '635F62',
-  200: '828A5D',
-  208: 'E5E4DF',
-  209: 'B08E44',
-  210: '709578',
-  211: '79B5B5',
-  212: '9FC3E9',
-  213: '6C81B7',
-  216: '904C2A',
-  217: '7C5C46',
-  218: '96709F',
-  219: '6B629B',
-  220: 'A7A9CE',
-  221: 'CD6298',
-  222: 'E4ADC8',
-  223: 'DC9095',
-  224: 'F0D5A0',
-  225: 'EBB87F',
-  226: 'FDEA8D',
-  232: '7DBBDD',
-  268: '342B75',
-  301: '506D54',
-  302: '5B5D69',
-  303: '0010B0',
-  304: '2C651D',
-  305: '527CAE',
-  306: '335882',
-  307: '102ADC',
-  308: '3D1585',
-  309: '348E40',
-  310: '5B9A4C',
-  311: '9FA1AC',
-  312: '592259',
-  313: '1F801D',
-  314: '9FADC0',
-  315: '0989CF',
-  316: '7B007B',
-  317: '7C9C6B',
-  318: '8AAB85',
-  319: 'B9C4B1',
-  320: 'CACBD1',
-  321: 'A75E9B',
-  322: '7B2F7B',
-  323: '94BE81',
-  324: 'A8BD99',
-  325: 'DFDFDE',
-  327: '970000',
-  328: 'B1E5A6',
-  329: '98C2DB',
-  330: 'FF98DC',
-  331: 'FF5959',
-  332: '750000',
-  333: 'EFB838',
-  334: 'F8D96D',
-  335: 'E7E7EC',
-  336: 'C7D4E4',
-  337: 'FF9494',
-  338: 'BE6862',
-  339: '562424',
-  340: 'F1E7C7',
-  341: 'FEF3BB',
-  342: 'E0B2D0',
-  343: 'D490BD',
-  344: '965555',
-  345: '8F4C2A',
-  346: 'D3BE96',
-  347: 'E2DCBC',
-  348: 'EDEAEA',
-  349: 'E9DADA',
-  350: '883E3E',
-  351: 'BC9B5D',
-  352: 'C7AC78',
-  353: 'CABFA3',
-  354: 'BBB3B2',
-  355: '6C584B',
-  356: 'A0844F',
-  357: '958988',
-  358: 'ABA89E',
-  359: 'AF9483',
-  360: '966766',
-  361: '564236',
-  362: '7E683F',
-  363: '69665C',
-  364: '5A4C42',
-  365: '6A3909',
-  1001: 'F8F8F8',
-  1002: 'CDCDCD',
-  1003: '111111',
-  1004: 'FF0000',
-  1005: 'FFB000',
-  1006: 'B480FF',
-  1007: 'A34B4B',
-  1008: 'C1BE42',
-  1009: 'FFFF00',
-  1010: '0000FF',
-  1011: '002060',
-  1012: '2154B9',
-  1013: '04AFEC',
-  1014: 'AA5500',
-  1015: 'AA00AA',
-  1016: 'FF66CC',
-  1017: 'FFAF00',
-  1018: '12EED4',
-  1019: '00FFFF',
-  1020: '00FF00',
-  1021: '3A7D15',
-  1022: '7F8E64',
-  1023: '8C5B9F',
-  1024: 'AFDDFF',
-  1025: 'FFC9C9',
-  1026: 'B1A7FF',
-  1027: '9FF3E9',
-  1028: 'CCFFCC',
-  1029: 'FFFFCC',
-  1030: 'FFCC99',
-  1031: '6225D1',
-  1032: 'FF00BF'
+  1: 'F2F3F3', // White
+  2: 'A1A5A2', // Grey
+  3: 'F9E999', // Light yellow
+  5: 'D7C59A', // Brick yellow
+  6: 'C2DAB8', // Light green (Mint)
+  9: 'E8BAC8', // Light reddish violet
+  11: '80BBDB', // Pastel Blue
+  12: 'CB8442', // Light orange brown
+  18: 'CC8E69', // Nougat
+  21: 'C4281C', // Bright red
+  22: 'C470A0', // Med. reddish violet
+  23: '0D69AC', // Bright blue
+  24: 'F5CD30', // Bright yellow
+  25: '624732', // Earth orange
+  26: '1B2A35', // Black
+  27: '6D6E6C', // Dark grey
+  28: '287F47', // Dark green
+  29: 'A1C48C', // Medium green
+  36: 'F3CF9B', // Lig. Yellowich orange
+  37: '4B974B', // Bright green
+  38: 'A05F35', // Dark orange
+  39: 'C1CADE', // Light bluish violet
+  40: 'ECECEC', // Transparent
+  41: 'CD544B', // Tr. Red
+  42: 'C1DFF0', // Tr. Lg blue
+  43: '7BB6E8', // Tr. Blue
+  44: 'F7F18D', // Tr. Yellow
+  45: 'B4D2E4', // Light blue
+  47: 'D9856C', // Tr. Flu. Reddish orange
+  48: '84B68D', // Tr. Green
+  49: 'F8F184', // Tr. Flu. Green
+  50: 'ECE8DE', // Phosph. White
+  100: 'EEC4B6', // Light red
+  101: 'DA867A', // Medium red
+  102: '6E99CA', // Medium blue
+  103: 'C7C1B7', // Light grey
+  104: '6B327C', // Bright violet
+  105: 'E29B40', // Br. yellowish orange
+  106: 'DA8541', // Bright orange
+  107: '008F9C', // Bright bluish green
+  108: '685C43', // Earth yellow
+  110: '435493', // Bright bluish violet
+  111: 'BFB7B1', // Tr. Brown
+  112: '6874AC', // Medium bluish violet
+  113: 'E5ADC8', // Tr. Medi. reddish violet
+  115: 'C7D23C', // Med. yellowish green
+  116: '55A5AF', // Med. bluish green
+  118: 'B7D7D5', // Light bluish green
+  119: 'A4BD47', // Br. yellowish green
+  120: 'D9E4A7', // Lig. yellowish green
+  121: 'E7AC58', // Med. yellowish orange
+  123: 'D36F4C', // Br. reddish orange
+  124: '923978', // Bright reddish violet
+  125: 'EAB892', // Light orange
+  126: 'A5A5CB', // Tr. Bright bluish violet
+  127: 'DCBC81', // Gold
+  128: 'AE7A59', // Dark nougat
+  131: '9CA3A8', // Silver
+  133: 'D5733D', // Neon orange
+  134: 'D8DD56', // Neon green
+  135: '74869D', // Sand blue
+  136: '877C90', // Sand violet
+  137: 'E09864', // Medium orange
+  138: '958A73', // Sand yellow
+  140: '203A56', // Earth blue
+  141: '27462D', // Earth green
+  143: 'CFE2F7', // Tr. Flu. Blue
+  145: '7988A1', // Sand blue metallic
+  146: '958EA3', // Sand violet metallic
+  147: '938767', // Sand yellow metallic
+  148: '575857', // Dark grey metallic
+  149: '161D32', // Black metallic
+  150: 'ABADAC', // Light grey metallic
+  151: '789082', // Sand green
+  153: '957977', // Sand red
+  154: '7B2E2F', // Dark red
+  157: 'FFF67B', // Tr. Flu. Yellow
+  158: 'E1A4C2', // Tr. Flu. Red
+  168: '756C62', // Gun metallic
+  176: '97695B', // Red flip/flop
+  178: 'B48455', // Yellow flip/flop
+  179: '898788', // Silver flip/flop
+  180: 'D7A94B', // Curry
+  190: 'F9D62E', // Fire Yellow
+  191: 'E8AB2D', // Flame yellowish orange
+  192: '694028', // Reddish brown
+  193: 'CF6024', // Flame reddish orange
+  194: 'A3A2A5', // Medium stone grey
+  195: '4667A4', // Royal blue
+  196: '23478B', // Dark Royal blue
+  198: '8E4285', // Bright reddish lilac
+  199: '635F62', // Dark stone grey
+  200: '828A5D', // Lemon metalic
+  208: 'E5E4DF', // Light stone grey
+  209: 'B08E44', // Dark Curry
+  210: '709578', // Faded green
+  211: '79B5B5', // Turquoise
+  212: '9FC3E9', // Light Royal blue
+  213: '6C81B7', // Medium Royal blue
+  216: '904C2A', // Rust
+  217: '7C5C46', // Brown
+  218: '96709F', // Reddish lilac
+  219: '6B629B', // Lilac
+  220: 'A7A9CE', // Light lilac
+  221: 'CD6298', // Bright purple
+  222: 'E4ADC8', // Light purple
+  223: 'DC9095', // Light pink
+  224: 'F0D5A0', // Light brick yellow
+  225: 'EBB87F', // Warm yellowish orange
+  226: 'FDEA8D', // Cool yellow
+  232: '7DBBDD', // Dove blue
+  268: '342B75', // Medium lilac
+  301: '506D54', // Slime green
+  302: '5B5D69', // Smoky grey
+  303: '0010B0', // Dark blue
+  304: '2C651D', // Parsley green
+  305: '527CAE', // Steel blue
+  306: '335882', // Storm blue
+  307: '102ADC', // Lapis
+  308: '3D1585', // Dark indigo
+  309: '348E40', // Sea green
+  310: '5B9A4C', // Shamrock
+  311: '9FA1AC', // Fossil
+  312: '592259', // Mulberry
+  313: '1F801D', // Forest green
+  314: '9FADC0', // Cadet blue
+  315: '0989CF', // Electric blue
+  316: '7B007B', // Eggplant
+  317: '7C9C6B', // Moss
+  318: '8AAB85', // Artichoke
+  319: 'B9C4B1', // Sage green
+  320: 'CACBD1', // Ghost grey
+  321: 'A75E9B', // Lilac (2015)
+  322: '7B2F7B', // Plum
+  323: '94BE81', // Olivine
+  324: 'A8BD99', // Laurel green
+  325: 'DFDFDE', // Quill grey
+  327: '970000', // Crimson
+  328: 'B1E5A6', // Mint
+  329: '98C2DB', // Baby blue
+  330: 'FF98DC', // Carnation pink
+  331: 'FF5959', // Persimmon
+  332: '750000', // Maroon
+  333: 'EFB838', // Gold (2015)
+  334: 'F8D96D', // Daisy orange
+  335: 'E7E7EC', // Pearl
+  336: 'C7D4E4', // Fog
+  337: 'FF9494', // Salmon
+  338: 'BE6862', // Terra Cotta
+  339: '562424', // Cocoa
+  340: 'F1E7C7', // Wheat
+  341: 'FEF3BB', // Buttermilk
+  342: 'E0B2D0', // Mauve
+  343: 'D490BD', // Sunrise
+  344: '965555', // Tawny
+  345: '8F4C2A', // Rust (2015)
+  346: 'D3BE96', // Cashmere
+  347: 'E2DCBC', // Khaki
+  348: 'EDEAEA', // Lily white
+  349: 'E9DADA', // Seashell
+  350: '883E3E', // Burgundy
+  351: 'BC9B5D', // Cork
+  352: 'C7AC78', // Burlap
+  353: 'CABFA3', // Beige
+  354: 'BBB3B2', // Oyster
+  355: '6C584B', // Pine Cone
+  356: 'A0844F', // Fawn brown
+  357: '958988', // Hurricane grey
+  358: 'ABA89E', // Cloudy grey
+  359: 'AF9483', // Linen
+  360: '966766', // Copper
+  361: '564236', // Medium brown
+  362: '7E683F', // Bronze
+  363: '69665C', // Flint
+  364: '5A4C42', // Dark taupe
+  365: '6A3909', // Burnt Sienna
+  1001: 'F8F8F8', // Institutional white
+  1002: 'CDCDCD', // Mid gray
+  1003: '111111', // Really black
+  1004: 'FF0000', // Really red
+  1005: 'FFB000', // Deep orange
+  1006: 'B480FF', // Alder
+  1007: 'A34B4B', // Dusty Rose
+  1008: 'C1BE42', // Olive
+  1009: 'FFFF00', // New Yeller
+  1010: '0000FF', // Really blue
+  1011: '002060', // Navy blue
+  1012: '2154B9', // Deep blue
+  1013: '04AFEC', // Cyan
+  1014: 'AA5500', // CGA brown
+  1015: 'AA00AA', // Magenta
+  1016: 'FF66CC', // Pink
+  1017: 'FFAF00', // Deep orange (alt)
+  1018: '12EED4', // Teal
+  1019: '00FFFF', // Toothpaste
+  1020: '00FF00', // Lime green
+  1021: '3A7D15', // Camo
+  1022: '7F8E64', // Grime
+  1023: '8C5B9F', // Lavender
+  1024: 'AFDDFF', // Pastel light blue
+  1025: 'FFC9C9', // Pastel orange
+  1026: 'B1A7FF', // Pastel violet
+  1027: '9FF3E9', // Pastel blue-green
+  1028: 'CCFFCC', // Pastel green
+  1029: 'FFFFCC', // Pastel yellow
+  1030: 'FFCC99', // Pastel brown
+  1031: '6225D1', // Royal purple
+  1032: 'FF00BF' // Hot pink
 }
 
 function brickColorToHex(brickColorId: number): string | undefined {

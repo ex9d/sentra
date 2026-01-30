@@ -87,7 +87,7 @@ const AccountGridView = ({
 
               <div className="flex flex-col items-center text-center mt-2">
                 <div className="relative">
-                  <Avatar
+                  <Avatar 
                     className="w-20 h-20 mb-4 ring-4 ring-neutral-950 shadow-lg"
                     style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                   >
@@ -106,7 +106,7 @@ const AccountGridView = ({
                 >
                   {account.displayName}
                 </h3>
-                <p
+                <p 
                   className="text-sm text-neutral-500 mb-5 truncate w-full"
                   style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                 >
@@ -122,7 +122,7 @@ const AccountGridView = ({
                 </div>
 
                 <div className="w-full mt-6 pt-5 border-t border-neutral-800/50 flex items-center justify-between text-sm">
-                  <span
+                  <span 
                     className="font-mono text-neutral-500 text-[15px]"
                     style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                   >{account.userId}</span>

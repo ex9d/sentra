@@ -52,7 +52,7 @@ const TruncatedTitle = ({ text, className }: { text: string; className?: string 
     }
 
     checkTruncation()
-
+    // Add small delay to allow layout to settle
     const timer = setTimeout(checkTruncation, 100)
 
     window.addEventListener('resize', checkTruncation)
@@ -108,7 +108,7 @@ const GameCard = ({
   const targetTransform = useRef({ x: 0, y: 0, scale: 1 })
   const currentTransform = useRef({ x: 0, y: 0, scale: 1 })
 
-  const PARALLAX_INTENSITY = 0.01
+  const PARALLAX_INTENSITY = 0.01 // Max translate percentage of width/height
   const HOVER_SCALE = 1.05
   const SMOOTHING = 0.12
   const EPSILON = 0.001
@@ -191,12 +191,12 @@ const GameCard = ({
     }
   }, [])
 
-
+  // Reset image loaded state when game changes
   useEffect(() => {
     setImageLoaded(false)
     setHasImageError(false)
 
-
+    // Handle cached images that may already be loaded
     const img = imageRef.current
     if (img && img.complete && img.naturalWidth > 0) {
       setImageLoaded(true)
@@ -368,39 +368,39 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
     y: number
   } | null>(null)
 
-
+  // Generate a session ID once per mount
   const [sessionId] = useState(() => self.crypto.randomUUID())
 
-
+  // TanStack Query hooks
   const { data: sorts = [] } = useGameSorts(sessionId)
   const { data: favorites = [] } = useFavoriteGames()
 
   const addFavoriteMutation = useAddFavoriteGame()
   const removeFavoriteMutation = useRemoveFavoriteGame()
 
-
+  // Determine which query to use based on mode
   const isSearchMode = debouncedSearchQuery.trim().length > 0
 
-
+  // Games in sort (default mode)
   const { data: sortGames = [], isLoading: isSortLoading } = useGamesInSort(
     !isSearchMode ? selectedSortId : null,
     sessionId
   )
 
-
+  // Search results
   const { data: searchGames = [], isLoading: isSearchLoading } = useSearchGames(
     debouncedSearchQuery,
     sessionId
   )
 
-
+  // Favorite games
   const { data: favoriteGames = [], isLoading: isFavoritesLoading } = useGamesByPlaceIds(favorites)
 
-
+  // Recently played games (requires at least one stored account with a cookie)
   const { data: recentlyPlayedGames = [], isLoading: isRecentLoading } =
     useRecentlyPlayedGames(sessionId)
 
-
+  // Compute final games list
   const games = useMemo(() => {
     if (isSearchMode) {
       return searchGames
@@ -417,7 +417,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
     }))
   }, [sorts])
 
-
+  // Auto-select first sort when sorts load
   useEffect(() => {
     if (sorts.length > 0 && !selectedSortId && !searchQuery) {
       const popularSort = sorts.find(
@@ -487,7 +487,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
     showNotification('Universe ID copied to clipboard', 'success')
   }
 
-
+  // Handle debounce of search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery)
@@ -496,7 +496,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-
+  // Clear search handler
   const handleClearSearch = useCallback(() => {
     setSearchQuery('')
     setDebouncedSearchQuery('')
@@ -516,7 +516,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
           </div>
 
           <div className="flex items-center gap-3">
-            {}
+            {/* Launch Button */}
             {selectedIds.size > 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -537,7 +537,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
               </Tooltip>
             )}
 
-            {}
+            {/* Sort Selector */}
             {sorts.length > 0 && (
               <CustomDropdown
                 options={sortOptions}
@@ -548,7 +548,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
               />
             )}
 
-            {}
+            {/* Search Input */}
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
@@ -558,7 +558,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
           </div>
         </div>
 
-        {}
+        {/* Active Filters */}
         {isSearchMode && (
           <div className="flex flex-wrap items-center gap-2 px-6 py-3 border-t border-neutral-800 bg-neutral-900/20">
             <span className="text-xs font-medium text-neutral-500 uppercase tracking-wider mr-2">
@@ -589,7 +589,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
 
         <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
           <div className="flex flex-col gap-10">
-            {}
+            {/* Favorites Section */}
             {(isFavoritesLoading || favoriteGames.length > 0) && (
               <>
                 <section>
@@ -641,7 +641,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
               </>
             )}
 
-            {}
+            {/* Recently Played Section */}
             {(isRecentLoading || recentlyPlayedGames.length > 0) && (
               <>
                 <section>

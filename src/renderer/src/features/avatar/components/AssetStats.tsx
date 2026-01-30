@@ -20,16 +20,16 @@ interface AssetStatsProps {
 }
 
 export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) => {
-
+  // Resolve asset type name
   const assetTypeId = details.AssetTypeId || details.assetType
   const assetTypeName = assetTypeId ? ASSET_TYPE_NAMES[assetTypeId] : details.itemType
 
   const isLimited = details.isLimited || details.isLimitedUnique
 
-
+  // Collect all stats into arrays for better layout control
   const primaryStats: PrimaryStat[] = []
 
-
+  // Primary stats (always shown, highlighted)
   if (salesData) {
     primaryStats.push({
       icon: TrendingUp,
@@ -53,7 +53,7 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
     color: 'rose'
   })
 
-
+  // Limited stock
   if (isLimited && details.totalQuantity !== undefined && (details.remaining ?? 0) > 1) {
     primaryStats.push({
       icon: Sparkles,
@@ -73,7 +73,7 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
     <div className="space-y-4">
       <h3 className="text-sm font-medium text-white">Statistics</h3>
 
-      {}
+      {/* Primary Stats */}
       <div className={cn('grid gap-3', primaryStats.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
         {primaryStats.map((stat, index) => (
           <div
@@ -89,7 +89,7 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
         ))}
       </div>
 
-      {}
+      {/* Metadata Stats */}
       <div className="flex flex-wrap gap-3">
         <div className="flex items-center gap-2 px-3 py-2 bg-neutral-900/50 rounded-lg border border-neutral-800/50">
           <Tag size={12} className="text-neutral-500" />
@@ -99,7 +99,7 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
           </span>
         </div>
 
-        {}
+        {/* Non-limited remaining */}
         {!isLimited && details.remaining !== undefined && details.remaining > 0 && (
           <div className="flex items-center gap-2 px-3 py-2 bg-neutral-900/50 rounded-lg border border-neutral-800/50">
             <Tag size={12} className="text-neutral-500" />
@@ -110,7 +110,7 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
           </div>
         )}
 
-        {}
+        {/* Date stats */}
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2 px-3 py-2 bg-neutral-900/50 rounded-lg border border-neutral-800/50 cursor-default">

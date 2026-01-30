@@ -64,7 +64,7 @@ const getVoiceBanInfo = (status?: VoiceSettings): VoiceBanInfo | null => {
 
 const AccountsTab = memo(
   ({ accounts, onAccountsChange, allowMultipleInstances, privacyMode }: AccountsTabProps) => {
-
+    // Using individual selectors for optimized re-renders
     const selectedIds = useSelectedIds()
     const setSelectedIds = useSetSelectedIds()
     const setActiveMenu = useSetActiveMenu()

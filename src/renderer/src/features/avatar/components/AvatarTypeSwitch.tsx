@@ -35,9 +35,9 @@ export const AvatarTypeSwitch: React.FC<AvatarTypeSwitchProps> = ({
   return (
     <div className="bg-[var(--color-surface)]/80 backdrop-blur rounded-lg border border-[var(--color-border)] p-1 shadow-sm">
       <div className="relative flex items-center">
-        {}
+        {/* Background track */}
         <div className="relative w-[100px] h-8 bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded-md overflow-hidden">
-          {}
+          {/* Sliding indicator */}
           <div
             className={cn(
               'absolute top-1 bottom-1 w-[46px] rounded transition-all duration-200 ease-in-out',
@@ -45,7 +45,7 @@ export const AvatarTypeSwitch: React.FC<AvatarTypeSwitchProps> = ({
             )}
           />
 
-          {}
+          {/* Labels */}
           <button
             onClick={() => handleTypeChange('R6')}
             disabled={setPlayerAvatarType.isPending}

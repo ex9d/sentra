@@ -45,7 +45,7 @@ const refreshAccountAvatarHeadshot = async (
     queryClient.invalidateQueries({ queryKey: ['userAvatar', uid] })
     queryClient.invalidateQueries({ queryKey: queryKeys.thumbnails.userAvatars([uid], size) })
   } catch {
-
+    // ignore avatar refresh errors
   } finally {
     headshotRefreshInFlight.delete(uid)
   }
@@ -142,7 +142,7 @@ export function useInventory(
       }))
     },
     enabled: !!cookie && !!userId && assetTypeIds.length > 0 && (options?.enabled ?? true),
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 

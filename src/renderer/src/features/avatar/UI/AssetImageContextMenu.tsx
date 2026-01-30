@@ -30,9 +30,9 @@ const AssetImageContextMenu: React.FC<AssetImageContextMenuProps> = ({
   const sections: ContextMenuSection[] = useMemo(() => {
     if (!activeMenu) return []
 
-
+    // Classic Shirt (11) and Pants (12)
     const isClothing = activeMenu.assetType === 11 || activeMenu.assetType === 12
-
+    // Check if asset type has model
     const hasModel = activeMenu.assetType && ASSET_TYPES_WITH_MODELS.includes(activeMenu.assetType)
 
     const downloadItems: ContextMenuItem[] = []

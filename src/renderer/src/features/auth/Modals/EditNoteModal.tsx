@@ -40,7 +40,7 @@ const EditNoteModal: React.FC<EditNoteModalProps> = ({ isOpen, onClose, onSave, 
             </div>
             <div>
               <h3 className="text-xl font-semibold text-white">Edit Note</h3>
-              <p
+              <p 
                 className="text-sm text-neutral-500"
                 style={privacyMode ? { filter: 'blur(16px)' } : undefined}
               >For @{account.username}</p>

@@ -6,7 +6,7 @@ import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
 import { AssetDetails } from '@shared/ipc-schemas/avatar'
 import { Dialog, DialogContent, DialogBody } from '@renderer/components/UI/dialogs/Dialog'
 
-
+// Inline Purchase Confirm Dialog
 const PurchaseConfirmDialog: React.FC<{
   isOpen: boolean
   onClose: () => void
@@ -83,7 +83,7 @@ const PurchaseConfirmDialog: React.FC<{
   )
 }
 
-
+// Inline Purchase Success Dialog
 export const PurchaseSuccessDialog: React.FC<{
   isOpen: boolean
   onClose: () => void
@@ -129,7 +129,7 @@ export const PurchaseSuccessDialog: React.FC<{
   </Dialog>
 )
 
-
+// Inline Purchase Error Dialog
 export const PurchaseErrorDialog: React.FC<{
   isOpen: boolean
   onClose: () => void
@@ -170,13 +170,13 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
   const [showConfirm, setShowConfirm] = useState(false)
   const [isOwned, setIsOwned] = useState(false)
   const [userBalance, setUserBalance] = useState<number | null>(null)
-  const purchaseInProgressRef = useRef(false)
+  const purchaseInProgressRef = useRef(false) // Guard against double purchases
 
-
+  // Logic for display price
   let displayPrice: string | number = 'Off Sale'
   const isLimitedItem = details.isLimited || details.isLimitedUnique
 
-
+  // For limited/collectible items, prioritize the collectible resale price
   if (
     isLimitedItem &&
     details.collectibleLowestResalePrice &&
@@ -184,11 +184,11 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
   ) {
     displayPrice = details.collectibleLowestResalePrice
   } else if (details.lowestPrice && details.lowestPrice > 0) {
-
+    // Catalog API lowestPrice for limiteds
     displayPrice = details.lowestPrice
   } else if (details.price !== null && details.price !== undefined) {
     if (details.price === 0 && details.isPurchasable && !isLimitedItem) {
-
+      // Only show "Free" if it's actually purchasable and not a limited item
       displayPrice = 'Free'
     } else if (details.price > 0) {
       displayPrice = details.price
@@ -197,14 +197,14 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
     }
   }
 
-
+  // Check ownership and balance
   React.useEffect(() => {
     let isMounted = true
     const checkStatus = async () => {
       if (!cookie || !userId || !details.id) return
 
       try {
-
+        // Check ownership
         const owned = await (window as any).api.checkAssetOwnership(
           cookie,
           userId,
@@ -213,9 +213,9 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
         )
         if (isMounted) setIsOwned(owned)
 
-
+        // Get balance (only if we might buy)
         if (!owned && displayPrice !== 'Off Sale') {
-
+          // We can get balance from account stats
           const stats = await (window as any).api.fetchAccountStats(cookie)
           if (isMounted && stats) setUserBalance(stats.robuxBalance)
         }
@@ -230,7 +230,7 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
     }
   }, [cookie, userId, details.id, displayPrice])
 
-
+  // Check if item can be purchased (has collectibleItemId and is purchasable)
   const canPurchase = !isOwned && displayPrice !== 'Off Sale' && details.collectibleItemId && cookie
 
   const handlePurchaseClick = () => {
@@ -239,7 +239,7 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
   }
 
   const handleConfirmPurchase = async () => {
-
+    // Guard against double purchases (React StrictMode can cause double calls)
     if (purchaseInProgressRef.current) return
     if (!canPurchase || !details.collectibleItemId || !cookie) return
 
@@ -247,9 +247,9 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
     setShowConfirm(false)
     setIsPurchasing(true)
     try {
-
+      // Get the actual price as a number
       const expectedPrice = typeof displayPrice === 'number' ? displayPrice : 0
-
+      // Get the seller ID from creatorTargetId
       const expectedSellerId = details.creatorTargetId || 0
 
       const result = await (window as any).api.purchaseCatalogItem(
@@ -259,11 +259,11 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
         expectedSellerId,
         details.collectibleProductId,
         userId,
-        crypto.randomUUID()
+        crypto.randomUUID() // idempotencyKey
       )
 
       if (result.purchased) {
-        setIsOwned(true)
+        setIsOwned(true) // Mark as owned immediately on success
         onPurchaseSuccess?.(details, displayPrice)
       } else {
         const errorMsg =
@@ -326,7 +326,7 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
               : 'Buy'}
       </Button>
 
-      {}
+      {/* Purchase Confirmation Dialog */}
       <PurchaseConfirmDialog
         isOpen={showConfirm}
         onClose={() => setShowConfirm(false)}

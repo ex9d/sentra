@@ -62,18 +62,18 @@ const formatValue = (value: any, type: string, name: string): React.ReactNode =>
     )
   }
 
-
+  // Handle complex objects that might be stringified
   const parsedValue = value
   if (typeof value === 'object') {
-
+    // Already an object
   }
 
-
+  // Check for Vector3/CFrame like structure
   if (typeof parsedValue === 'object') {
     if ('X' in parsedValue && 'Y' in parsedValue && 'Z' in parsedValue) {
-
+      // Vector3 or CFrame (position part)
       if ('R00' in parsedValue) {
-
+        // CFrame
         return (
           <div className="flex flex-col gap-1 font-mono text-[11px]">
             <div className="text-emerald-400">
@@ -87,7 +87,7 @@ const formatValue = (value: any, type: string, name: string): React.ReactNode =>
           </div>
         )
       } else {
-
+        // Vector3
         return (
           <span className="text-emerald-400 font-mono">
             {Number(parsedValue.X).toFixed(3)}, {Number(parsedValue.Y).toFixed(3)},{' '}
@@ -248,7 +248,7 @@ export const AssetHierarchyModal = ({
         .getAssetHierarchy(assetId)
         .then((data: any) => {
           setHierarchy(data)
-
+          // Automatically select the first child if available, or the root if it has properties
           if (data.children && data.children.length > 0) {
             setSelectedInstance(data.children[0])
           } else {
@@ -297,7 +297,7 @@ export const AssetHierarchyModal = ({
             </div>
           ) : hierarchy ? (
             <div className="flex w-full h-full">
-              {}
+              {/* Left Panel: Tree View */}
               <div className="w-1/3 border-r border-neutral-800 flex flex-col bg-neutral-950/50">
                 <div className="p-3 text-xs font-bold text-neutral-500 uppercase tracking-wider border-b border-neutral-800/50 bg-neutral-900/20">
                   Explorer
@@ -320,7 +320,7 @@ export const AssetHierarchyModal = ({
                 </div>
               </div>
 
-              {}
+              {/* Right Panel: Properties */}
               <div className="w-2/3 flex flex-col bg-neutral-900/10">
                 <div className="p-3 text-xs font-bold text-neutral-500 uppercase tracking-wider border-b border-neutral-800/50 bg-neutral-900/20 flex justify-between items-center">
                   <span>Properties</span>

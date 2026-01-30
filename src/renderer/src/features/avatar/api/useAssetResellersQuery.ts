@@ -9,9 +9,9 @@ import {
 } from '@shared/ipc-schemas/avatar'
 import { useBatchUserAvatars } from './useBatchQueries'
 
-
-
-
+// ============================================================================
+// Asset Resellers Infinite Query
+// ============================================================================
 
 interface UseAssetResellersQueryOptions {
   collectibleItemId: string | null | undefined
@@ -37,7 +37,7 @@ export function useAssetResellersQuery({
         pageParam || undefined
       )
 
-
+      // Validate with Zod schema
       const parsed = resellersResponseSchema.safeParse(response)
       if (!parsed.success) {
         console.warn('[useAssetResellersQuery] Validation warning:', parsed.error.issues)
@@ -51,27 +51,27 @@ export function useAssetResellersQuery({
     initialPageParam: '' as string,
     getNextPageParam: (lastPage) => lastPage.nextPageCursor || undefined,
     enabled: enabled && isLimited && !!collectibleItemId,
-    staleTime: 15 * 1000,
+    staleTime: 15 * 1000, // 15 seconds - resellers can change quickly
     gcTime: 5 * 60 * 1000
   })
 
-
+  // Flatten pages into single array
   const resellers = useMemo(() => {
     return query.data?.pages.flatMap((page) => page.data) || []
   }, [query.data])
 
-
+  // Extract unique seller IDs for batch fetching
   const sellerIds = useMemo(() => {
     return [...new Set(resellers.map((r) => r.seller.sellerId))]
   }, [resellers])
 
-
+  // Use TanStack Query for batch avatar fetching - handles caching & deduplication
   const { avatars: avatarData } = useBatchUserAvatars({
     userIds: sellerIds,
     enabled: sellerIds.length > 0
   })
 
-
+  // Convert to Map for backwards compatibility
   const resellerAvatars = useMemo(() => {
     const map = new Map<number, string>()
     Object.entries(avatarData).forEach(([id, url]) => {
@@ -100,9 +100,9 @@ export function useAssetResellersQuery({
   }
 }
 
-
-
-
+// ============================================================================
+// Purchase Limited Item Mutation
+// ============================================================================
 
 interface PurchaseResellerParams {
   cookie: string
@@ -131,7 +131,7 @@ export function usePurchaseLimitedItem(collectibleItemId: string | null | undefi
         collectibleProductId
       )
 
-
+      // Validate with Zod schema
       const parsed = purchaseLimitedResultSchema.safeParse(result)
       if (!parsed.success) {
         console.warn('[usePurchaseLimitedItem] Validation warning:', parsed.error.issues)
@@ -141,7 +141,7 @@ export function usePurchaseLimitedItem(collectibleItemId: string | null | undefi
     },
     onSuccess: (result) => {
       if (result.purchased && collectibleItemId) {
-
+        // Refetch resellers after successful purchase
         queryClient.invalidateQueries({
           queryKey: queryKeys.assets.resellers(collectibleItemId)
         })
@@ -150,9 +150,9 @@ export function usePurchaseLimitedItem(collectibleItemId: string | null | undefi
   })
 }
 
-
-
-
+// ============================================================================
+// Convenience Hook (matches original interface)
+// ============================================================================
 
 interface UseAssetResellersResult {
   resellers: ResellerItem[]

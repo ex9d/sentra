@@ -42,7 +42,7 @@ interface AccountSettingsTabProps {
 
 type SettingsSection = 'account' | 'privacy' | 'communication' | 'security'
 
-
+// Privacy level options for dropdowns
 const PRIVACY_OPTIONS: DropdownOption[] = [
   { value: 'NoOne', label: 'No One' },
   { value: 'Friends', label: 'Friends' },
@@ -187,7 +187,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
   const accountSettings = combinedSettings?.accountSettings
   const userSettings = combinedSettings?.userSettings
 
-
+  // Mutation hooks for updating settings
   const invalidateSettings = () => {
     queryClient.invalidateQueries({ queryKey: ['combined-account-settings', account?.id] })
   }
@@ -271,11 +271,11 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
     }
   })
 
+  // ============================================================================
+  // ACCOUNT INFORMATION API QUERIES & MUTATIONS
+  // ============================================================================
 
-
-
-
-
+  // Description
   const { data: descriptionData } = useQuery({
     queryKey: ['description', account?.id],
     queryFn: async () => {
@@ -297,7 +297,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
     }
   })
 
-
+  // Gender
   const { data: genderData } = useQuery({
     queryKey: ['gender', account?.id],
     queryFn: async () => {
@@ -316,7 +316,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['gender', account?.id] })
   })
 
-
+  // Birthdate
   const { data: birthdateData } = useQuery({
     queryKey: ['birthdate', account?.id],
     queryFn: async () => {
@@ -327,7 +327,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
     staleTime: 1000 * 60 * 5
   })
 
-
+  // Promotion Channels (Social Links)
   const { data: promotionChannelsData } = useQuery({
     queryKey: ['promotion-channels', account?.id],
     queryFn: async () => {
@@ -338,7 +338,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
     staleTime: 1000 * 60 * 5
   })
 
-
+  // Birthdate display helper
   const formatBirthdate = (month: number, day: number, year: number): string => {
     const date = new Date(year, month - 1, day)
     return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -368,7 +368,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
 
   return (
     <div className="flex flex-col h-full bg-[var(--color-surface)] text-[var(--color-text-secondary)]">
-      {}
+      {/* Header */}
       <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] flex items-center justify-between px-6">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Account Settings</h2>
@@ -398,7 +398,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
         </div>
       </div>
 
-      {}
+      {/* Section Tabs */}
       <div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="max-w-4xl mx-auto">
           <div className="relative flex">
@@ -431,7 +431,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
         </div>
       </div>
 
-      {}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto p-8 scrollbar-thin">
         <div className="max-w-4xl mx-auto pb-8">
           {isLoading && (
@@ -451,7 +451,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
 
           {accountSettings && userSettings && (
             <>
-              {}
+              {/* Account Info Section */}
               {activeSection === 'account' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <h3 className="text-lg font-semibold text-white mb-1">Account Information</h3>
@@ -472,7 +472,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                         <SettingValue value={accountSettings.DisplayName} />
                       </SettingRow>
                       <SettingRow label="User ID">
-                        <span
+                        <span 
                           className="text-sm text-neutral-300 font-mono"
                           style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                         >
@@ -689,7 +689,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                 </div>
               )}
 
-              {}
+              {/* Privacy Section */}
               {activeSection === 'privacy' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <h3 className="text-lg font-semibold text-white mb-1">Privacy Settings</h3>
@@ -838,7 +838,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                 </div>
               )}
 
-              {}
+              {/* Communication Section */}
               {activeSection === 'communication' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <h3 className="text-lg font-semibold text-white mb-1">Communication Settings</h3>
@@ -949,7 +949,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                 </div>
               )}
 
-              {}
+              {/* Security Section */}
               {activeSection === 'security' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <h3 className="text-lg font-semibold text-white mb-1">Security Settings</h3>

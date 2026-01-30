@@ -12,7 +12,7 @@ export const useVoiceSettingsForAccounts = (accounts: Account[]) => {
       queryKey: queryKeys.accounts.voice(account.cookie!),
       queryFn: () => window.api.getVoiceSettings(account.cookie!),
       enabled: !!account.cookie,
-      staleTime: 5 * 60 * 1000,
+      staleTime: 5 * 60 * 1000, // 5 minutes
       refetchInterval: 5 * 60 * 1000
     }))
   }) as UseQueryResult<VoiceSettings | undefined>[]

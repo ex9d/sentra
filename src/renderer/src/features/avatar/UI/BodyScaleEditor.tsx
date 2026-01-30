@@ -11,7 +11,7 @@ interface BodyScaleEditorProps {
   onUpdate: () => void
 }
 
-
+// Scale options based on Roblox's avatar editor
 const HEIGHT_OPTIONS = [0.9, 0.95, 1.0, 1.05]
 const WIDTH_OPTIONS = [0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
 const HEAD_OPTIONS = [0.95, 1.0]
@@ -31,7 +31,7 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false)
   const { showNotification } = useNotification()
 
-
+  // Initialize from current avatar data
   useEffect(() => {
     if (currentScales) {
       if (typeof currentScales.height === 'number') setHeight(currentScales.height)
@@ -52,7 +52,7 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
     setIsSaving(true)
 
     try {
-
+      // Save avatar type first if it changed
       if (currentAvatarType !== avatarType) {
         const typeResult = await (window as any).api.setPlayerAvatarType(account.cookie, avatarType)
         if (!typeResult.success) {
@@ -62,14 +62,14 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
         }
       }
 
-
+      // Save scales (only applies to R15)
       if (avatarType === 'R15') {
         const scalesPayload = {
           height,
           width,
           head,
-          proportion: proportion / 100,
-          bodyType: bodyType / 100
+          proportion: proportion / 100, // Convert percentage to decimal
+          bodyType: bodyType / 100 // Convert percentage to decimal
         }
 
         const result = await (window as any).api.setAvatarScales(account.cookie, scalesPayload)
@@ -96,7 +96,7 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
 
   return (
     <div className="flex flex-col gap-6 p-6 h-full w-full max-w-2xl mx-auto overflow-y-auto">
-      {}
+      {/* Avatar Type */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
           <label className="text-sm font-medium text-neutral-300">Body Type</label>
@@ -119,10 +119,10 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
         </div>
       </div>
 
-      {}
+      {/* R15 Scale Options - Only show when R15 is selected */}
       {avatarType === 'R15' && (
         <>
-          {}
+          {/* Height */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium text-neutral-300">Height</label>
@@ -143,7 +143,7 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
             </div>
           </div>
 
-          {}
+          {/* Width */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium text-neutral-300">Width</label>
@@ -164,7 +164,7 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
             </div>
           </div>
 
-          {}
+          {/* Head */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium text-neutral-300">Head</label>
@@ -185,7 +185,7 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
             </div>
           </div>
 
-          {}
+          {/* Proportions */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium text-neutral-300">Proportions</label>
@@ -206,7 +206,7 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
             </div>
           </div>
 
-          {}
+          {/* Body Type Slider */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium text-neutral-300">Body Shape</label>
@@ -234,7 +234,7 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
         </div>
       )}
 
-      {}
+      {/* Save Button */}
       <div className="flex justify-center pt-4 pb-8 mt-auto">
         <Button onClick={handleSave} disabled={isSaving} className="w-full max-w-xs" size="lg">
           {isSaving ? 'Updating...' : 'Update Body Scales'}

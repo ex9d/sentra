@@ -3,7 +3,7 @@ import { queryKeys } from '../../../../../shared/queryKeys'
 import { Account, Friend } from '@renderer/types'
 import { mapPresenceToStatus } from '@renderer/utils/statusUtils'
 
-
+// Fetch friends list
 export function useFriends(account: Account | null, options?: { forceRefresh?: boolean }) {
   const accountId = account?.id
   const cookie = account?.cookie
@@ -34,38 +34,38 @@ export function useFriends(account: Account | null, options?: { forceRefresh?: b
       }))
     },
     enabled: !!cookie && !!accountId,
-    staleTime: 60 * 1000,
-    refetchInterval: 60 * 1000
+    staleTime: 60 * 1000, // 60 seconds
+    refetchInterval: 60 * 1000 // Poll every 60 seconds for presence updates
   })
 }
 
+// NOTE: This hook has been disabled to prevent duplicate polling.
+// Friend statuses are already fetched and updated by the main useFriends hook above.
+// If you need real-time status updates, increase the refetchInterval in useFriends instead.
+/*
+export function useFriendStatuses(
+  account: Account | null,
+  friends: Friend[],
+  enabled: boolean = true
+) {
+  const cookie = account?.cookie
+  const accountId = account?.id || ''
+  const userIds = friends.map((f) => parseInt(f.userId))
 
+  return useQuery({
+    queryKey: queryKeys.friends.statuses(accountId, userIds),
+    queryFn: async () => {
+      if (!cookie || userIds.length === 0) return []
+      return window.api.getFriendsStatuses(cookie, userIds)
+    },
+    enabled: !!cookie && userIds.length > 0 && enabled,
+    refetchInterval: 60000, // Poll every 60 seconds
+    staleTime: 55000 // Slightly less than refetch interval
+  })
+}
+*/
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// Fetch friend requests
 export function useFriendRequests(account: Account | null) {
   const cookie = account?.cookie
   const accountId = account?.id
@@ -78,7 +78,7 @@ export function useFriendRequests(account: Account | null) {
   })
 }
 
-
+// Send friend request mutation
 export function useSendFriendRequest(account: Account | null) {
   const queryClient = useQueryClient()
   const cookie = account?.cookie
@@ -96,7 +96,7 @@ export function useSendFriendRequest(account: Account | null) {
   })
 }
 
-
+// Accept friend request mutation
 export function useAcceptFriendRequest(account: Account | null) {
   const queryClient = useQueryClient()
   const cookie = account?.cookie
@@ -115,7 +115,7 @@ export function useAcceptFriendRequest(account: Account | null) {
   })
 }
 
-
+// Decline friend request mutation
 export function useDeclineFriendRequest(account: Account | null) {
   const queryClient = useQueryClient()
   const cookie = account?.cookie
@@ -133,7 +133,7 @@ export function useDeclineFriendRequest(account: Account | null) {
   })
 }
 
-
+// Unfriend mutation
 export function useUnfriend(account: Account | null) {
   const queryClient = useQueryClient()
   const cookie = account?.cookie

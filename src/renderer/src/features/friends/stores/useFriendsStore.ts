@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 
 interface FriendsState {
-
+  // Filter State
   searchQuery: string
   scrollPosition: number
   favorites: string[]
@@ -46,14 +46,14 @@ export const useFriendsStore = create<FriendsStore>()(
       }),
       {
         name: 'friends-storage',
-        partialize: (state) => ({ favorites: state.favorites })
+        partialize: (state) => ({ favorites: state.favorites }) // Only persist favorites
       }
     ),
     { name: 'FriendsStore' }
   )
 )
 
-
+// Selectors
 export const useFriendsSearchQuery = () => useFriendsStore((state) => state.searchQuery)
 export const useSetFriendsSearchQuery = () => useFriendsStore((state) => state.setSearchQuery)
 export const useFriendsScrollPosition = () => useFriendsStore((state) => state.scrollPosition)

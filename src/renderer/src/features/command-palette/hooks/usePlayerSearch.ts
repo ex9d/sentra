@@ -86,7 +86,7 @@ export function usePlayerSearch(options: UsePlayerSearchOptions = {}) {
             const avatars = await window.api.getBatchUserAvatars([userData.id], '150x150')
             avatarUrl = avatars[userData.id] || undefined
           } catch {
-
+            // ignore avatar fetch errors
           }
 
           setResult({

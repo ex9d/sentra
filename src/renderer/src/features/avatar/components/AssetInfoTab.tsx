@@ -10,10 +10,10 @@ import { RecommendationsList } from './RecommendationsList'
 import { ResellersList } from './UserLists'
 import VerifiedIcon from '@renderer/components/UI/icons/VerifiedIcon'
 
-
+// Sound Hat IDs
 const SOUND_HAT_IDS = [24114402, 305888394, 24112667, 33070696]
 
-
+// Inline AssetMetadata component
 const AssetMetadata: React.FC<{
   details: AssetDetails
   creatorAvatarUrl: string | null
@@ -60,7 +60,7 @@ const AssetMetadata: React.FC<{
   </div>
 )
 
-
+// Inline AssetDescription component
 const AssetDescription: React.FC<{ description: string | null | undefined }> = ({
   description
 }) => (
@@ -191,7 +191,7 @@ export const AssetInfoTab: React.FC<AssetInfoTabProps> = ({
 
       <AssetStats details={details} salesData={salesData} />
 
-      {}
+      {/* Resellers - Only for limited items */}
       {isLimited && (
         <ResellersList
           resellers={resellers}
@@ -203,7 +203,7 @@ export const AssetInfoTab: React.FC<AssetInfoTabProps> = ({
         />
       )}
 
-      {}
+      {/* Recommendations Carousel */}
       <RecommendationsList
         recommendations={recommendations}
         recommendationThumbnails={recommendationThumbnails}

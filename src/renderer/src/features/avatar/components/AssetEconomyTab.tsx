@@ -54,7 +54,7 @@ const formatNumber = (num: number | undefined | null): string => {
   return num.toLocaleString()
 }
 
-
+// Collapsible Section Component with Animation
 const CollapsibleSection: React.FC<{
   title: string
   icon: React.ReactNode
@@ -120,7 +120,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
     ? TREND_ICONS[rolimonsItem.trend as keyof typeof TREND_ICONS] || Minus
     : Minus
 
-
+  // Get values from either source
   const value = itemDetails?.value ?? rolimonsItem?.value
   const rap = itemDetails?.rap ?? rolimonsItem?.rap
   const demand = itemDetails?.demand ?? rolimonsItem?.demand
@@ -137,13 +137,13 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {}
+      {/* Header with Loading */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold text-white">Market Data</h2>
           {rolimonsItem && (
             <a
-              href={`https:
+              href={`https://www.rolimons.com/item/${rolimonsItem.id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-neutral-500 hover:text-neutral-300 flex items-center gap-1 transition-colors"
@@ -156,10 +156,10 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
         {isLoading && <Loader2 size={16} className="animate-spin text-emerald-500" />}
       </div>
 
-      {}
+      {/* Hero Stats: Value & RAP */}
       {(value != null || rap != null) && (
         <div className="grid grid-cols-2 gap-3">
-          {}
+          {/* Value Card */}
           <div className="relative overflow-hidden p-4 bg-gradient-to-br from-purple-500/10 to-purple-500/5 rounded-xl border border-purple-500/20">
             <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="relative">
@@ -178,7 +178,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
             </div>
           </div>
 
-          {}
+          {/* RAP Card */}
           <div className="relative overflow-hidden p-4 bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 rounded-xl border border-cyan-500/20">
             <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="relative">
@@ -195,7 +195,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
         </div>
       )}
 
-      {}
+      {/* Market Indicators: Demand & Trend */}
       {(demand != null || trend != null) && (
         <div className="flex items-center gap-4 p-3 bg-neutral-900/30 rounded-xl border border-neutral-800/50">
           {demand != null && (
@@ -203,7 +203,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
               <Flame size={14} className="text-neutral-500" />
               <span className="text-xs text-neutral-500">Demand</span>
               <span className={cn('text-sm font-semibold', demandColor)}>{demandLabel}</span>
-              {}
+              {/* Mini progress indicator */}
               <div className="flex-1 max-w-[60px] h-1 bg-neutral-800 rounded-full overflow-hidden ml-2">
                 <div
                   className={cn(
@@ -234,10 +234,10 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
         </div>
       )}
 
-      {}
+      {/* Chart Section with Tabs */}
       {(hasValueChart || hasPriceChart) && (
         <div className="space-y-3">
-          {}
+          {/* Chart Toggle */}
           {(hasValueChart || hasPriceChart) && (
             <div className="flex gap-1 p-1 bg-neutral-900/50 rounded-lg w-fit">
               {hasValueChart && (
@@ -282,7 +282,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
             </div>
           )}
 
-          {}
+          {/* Active Chart */}
           {activeChart === 'value' && hasValueChart ? (
             <ValueChart
               valueChanges={rolimonsPageData!.valueChanges}
@@ -308,9 +308,9 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
         </div>
       )}
 
-      {}
+      {/* Analytics Section */}
       <div className="space-y-3">
-        {}
+        {/* Ownership Stats */}
         {itemDetails && (itemDetails.owners || itemDetails.copies) && (
           <CollapsibleSection
             title="Ownership Stats"
@@ -370,7 +370,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
           </CollapsibleSection>
         )}
 
-        {}
+        {/* Hoarders - Collapsible */}
         {rolimonsPageData?.hoardsData &&
           rolimonsPageData.hoardsData.owner_names &&
           rolimonsPageData.hoardsData.owner_names.length > 0 && (
@@ -389,7 +389,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
             </CollapsibleSection>
           )}
 
-        {}
+        {/* Owners - Collapsible */}
         {owners.length > 0 && (
           <CollapsibleSection
             title="Recent Owners"
@@ -411,7 +411,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
         )}
       </div>
 
-      {}
+      {/* Empty State */}
       {!isLoading && !rolimonsItem && !itemDetails && (
         <EmptyStateCompact message="No market data available for this item" className="py-8" />
       )}

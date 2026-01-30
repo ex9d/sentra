@@ -33,7 +33,7 @@ const AccountsToolbar = ({
   onViewModeToggle,
   statusFilter,
   onStatusFilterChange,
-
+  // onDelete, // unused in original snippet?
   onAddAccount
 }: AccountsToolbarProps) => {
   const filterOptions: DropdownOption[] = useMemo(() => {
@@ -52,7 +52,7 @@ const AccountsToolbar = ({
   }, [])
   return (
     <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] flex items-center justify-between px-6 gap-6 z-20">
-      {}
+      {/* Left: Title and Account Count */}
       <div className="flex items-center gap-4 shrink-0">
         <h1 className="text-xl font-bold text-white">Accounts</h1>
         <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-xs font-semibold tracking-tight text-neutral-400">
@@ -60,9 +60,9 @@ const AccountsToolbar = ({
         </span>
       </div>
 
-      {}
+      {/* Right Actions */}
       <div className="flex items-center gap-2 shrink-0">
-        {}
+        {/* View Toggle */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={onViewModeToggle}>
@@ -74,7 +74,7 @@ const AccountsToolbar = ({
           </TooltipContent>
         </Tooltip>
 
-        {}
+        {/* Filter Dropdown */}
         <CustomDropdown
           options={filterOptions}
           value={statusFilter}

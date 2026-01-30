@@ -12,7 +12,7 @@ import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
 import { formatNumber } from '@renderer/utils/numberUtils'
 import { useHorizontalScroll } from '@renderer/hooks/useHorizontalScroll'
 
-
+// Inline RecommendationCard component
 const RecommendationCard: React.FC<{
   item: RecommendationItem
   imageUrl?: string

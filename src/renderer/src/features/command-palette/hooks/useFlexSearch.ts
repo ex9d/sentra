@@ -12,9 +12,9 @@ export { type CatalogItem, type RolimonsSearchResult }
 
 const CATALOG_INDEX_STORAGE_KEY = 'sentra_catalog_search_index'
 
-
-
-
+/**
+ * Compute a simple hash for items to detect changes
+ */
 function computeItemsHash(items: CatalogItem[]): string {
   if (items.length === 0) return 'empty'
   const first = items[0]?.AssetId ?? 0
@@ -22,9 +22,9 @@ function computeItemsHash(items: CatalogItem[]): string {
   return `v1_${items.length}_${first}_${last}`
 }
 
-
-
-
+/**
+ * Load persisted index from localStorage
+ */
 function loadPersistedIndex(): ExportedIndexData | null {
   try {
     const stored = localStorage.getItem(CATALOG_INDEX_STORAGE_KEY)
@@ -36,9 +36,9 @@ function loadPersistedIndex(): ExportedIndexData | null {
   }
 }
 
-
-
-
+/**
+ * Save index to localStorage
+ */
 function savePersistedIndex(data: ExportedIndexData): void {
   try {
     localStorage.setItem(CATALOG_INDEX_STORAGE_KEY, JSON.stringify(data))
@@ -50,11 +50,11 @@ function savePersistedIndex(data: ExportedIndexData): void {
 let catalogInitStarted = false
 let rolimonsInitStarted = false
 
-
-
-
-
-
+/**
+ * Initialize catalog search index at app startup.
+ * This should be called once in the App component to preload the search index
+ * before the command palette is ever opened, preventing lag on first open.
+ */
 export function initCatalogSearchIndex(): void {
   if (catalogInitStarted) return
   catalogInitStarted = true
@@ -78,7 +78,7 @@ export function initCatalogSearchIndex(): void {
         console.log('[CatalogSearch] Failed to import persisted index, rebuilding...')
       }
 
-
+      // Load prebuilt index from main-process worker to avoid blocking main thread
       try {
         const exported = await window.api.getCatalogIndexExport()
         const imported = await searchService.importCatalogIndex(exported)
@@ -92,7 +92,7 @@ export function initCatalogSearchIndex(): void {
         console.warn('[CatalogSearch] Failed to fetch catalog index export:', workerErr)
       }
 
-
+      // Fallback: build index in renderer worker if export unavailable
       console.log('[CatalogSearch] Building new catalog index in renderer...')
       const items = await window.api.getAllCatalogItems()
       const currentHash = computeItemsHash(items)
@@ -122,10 +122,10 @@ export function initCatalogSearchIndex(): void {
   })
 }
 
-
-
-
-
+/**
+ * Hook for searching limiteds (Rolimons items) using FlexSearch.
+ * Indexing is done in a web worker to keep the main thread responsive.
+ */
 export function useLimitedsSearch(options: { maxResults?: number } = {}) {
   const { maxResults = 50 } = options
   const { data: rolimonsData, isLoading: rolimonsLoading, error } = useRolimonsData()
@@ -200,9 +200,9 @@ export function useLimitedsSearch(options: { maxResults?: number } = {}) {
   }
 }
 
-
-
-
+/**
+ * Hook for catalog items search
+ */
 export function useCatalogSearch(options: { maxResults?: number } = {}) {
   const { maxResults = 50 } = options
 
@@ -259,10 +259,10 @@ export function useCatalogSearch(options: { maxResults?: number } = {}) {
   }
 }
 
-
-
-
-
+/**
+ * Hook to get all limited items sorted by value/rap
+ * Kept for backwards compatibility
+ */
 export function useAllLimiteds() {
   const { data: rolimonsData, isLoading } = useRolimonsData()
 

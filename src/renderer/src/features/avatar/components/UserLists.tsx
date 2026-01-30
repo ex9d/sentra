@@ -6,9 +6,9 @@ import { HorizontalCarousel } from '@renderer/components/UI/navigation/Horizonta
 import { PaginatedList } from '@renderer/components/UI/navigation/PaginatedList'
 import { UserCard } from '@renderer/components/UI/display/UserCard'
 
-
-
-
+// ============================================================================
+// Owners List
+// ============================================================================
 
 interface OwnersListProps {
   owners: AssetOwner[]
@@ -78,9 +78,9 @@ export const OwnersList: React.FC<OwnersListProps> = ({
   )
 }
 
-
-
-
+// ============================================================================
+// Resellers List
+// ============================================================================
 
 interface ResellersListProps {
   resellers: ResellerItem[]
@@ -140,9 +140,9 @@ export const ResellersList: React.FC<ResellersListProps> = ({
   )
 }
 
-
-
-
+// ============================================================================
+// Hoarders List
+// ============================================================================
 
 interface Hoarder {
   id?: string
@@ -167,7 +167,7 @@ export const HoardersList: React.FC<HoardersListProps> = ({ hoardsData, onOwnerC
 
   const { owner_ids, owner_names, quantities } = hoardsData
 
-
+  // Create combined and sorted list
   const hoarders: Hoarder[] = owner_names
     .map((name, index) => ({
       id: owner_ids?.[index],
@@ -197,7 +197,7 @@ export const HoardersList: React.FC<HoardersListProps> = ({ hoardsData, onOwnerC
           </span>
         ) : (
           <a
-            href={`https:
+            href={`https://www.roblox.com/users/${hoarder.id}/profile`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-white hover:text-emerald-400 transition-colors"

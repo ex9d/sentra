@@ -19,7 +19,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 }) => {
   return (
     <>
-      {}
+      {/* Level 1: Main Categories */}
       <div className="flex items-center gap-1 p-2 overflow-x-auto scrollbar-hide border-b border-neutral-800/50">
         {(Object.keys(CATEGORIES) as MainCategory[]).map((category) => {
           const Icon = CATEGORY_ICONS[category] as React.FC<LucideProps>
@@ -42,7 +42,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         })}
       </div>
 
-      {}
+      {/* Level 2: Sub Categories */}
       <div className="flex items-center gap-2 px-4 py-3 overflow-x-auto scrollbar-hide bg-[var(--color-surface-muted)]">
         {CATEGORIES[mainCategory].map((sub) => (
           <Button

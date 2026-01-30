@@ -1,12 +1,12 @@
 import { Time } from 'lightweight-charts'
 
+// ============================================================================
+// Types
+// ============================================================================
 
-
-
-
-
-
-
+/**
+ * Chart data point representing a single price/value entry
+ */
 export interface ChartDataPoint {
   value: number
   time: Time
@@ -29,9 +29,9 @@ export interface ChartConfig {
   allowExport?: boolean
 }
 
-
-
-
+// ============================================================================
+// Formatting Utilities
+// ============================================================================
 
 export const formatPrice = (price: number): string => {
   if (price >= 1000000) {
@@ -48,9 +48,9 @@ export const formatPercentChange = (change: number): string => {
   return `${sign}${change.toFixed(2)}%`
 }
 
-
-
-
+// ============================================================================
+// Data Filtering
+// ============================================================================
 
 export const filterDataByDateRange = (
   data: ChartDataPoint[],
@@ -73,13 +73,13 @@ export const filterDataByDateRange = (
   return data.filter((p) => (p.time as number) >= mostRecentTime - seconds)
 }
 
+// ============================================================================
+// Data Parsing
+// ============================================================================
 
-
-
-
-
-
-
+/**
+ * Parse value changes from Rolimons format to chart data points
+ */
 export const parseValueChanges = (
   valueChanges: (number | string | boolean | null)[][] | null
 ): ChartDataPoint[] => {
@@ -107,9 +107,9 @@ export const parseValueChanges = (
   return points.sort((a, b) => (a.time as number) - (b.time as number))
 }
 
-
-
-
+/**
+ * Parse RAP history data to chart data points
+ */
 export const parseRapHistory = (
   historyData: {
     timestamp?: number[] | null
@@ -145,13 +145,13 @@ export const parseRapHistory = (
   return points.sort((a, b) => (a.time as number) - (b.time as number))
 }
 
+// ============================================================================
+// Statistics and Moving Average Utilities
+// ============================================================================
 
-
-
-
-
-
-
+/**
+ * Calculate basic statistics for a dataset
+ */
 export const calculateStatistics = (data: ChartDataPoint[]) => {
   if (data.length === 0) return null
 
@@ -170,9 +170,9 @@ export const calculateStatistics = (data: ChartDataPoint[]) => {
   return { min, max, avg, first, last, change, volatility: volatilityPercent }
 }
 
-
-
-
+/**
+ * Calculate Moving Average data points
+ */
 export const calculateMovingAverage = (
   data: ChartDataPoint[],
   period: number
@@ -192,9 +192,9 @@ export const calculateMovingAverage = (
   return result
 }
 
-
-
-
+// ============================================================================
+// Export Utilities
+// ============================================================================
 
 export const exportChartAsCSV = (
   data: ChartDataPoint[],

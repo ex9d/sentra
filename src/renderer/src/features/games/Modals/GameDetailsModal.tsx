@@ -142,7 +142,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     gameName: string
   } | null>(null)
 
-
+  // Favorite logic
   const { data: favorites = [] } = useFavoriteGames()
   const addFavoriteMutation = useAddFavoriteGame()
   const removeFavoriteMutation = useRemoveFavoriteGame()
@@ -194,7 +194,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
         if (result.success) {
           showNotification('Image saved successfully', 'success')
         } else if (result.canceled) {
-
+          // User canceled, don't show notification
         } else {
           showNotification('Failed to save image', 'error')
         }
@@ -208,7 +208,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
   const handleCopyLink = useCallback(async () => {
     if (!displayedGame) return
-    const link = `https:
+    const link = `https://www.roblox.com/games/${displayedGame.placeId || displayedGame.id}`
 
     try {
       await navigator.clipboard.writeText(link)
@@ -240,7 +240,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
       return
     }
 
-
+    // We don’t yet have a direct friend join target; jump to Servers tab so they can pick.
     setActiveTab('servers')
     showNotification('Jumped to Servers — look for friends online', 'info')
   }, [hasFriendsPlaying, showNotification])
@@ -254,7 +254,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     enabled: !!game?.universeId && isOpen
   })
 
-
+  // Fetch game passes
   const { data: gamePassesData, isLoading: _isLoadingPasses } = useQuery({
     queryKey: ['gamePasses', game?.universeId],
     queryFn: async () => {
@@ -264,7 +264,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     enabled: !!game?.universeId && isOpen
   })
 
-
+  // Filter to only show passes that are for sale
   const gamePassesForSale =
     gamePassesData?.gamePasses?.filter((p: GamePass) => p.isForSale && p.productId !== null) || []
   const hasGamePasses = gamePassesForSale.length > 0
@@ -281,7 +281,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           'success'
         )
 
-
+        // Update local state
         if (data.model) {
           setDisplayedGame((prev) => {
             if (!prev) return null
@@ -294,7 +294,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           })
         }
 
-
+        // Refresh game stats
         queryClient.invalidateQueries({ queryKey: ['gameDetails', game?.universeId] })
       } else if (data.modalType === 'PlayGame') {
         showNotification('You must play the game before you can vote', 'error')
@@ -308,7 +308,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     }
   })
 
-
+  // Auto-advance carousel
   const startCarousel = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current)
     intervalRef.current = setInterval(() => {
@@ -366,14 +366,14 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     startCarousel()
   }, [carouselIndex, isDragging, startCarousel, thumbnails.length])
 
-
+  // Update carousel transform when index changes (when not dragging)
   useEffect(() => {
     if (!isDragging && carouselRef.current) {
       carouselRef.current.style.transform = `translateX(calc(-${carouselIndex * 100}%))`
     }
   }, [carouselIndex, isDragging])
 
-
+  // Refresh game stats
   useEffect(() => {
     if (!isOpen || !game?.universeId) return
 
@@ -405,10 +405,10 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
       setDisplayedGame(game)
       setCarouselIndex(0)
       setActiveTab('info')
-
+      // Start with the fallback thumbnail
       setThumbnails(game.thumbnailUrl ? [game.thumbnailUrl] : [])
 
-
+      // Fetch high-res thumbnails
       if (game.universeId) {
         window.api
           .getGameThumbnail16x9(Number(game.universeId))
@@ -424,7 +424,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     }
   }, [game])
 
-
+  // Calculate stats safely
   const totalVotes = displayedGame ? displayedGame.likes + displayedGame.dislikes : 0
   const likePercentage =
     displayedGame && totalVotes > 0 ? Math.round((displayedGame.likes / totalVotes) * 100) : 0
@@ -454,9 +454,9 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
         <SheetBody className="flex-1 overflow-y-auto scrollbar-thin">
           <div className="flex flex-col h-full">
             <div className="flex flex-col lg:flex-row flex-1 min-h-0">
-              {}
+              {/* LEFT SIDE: Preview & Actions */}
               <div className="w-full lg:w-1/2 flex flex-col bg-neutral-950 border-b lg:border-b-0 lg:border-r border-neutral-800 relative">
-                {}
+                {/* Carousel */}
                 <div
                   className="relative w-full aspect-video bg-neutral-900 overflow-hidden cursor-grab active:cursor-grabbing group"
                   onMouseDown={(e) => {
@@ -535,7 +535,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                     ))}
                   </div>
 
-                  {}
+                  {/* Carousel indicators */}
                   {thumbnails.length > 1 && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
                       {thumbnails.map((_, idx) => (
@@ -552,12 +552,12 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                   )}
                 </div>
 
-                {}
+                {/* Game Title & Creator */}
                 <div className="p-6 flex flex-col gap-4">
                   <div>
                     <div className="flex items-center justify-between gap-4 mb-2">
                       <h2 className="text-2xl font-bold text-white">{displayedGame.name}</h2>
-                      {}
+                      {/* Favorite Button */}
                       <button
                         onClick={handleFavorite}
                         className="relative w-10 h-10 shrink-0 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/50 flex items-center justify-center transition-all group"
@@ -607,7 +607,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                     </div>
                   </div>
 
-                  {}
+                  {/* Play Button */}
                   <button
                     className="w-full pressable bg-[rgba(var(--accent-color-rgb),0.95)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold text-base py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[0_0_25px_var(--accent-color-shadow)] border border-[var(--accent-color-border)]"
                     onClick={() => {
@@ -655,7 +655,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                 </div>
               </div>
 
-              {}
+              {/* RIGHT SIDE: Info & Tabs */}
               <div className="w-full lg:w-1/2 flex flex-col overflow-hidden bg-neutral-950">
                 <Tabs
                   tabs={[
@@ -678,7 +678,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                 >
                   {activeTab === 'info' ? (
                     <div className="p-6 space-y-6">
-                      {}
+                      {/* Stats Grid */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-neutral-900/50 p-4 rounded-lg border border-neutral-800/50">
                           <div className="flex items-center gap-2 text-neutral-400 mb-1 text-xs uppercase tracking-wide font-semibold">
@@ -704,7 +704,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         </div>
                       </div>
 
-                      {}
+                      {/* Like Ratio */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <button
@@ -757,7 +757,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         </div>
                       </div>
 
-                      {}
+                      {/* Description */}
                       <div className="space-y-2">
                         <h3 className="text-lg font-semibold text-white">Description</h3>
                         <div className="flex gap-2 mb-2">
@@ -770,7 +770,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         </p>
                       </div>
 
-                      {}
+                      {/* Detail Stats Grid */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-neutral-900/50 p-3 rounded-lg border border-neutral-800/50">
                           <div className="flex items-center gap-2 text-neutral-400 mb-1 text-xs uppercase tracking-wide font-semibold">
@@ -821,7 +821,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         </div>
                       </div>
 
-                      {}
+                      {/* Social Links */}
                       {socialLinks && socialLinks.length > 0 && (
                         <div className="space-y-2 pt-4 border-t border-neutral-800">
                           <h3 className="text-lg font-semibold text-white">Social Links</h3>
@@ -917,7 +917,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   )
 }
 
-
+// Game Pass Card Component
 const GamePassCard: React.FC<{
   pass: GamePass
   account?: Account | null
@@ -938,7 +938,7 @@ const GamePassCard: React.FC<{
   useEffect(() => {
     if (pass.displayIconImageAssetId) {
       fetch(
-        `https:
+        `https://thumbnails.roblox.com/v1/assets?assetIds=${pass.displayIconImageAssetId}&size=150x150&format=Png&isCircular=false`
       )
         .then((res) => res.json())
         .then((data) => {

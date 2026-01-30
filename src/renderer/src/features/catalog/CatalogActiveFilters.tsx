@@ -6,7 +6,7 @@ interface CatalogActiveFiltersProps {
     minPrice?: number
     maxPrice?: number
     creatorName?: string
-    salesType?: string
+    salesType?: string // '1' | '2' | '3'
     unavailableItems?: string
     categoryName?: string
   }

@@ -67,7 +67,7 @@ const SORT_OPTIONS: DropdownOption[] = [
   { value: '5', label: 'Price (Low to High)' }
 ]
 
-
+// Search Bar Component
 interface CatalogSearchBarRef {
   clear: () => void
   setValue: (value: string) => void
@@ -169,15 +169,15 @@ CatalogSearchBar.displayName = 'CatalogSearchBar'
 interface CatalogTabProps {
   onItemSelect?: (item: { id: number; name: string; imageUrl?: string }) => void
   onCreatorSelect?: (creatorId: number, creatorName?: string) => void
-  cookie?: string
+  cookie?: string // Optional cookie for authenticated requests (higher rate limits)
 }
 
 const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) => {
-
+  // View Mode (persisted via Zustand)
   const viewMode = useCatalogViewMode()
   const setViewMode = useSetCatalogViewMode()
 
-
+  // Context menu state
   const [contextMenu, setContextMenu] = useState<{
     x: number
     y: number
@@ -186,12 +186,12 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
     assetType?: number
   } | null>(null)
 
-
+  // Search state from store
   const appliedSearchQuery = useCatalogAppliedSearchQuery()
   const setAppliedSearchQuery = useSetCatalogAppliedSearchQuery()
   const searchBarRef = useRef<CatalogSearchBarRef>(null)
 
-
+  // Filter state from store
   const selectedCategory = useCatalogSelectedCategory()
   const setSelectedCategory = useSetCatalogSelectedCategory()
   const selectedSubcategory = useCatalogSelectedSubcategory()
@@ -209,7 +209,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
   const creatorName = useCatalogCreatorName()
   const setCreatorName = useSetCatalogCreatorName()
 
-
+  // Applied filters from store
   const appliedMinPrice = useCatalogAppliedMinPrice()
   const setAppliedMinPrice = useSetCatalogAppliedMinPrice()
   const appliedMaxPrice = useCatalogAppliedMaxPrice()
@@ -217,16 +217,16 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
   const appliedCreatorName = useCatalogAppliedCreatorName()
   const setAppliedCreatorName = useSetCatalogAppliedCreatorName()
 
-
+  // Thumbnails cache from store
   const thumbnails = useCatalogThumbnails()
 
-
+  // Clear filters function
   const clearCatalogFilters = useClearCatalogFilters()
 
-
+  // Fetch navigation menu
   const { data: categories = [] } = useCatalogNavigation()
 
-
+  // Build search params
   const searchParams: CatalogItemsSearchParams = useMemo(() => {
     const params: CatalogItemsSearchParams = {
       limit: 120,
@@ -234,7 +234,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
       includeNotForSale: unavailableItems === 'show'
     }
 
-
+    // Only include salesTypeFilter if it's not '1' (All)
     const salesTypeFilterNum = parseInt(salesTypeFilter)
     if (salesTypeFilterNum !== 1) {
       params.salesTypeFilter = salesTypeFilterNum
@@ -244,7 +244,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
       params.keyword = appliedSearchQuery
     }
 
-
+    // Use subcategory taxonomy if selected, otherwise category taxonomy
     if (selectedSubcategory) {
       params.taxonomy = selectedSubcategory.taxonomy
     } else if (selectedCategory) {
@@ -261,7 +261,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
       params.creatorName = appliedCreatorName
     }
 
-
+    // Include cookie for authenticated requests (higher rate limits)
     if (cookie) {
       params.cookie = cookie
     }
@@ -280,26 +280,26 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
     cookie
   ])
 
-
+  // Fetch catalog items
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
     useCatalogSearch(searchParams)
 
-
+  // Flatten pages into single array
   const items = useMemo(() => {
     if (!data?.pages) return []
     return (data.pages as CatalogItemsSearchResponse[]).flatMap((page) => page.data)
   }, [data])
 
-
+  // Sync thumbnails using the query hook (replaces manual useEffect)
   useFetchCatalogThumbnails(items)
 
-
+  // Apply price filter
   const handleApplyPriceFilter = useCallback(() => {
     setAppliedMinPrice(minPrice ? parseInt(minPrice) : undefined)
     setAppliedMaxPrice(maxPrice ? parseInt(maxPrice) : undefined)
   }, [minPrice, maxPrice, setAppliedMinPrice, setAppliedMaxPrice])
 
-
+  // Apply creator filter
   const handleApplyCreatorFilter = useCallback(
     (name: string) => {
       setAppliedCreatorName(name)
@@ -307,14 +307,14 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
     [setAppliedCreatorName]
   )
 
-
+  // Clear all filters
   const handleClearFilters = useCallback(() => {
     clearCatalogFilters()
     setAppliedSearchQuery('')
     searchBarRef.current?.clear()
   }, [clearCatalogFilters, setAppliedSearchQuery])
 
-
+  // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
     return (
       selectedCategory !== null ||
@@ -335,7 +335,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
     appliedCreatorName
   ])
 
-
+  // Handle item click
   const handleItemClick = useCallback(
     (item: (typeof items)[0]) => {
       if (onItemSelect) {
@@ -349,7 +349,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
     [onItemSelect, thumbnails]
   )
 
-
+  // Handle context menu
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, item: { id: number; name: string; assetType?: number }) => {
       setContextMenu({
@@ -363,7 +363,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
     []
   )
 
-
+  // Handle download OBJ
   const handleDownloadObj = useCallback(async (assetId: number, assetName: string) => {
     try {
       const result = await (window as any).api.downloadAsset3D(assetId, 'obj', assetName)
@@ -373,7 +373,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
     }
   }, [])
 
-
+  // Handle download texture
   const handleDownloadTexture = useCallback(async (assetId: number, assetName: string) => {
     try {
       const result = await (window as any).api.downloadAsset3D(assetId, 'texture', assetName)
@@ -388,7 +388,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
       await navigator.clipboard.writeText(String(assetId))
     } catch (err) {
       console.error('Failed to copy asset ID:', err)
-
+      // Fallback for older browsers
       const textArea = document.createElement('textarea')
       textArea.value = String(assetId)
       document.body.appendChild(textArea)
@@ -424,7 +424,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
   return (
     <TooltipProvider>
       <div className="flex h-full bg-neutral-950">
-        {}
+        {/* Left Sidebar Filter */}
         <CatalogFilterSidebar
           categories={categories}
           selectedCategory={selectedCategory}
@@ -448,12 +448,12 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
         />
 
         <div className="flex-1 flex flex-col min-w-0">
-          {}
+          {/* Toolbar */}
           <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
             <div className="flex items-center gap-4 flex-1">
               <h1 className="text-xl font-bold text-white">Catalog</h1>
 
-              {}
+              {/* Sort */}
               <CustomDropdown
                 options={SORT_OPTIONS}
                 value={sortType}
@@ -468,7 +468,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
 
               <div className="h-6 w-[1px] bg-neutral-800 mx-1" />
 
-              {}
+              {/* View Mode Toggle */}
               <div className="flex bg-neutral-900 rounded-lg p-1 border border-neutral-800">
                 <button
                   onClick={() => setViewMode('default')}
@@ -488,7 +488,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
             </div>
           </div>
 
-          {}
+          {/* Active Filters Chips */}
           <CatalogActiveFilters
             filters={{
               minPrice: appliedMinPrice,
@@ -515,7 +515,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
             onClearAll={handleClearFilters}
           />
 
-          {}
+          {/* Content */}
           <div className="flex-1 overflow-y-auto scrollbar-thin bg-neutral-950">
             <AnimatePresence mode="wait">
               {isLoading && items.length === 0 ? (
@@ -610,7 +610,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
           </div>
         </div>
 
-        {}
+        {/* Context Menu */}
         <CatalogItemContextMenu
           activeMenu={contextMenu}
           onClose={() => setContextMenu(null)}

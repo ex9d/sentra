@@ -71,7 +71,7 @@ export const createAccountsCommands: CommandFactory = (callbacks) => [
         callbacks.showNotification('Select an account first', 'error')
         return
       }
-      window.open(`https:
+      window.open(`https://www.roblox.com/users/${account.userId}/profile`, '_blank')
     }
   },
   {
@@ -87,7 +87,7 @@ export const createAccountsCommands: CommandFactory = (callbacks) => [
         callbacks.showNotification('Select an account first', 'error')
         return
       }
-
+      // Update accounts by removing the selected one
       const currentAccounts = callbacks.getAccounts()
       const newAccounts = currentAccounts.filter((a) => a.id !== account.id)
       window.api.saveAccounts(newAccounts)

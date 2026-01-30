@@ -4,16 +4,16 @@ import { devtools, persist } from 'zustand/middleware'
 export type GroupsTabType = 'joined' | 'pending'
 
 interface GroupsState {
-
+  // Active sidebar tab
   activeGroupsTab: GroupsTabType
 
-
+  // Selected group ID
   selectedGroupId: number | null
 
-
+  // Search query for filtering groups
   searchQuery: string
 
-
+  // Scroll position for restoration
   scrollPosition: number
 }
 
@@ -67,7 +67,7 @@ export const useGroupsStore = create<GroupsStore>()(
   )
 )
 
-
+// Selectors
 export const useActiveGroupsTab = () => useGroupsStore((state) => state.activeGroupsTab)
 export const useSetActiveGroupsTab = () => useGroupsStore((state) => state.setActiveGroupsTab)
 export const useSelectedGroupId = () => useGroupsStore((state) => state.selectedGroupId)
