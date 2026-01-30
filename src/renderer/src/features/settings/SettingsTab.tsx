@@ -17,7 +17,6 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
-  Zap,
   AlertTriangle
 } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -229,7 +228,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
   const queryClient = useQueryClient()
   const setAppUnlocked = useSetAppUnlocked()
   const addNotification = useNotificationTrayStore((s) => s.addNotification)
-  const { showNotification } = useNotification()
 
   // Use shared installations store instead of local state + localStorage
   const installations = useInstallations()
