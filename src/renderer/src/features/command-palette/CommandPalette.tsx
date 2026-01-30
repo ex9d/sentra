@@ -588,6 +588,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const listRef = useRef<HTMLDivElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
+  const searchingRef = useRef<boolean>(false)
 
   const setActiveTab = useTabTransition()
   const openModal = useOpenModal()
@@ -685,9 +686,34 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   // Trigger searches when query changes
   useEffect(() => {
     if (step === 'search' && query.trim()) {
-      searchLimiteds(query)
-      searchCatalog(query)
-      searchPlayer(query)
+      if ((searchingRef as any).current) return
+      ;(searchingRef as any).current = true
+
+      const runSearches = async () => {
+        try {
+          try {
+            await Promise.resolve(searchLimiteds(query))
+          } catch (err) {
+            console.warn('[CommandPalette] searchLimiteds failed', err)
+          }
+
+          try {
+            await Promise.resolve(searchCatalog(query))
+          } catch (err) {
+            console.warn('[CommandPalette] searchCatalog failed', err)
+          }
+
+          try {
+            await Promise.resolve(searchPlayer(query))
+          } catch (err) {
+            console.warn('[CommandPalette] searchPlayer failed', err)
+          }
+        } finally {
+          ;(searchingRef as any).current = false
+        }
+      }
+
+      void runSearches()
     }
   }, [step, query, searchLimiteds, searchCatalog, searchPlayer])
 

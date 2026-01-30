@@ -92,7 +92,22 @@ export function initCatalogSearchIndex(): void {
         console.warn('[CatalogSearch] Failed to fetch catalog index export:', workerErr)
       }
 
-      // Fallback: build index in renderer worker if export unavailable
+      // Fallback: check main process DB status first; if DB is absent but downloading or errored,
+      // avoid repeatedly attempting to build the index in the renderer which can cause errors.
+      try {
+        const dbStatus = await (window as any).api.getCatalogDbStatus()
+        if (dbStatus.downloading) {
+          console.warn('[CatalogSearch] Catalog DB is downloading in main process; skipping renderer build')
+          return
+        }
+        if (dbStatus.error) {
+          console.warn('[CatalogSearch] Catalog DB has error in main process; skipping renderer build:', dbStatus.error)
+          return
+        }
+      } catch (statusErr) {
+        console.warn('[CatalogSearch] Failed to query catalog DB status, proceeding with fallback build', statusErr)
+      }
+
       console.log('[CatalogSearch] Building new catalog index in renderer...')
       const items = await window.api.getAllCatalogItems()
       const currentHash = computeItemsHash(items)
