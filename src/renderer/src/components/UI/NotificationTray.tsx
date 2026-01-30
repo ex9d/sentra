@@ -188,7 +188,6 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
             </div>
           )}
         </div>
-        </div>
       </div>
       {/* Make whole item clickable for actions (open browser, navigate) */}
       <button
