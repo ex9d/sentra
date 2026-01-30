@@ -30,6 +30,7 @@ export const CollectionsSection: React.FC<CollectionsSectionProps> = ({
   onViewAllClick
 }) => {
   const { scrollRef, canScrollLeft, canScrollRight, scroll } = useHorizontalScroll([collections])
+  const useGrid = !isLoading && collections.length <= 6
 
   if (!isLoading && collections.length === 0) return null
 
@@ -50,8 +51,28 @@ export const CollectionsSection: React.FC<CollectionsSectionProps> = ({
         </button>
       </div>
 
-      <div className="relative overflow-visible">
-          {}
+      {useGrid ? (
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {collections.map((item) => {
+            const isLimited = item.cssTag === 'limited' || item.cssTag === 'limited-unique'
+            const isLimitedUnique = item.cssTag === 'limited-unique'
+            const isSoundHat = SOUND_HAT_IDS.includes(item.id)
+            return (
+              <div key={item.id} className="w-32 sm:w-36 md:w-40 lg:w-44 shrink-0">
+                <CollectionItemCard
+                  item={item}
+                  isLimited={isLimited}
+                  isLimitedUnique={isLimitedUnique}
+                  isSoundHat={isSoundHat}
+                  onItemClick={onItemClick}
+                />
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="relative overflow-visible">
+          {/* Left scroll button */}
           <AnimatePresence>
             {canScrollLeft && (
               <motion.button
@@ -67,7 +88,7 @@ export const CollectionsSection: React.FC<CollectionsSectionProps> = ({
               </motion.button>
             )}
           </AnimatePresence>
-          {}
+          {/* Right scroll button */}
           <AnimatePresence>
             {canScrollRight && (
               <motion.button
@@ -83,11 +104,11 @@ export const CollectionsSection: React.FC<CollectionsSectionProps> = ({
               </motion.button>
             )}
           </AnimatePresence>
-          {}
+          {/* Left fade gradient */}
           {canScrollLeft && (
             <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[var(--color-surface-strong)] to-transparent z-10 pointer-events-none" />
           )}
-          {}
+          {/* Right fade gradient */}
           {canScrollRight && (
             <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[var(--color-surface-strong)] to-transparent z-10 pointer-events-none" />
           )}
@@ -118,6 +139,7 @@ export const CollectionsSection: React.FC<CollectionsSectionProps> = ({
             </div>
           </div>
         </div>
+      )}
       {!isLoading && collections.length === 0 && (
         <div className="col-span-5 text-[var(--color-text-muted)] text-sm py-4 text-center">
           No collectibles found.
@@ -142,7 +164,7 @@ const CollectionItemCard: React.FC<CollectionItemCardProps> = ({
   isSoundHat,
   onItemClick
 }) => {
-
+  // Get rolimons data for limited items
   const rolimonsItem = useRolimonsItem(isLimited ? item.id : null)
 
   return (

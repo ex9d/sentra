@@ -59,10 +59,10 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
         Statistics
       </h3>
 
-      {}
+      {/* Separator after header */}
       <div className="h-px bg-[var(--color-border-subtle)] mt-3 mb-3 -mx-4" />
 
-      {}
+      {/* Account Info */}
       <div>
         <div className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider pb-1">
           Account
@@ -134,10 +134,10 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
         )}
       </div>
 
-      {}
+      {/* Value Stats */}
       {hasValueStats && (
         <>
-          {}
+          {/* Separator */}
           <div className="h-px bg-[var(--color-border-subtle)] my-3 -mx-4" />
 
           <div>
@@ -174,10 +174,10 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
         </>
       )}
 
-      {}
+      {/* Activity Stats */}
       {hasActivityStats && (
         <>
-          {}
+          {/* Separator */}
           <div className="h-px bg-[var(--color-border-subtle)] my-3 -mx-4" />
 
           <div>

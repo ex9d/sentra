@@ -411,7 +411,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                           className="w-full h-full object-contain drop-shadow-md transform group-hover:scale-105 transition-transform duration-200"
                         />
                       </div>
-                      {}
+                      {/* Always visible name overlay */}
                       <div className="absolute inset-x-0 bottom-0 z-20">
                         <div
                           className="absolute inset-0 pointer-events-none"
@@ -534,7 +534,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                           </div>
                         )}
                       </div>
-                      {}
+                      {/* Always visible name overlay */}
                       <div className="absolute inset-x-0 bottom-0 z-20">
                         <div
                           className="absolute inset-0 pointer-events-none"
@@ -759,7 +759,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                     <Copy size={16} />
                     <span className="font-medium">Copy User ID</span>
                   </span>
-                  <span
+                  <span 
                     className="text-xs text-[var(--color-text-muted)] font-mono"
                     style={blurIdentity ? { filter: 'blur(16px)' } : undefined}
                   >

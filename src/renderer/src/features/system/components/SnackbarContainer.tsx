@@ -7,18 +7,18 @@ import {
   SnackbarType
 } from '@renderer/features/system/stores/useSnackbarStore'
 
-
-
-
-
-
-
+/**
+ * SnackbarContainer renders all snackbar notifications from the Zustand store.
+ * Place this component once at the root of your app (in App.tsx).
+ *
+ * This replaces the NotificationProvider from NotificationContext.
+ */
 const SnackbarContainer: React.FC = () => {
   const notifications = useSnackbarNotifications()
   const removeNotification = useRemoveSnackbar()
   const showNotification = useShowNotification()
 
-
+  // Listen for IPC notifications from main process
   useEffect(() => {
     const removeListener = window.electron.ipcRenderer.on(
       'show-notification',

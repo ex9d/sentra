@@ -32,12 +32,12 @@ const InventoryItemContextMenu: React.FC<InventoryItemContextMenuProps> = ({
   const sections: ContextMenuSection[] = useMemo(() => {
     if (!activeMenu) return []
 
-
-
+    // Convert assetType to number if it's a string
+    // Map string asset type names to numeric IDs
     const assetTypeNum =
       typeof activeMenu.assetType === 'string'
         ? (() => {
-
+            // Map common string asset types to their numeric IDs
             const typeMap: Record<string, number> = {
               Hat: 8,
               HairAccessory: 41,
@@ -59,9 +59,9 @@ const InventoryItemContextMenu: React.FC<InventoryItemContextMenuProps> = ({
           })()
         : activeMenu.assetType
 
-
+    // Classic Shirt (11) and Pants (12) - only these support templates
     const isClothing = assetTypeNum === 11 || assetTypeNum === 12
-
+    // Check if asset type has model (for OBJ download)
     const hasModel = assetTypeNum && ASSET_TYPES_WITH_MODELS.includes(assetTypeNum)
 
     const downloadItems: ContextMenuItem[] = []

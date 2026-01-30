@@ -56,7 +56,7 @@ export const RolimonsBadges: React.FC<RolimonsBadgesProps> = ({ userId }) => {
 
   if (sortedRolimonsBadges.length === 0) return null
 
-
+  // Wrap at ~half of the available header width.
   const topPadding = sortedRolimonsBadges.length <= 4 ? 'pt-2' : 'pt-4'
 
   const renderBadge = ({ badgeKey, acquiredTime }: { badgeKey: string; acquiredTime: number }) => {

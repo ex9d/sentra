@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { NewsPost, NewsMedia } from '../types'
 
-
+// Define the raw API response type
 interface Tweet {
   id: string
   text: string
@@ -53,7 +53,7 @@ const mapTweetToNewsPost = (tweet: Tweet): NewsPost => {
       media.push({
         type: 'video',
         url: video.url,
-
+        // storing preview in alt for now or we might need to extend NewsMedia
         alt: video.preview
       })
     })
@@ -68,7 +68,7 @@ const mapTweetToNewsPost = (tweet: Tweet): NewsPost => {
 
   let content = tweet.text
 
-
+  // Parse RT syntax to get original author
   if (tweet.isRetweet) {
     const rtMatch = tweet.text.match(/^RT @(\w+): (.*)/s)
     if (rtMatch) {
@@ -77,14 +77,14 @@ const mapTweetToNewsPost = (tweet: Tweet): NewsPost => {
       author = {
         name: originalHandle,
         handle: originalHandle,
-
-        avatarUrl: `https:
-        verified: false
+        // Use a generic avatar or try to guess (using unavatar for demo purposes, or fallback)
+        avatarUrl: `https://unavatar.io/twitter/${originalHandle}`,
+        verified: false // We don't know if they are verified
       }
     }
   }
 
-
+  // Remove media link from content if media exists
   if (media.length > 0) {
     content = content.replace(/https:\/\/t\.co\/[a-zA-Z0-9]+\s*$/, '').trim()
   }
@@ -98,7 +98,7 @@ const mapTweetToNewsPost = (tweet: Tweet): NewsPost => {
     media: media.length > 0 ? media : undefined,
     likes: tweet.likes,
     retweets: tweet.retweets,
-    replies: 0,
+    replies: 0, // Not provided by API
     isRetweet: tweet.isRetweet,
     isReply: Boolean(tweet.isReply),
     inReplyToStatusId: parentId,
@@ -110,7 +110,7 @@ const mapTweetToNewsPost = (tweet: Tweet): NewsPost => {
 const buildThreadedNews = (posts: NewsPost[]): NewsPost[] => {
   const postsById = new Map<string, NewsPost>()
 
-
+  // Prime the map and ensure children arrays exist
   posts.forEach((post) => {
     postsById.set(post.id, {
       ...post,
@@ -120,7 +120,7 @@ const buildThreadedNews = (posts: NewsPost[]): NewsPost[] => {
 
   const roots: NewsPost[] = []
 
-
+  // Attach replies to their parents when present
   postsById.forEach((post) => {
     const parentId = post.inReplyToStatusId
     if (post.isReply && parentId) {
@@ -136,7 +136,7 @@ const buildThreadedNews = (posts: NewsPost[]): NewsPost[] => {
     roots.push(post)
   })
 
-
+  // Keep thread replies in chronological order for readability
   postsById.forEach((post) => {
     if (post.threadChildren && post.threadChildren.length > 0) {
       post.threadChildren.sort(
@@ -156,7 +156,7 @@ export const useNews = () => {
       const posts = data.map(mapTweetToNewsPost)
       return buildThreadedNews(posts)
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false
   })
 }

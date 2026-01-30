@@ -6,15 +6,15 @@ import type {
 } from '@renderer/features/inventory/inventoryCategories'
 
 interface InventoryState {
-
+  // Filter state
   selectedCategory: InventoryCategory | null
   selectedSubcategory: InventorySubcategory | null
   sortOrder: 'Asc' | 'Desc'
   searchQuery: string
 
-
+  // Thumbnails cache - shared across all inventory views
   thumbnails: Record<number, string>
-
+  // Track which IDs we've attempted to fetch (to avoid re-fetching failures)
   fetchedIds: Set<number>
 }
 
@@ -98,7 +98,7 @@ export const useInventoryStore = create<InventoryStore>()(
   )
 )
 
-
+// Selectors
 export const useInventorySelectedCategory = () =>
   useInventoryStore((state) => state.selectedCategory)
 export const useSetInventorySelectedCategory = () =>

@@ -88,7 +88,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
   )
 )
 
-
+// Selectors
 export const useHasCompletedOnboarding = () =>
   useOnboardingStore((state) => state.hasCompletedOnboarding)
 export const useCurrentOnboardingStep = () => useOnboardingStore((state) => state.currentStep)

@@ -147,7 +147,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
     try {
       const result = await window.api.setPin(enteredPin)
       if (result.success) {
-
+        // Invalidate settings query to update UI (pinCode: 'SET')
         await queryClient.invalidateQueries({ queryKey: queryKeys.settings.snapshot() })
         setSuccess(true)
         setTimeout(() => onComplete(), 1500)

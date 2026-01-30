@@ -3,9 +3,9 @@ import { devtools, persist, createJSONStorage, StateStorage } from 'zustand/midd
 import { RobloxInstallation, BinaryType } from '@renderer/types'
 import { robloxInstallationsSchema } from '@shared/ipc-schemas/system'
 
-
-
-
+// ============================================================================
+// Types
+// ============================================================================
 
 interface InstallationsState {
   installations: RobloxInstallation[]
@@ -14,24 +14,24 @@ interface InstallationsState {
 }
 
 interface InstallationsActions {
-
+  // Installations CRUD
   addInstallation: (installation: RobloxInstallation) => void
   updateInstallation: (id: string, updates: Partial<RobloxInstallation>) => void
   removeInstallation: (id: string) => void
   setInstallations: (installations: RobloxInstallation[]) => void
 
-
+  // Selection
   setSelectedId: (id: string | 'new') => void
 
-
+  // Deploy History
   setDeployHistory: (history: Record<string, string[]>) => void
 }
 
 type InstallationsStore = InstallationsState & InstallationsActions
 
-
-
-
+// ============================================================================
+// Initial State
+// ============================================================================
 
 const initialState: InstallationsState = {
   installations: [],
@@ -39,9 +39,9 @@ const initialState: InstallationsState = {
   deployHistory: {}
 }
 
-
-
-
+// ============================================================================
+// Custom Storage with Zod Validation
+// ============================================================================
 
 const validatedStorage: StateStorage = {
   getItem: (name) => {
@@ -50,18 +50,18 @@ const validatedStorage: StateStorage = {
 
     try {
       const parsed = JSON.parse(str)
-
+      // Validate installations array with Zod
       if (parsed.state?.installations) {
         const result = robloxInstallationsSchema.safeParse(parsed.state.installations)
         if (!result.success) {
           console.error('[InstallationsStore] Validation failed:', result.error)
-
+          // Return with empty installations if validation fails
           return JSON.stringify({
             ...parsed,
             state: { ...parsed.state, installations: [] }
           })
         }
-
+        // Use validated data
         parsed.state.installations = result.data
       }
       return JSON.stringify(parsed)
@@ -78,9 +78,9 @@ const validatedStorage: StateStorage = {
   }
 }
 
-
-
-
+// ============================================================================
+// Store
+// ============================================================================
 
 export const useInstallationsStore = create<InstallationsStore>()(
   devtools(
@@ -88,7 +88,7 @@ export const useInstallationsStore = create<InstallationsStore>()(
       (set) => ({
         ...initialState,
 
-
+        // Installations CRUD
         addInstallation: (installation) =>
           set(
             (state) => ({
@@ -122,10 +122,10 @@ export const useInstallationsStore = create<InstallationsStore>()(
 
         setInstallations: (installations) => set({ installations }, false, 'setInstallations'),
 
-
+        // Selection
         setSelectedId: (selectedId) => set({ selectedId }, false, 'setSelectedId'),
 
-
+        // Deploy History
         setDeployHistory: (deployHistory) => set({ deployHistory }, false, 'setDeployHistory')
       }),
       {
@@ -134,7 +134,7 @@ export const useInstallationsStore = create<InstallationsStore>()(
         partialize: (state) => ({
           installations: state.installations,
           selectedId: state.selectedId
-
+          // deployHistory is not persisted - fetched fresh on mount
         })
       }
     ),
@@ -142,9 +142,9 @@ export const useInstallationsStore = create<InstallationsStore>()(
   )
 )
 
-
-
-
+// ============================================================================
+// Selectors
+// ============================================================================
 
 export const useInstallations = () => useInstallationsStore((state) => state.installations)
 export const useSelectedInstallationId = () => useInstallationsStore((state) => state.selectedId)
@@ -160,7 +160,7 @@ export const useSelectedInstallation = () =>
 export const useInstallationById = (id: string) =>
   useInstallationsStore((state) => state.installations.find((i) => i.id === id) ?? null)
 
-
+// Actions
 export const useAddInstallation = () => useInstallationsStore((state) => state.addInstallation)
 export const useUpdateInstallation = () =>
   useInstallationsStore((state) => state.updateInstallation)
@@ -170,9 +170,9 @@ export const useSetSelectedInstallationId = () =>
   useInstallationsStore((state) => state.setSelectedId)
 export const useSetDeployHistory = () => useInstallationsStore((state) => state.setDeployHistory)
 
-
-
-
+// ============================================================================
+// Utility: Get API type from BinaryType
+// ============================================================================
 
 export const getApiType = (
   t: BinaryType

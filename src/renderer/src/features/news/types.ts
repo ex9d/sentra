@@ -25,5 +25,5 @@ export interface NewsPost {
   isReply?: boolean
   inReplyToStatusId?: string | null
   isThread?: boolean
-  threadChildren?: NewsPost[]
+  threadChildren?: NewsPost[] // For chained comments
 }

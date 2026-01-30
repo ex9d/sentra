@@ -75,7 +75,7 @@ const InventoryItemCard = ({
       onContextMenu={handleContextMenu}
       className="group relative flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden cursor-pointer hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] hover:shadow-[0_18px_40px_rgba(0,0,0,0.35)] hover:-translate-y-1 transition-all duration-300"
     >
-      {}
+      {/* Image Container */}
       <div
         className={`w-full relative overflow-hidden bg-[var(--color-surface-muted)] ${isCompact ? 'aspect-square p-0' : 'aspect-square p-2'}`}
       >
@@ -103,7 +103,7 @@ const InventoryItemCard = ({
         </div>
       </div>
 
-      {}
+      {/* Item Info */}
       <div
         className={`flex flex-col gap-1.5 border-t border-[var(--color-border)] bg-[var(--color-surface-strong)] ${isCompact ? 'p-2' : 'p-3'}`}
       >
@@ -125,7 +125,7 @@ interface InventoryTabProps {
 }
 
 const InventoryTab = ({ account }: InventoryTabProps) => {
-
+  // View Mode (persisted via Zustand)
   const viewMode = useInventoryViewMode()
   const setViewMode = useSetInventoryViewMode()
 
@@ -146,7 +146,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
     imageUrl?: string
   } | null>(null)
 
-
+  // Store state
   const selectedCategory = useInventorySelectedCategory()
   const setSelectedCategory = useSetInventorySelectedCategory()
   const selectedSubcategory = useInventorySelectedSubcategory()
@@ -162,7 +162,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
   const cookie = account?.cookie
   const userId = account?.userId ? parseInt(account.userId) : undefined
 
-
+  // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery)
@@ -170,17 +170,17 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-
+  // Determine asset types to fetch based on selected category/subcategory
   const assetTypes = useMemo(() => {
-
+    // If a subcategory is selected, use its asset types
     if (selectedSubcategory) {
       return selectedSubcategory.assetTypes
     }
-
+    // If a category is selected, use its asset types
     if (selectedCategory) {
       return selectedCategory.assetTypes
     }
-
+    // Default to "All Items" category asset types
     const allCategory = INVENTORY_CATEGORIES.find((c) => c.category === 'All')
     return (
       allCategory?.assetTypes || [
@@ -195,12 +195,12 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
     )
   }, [selectedCategory, selectedSubcategory])
 
-
+  // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
     return selectedCategory !== null || sortOrder !== 'Desc'
   }, [selectedCategory, sortOrder])
 
-
+  // Fetch inventory
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInventoryV2({
     cookie,
     userId,
@@ -210,11 +210,11 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
     enabled: !!cookie && !!userId && assetTypes.length > 0
   })
 
-
+  // Flatten pages into single array
   const items = useMemo(() => {
     const allItems = data?.pages.flatMap((page) => page.data) || []
 
-
+    // Filter by search query
     if (debouncedSearchQuery.trim()) {
       const query = debouncedSearchQuery.toLowerCase()
       return allItems.filter((item) => {
@@ -226,15 +226,15 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
     return allItems
   }, [data, debouncedSearchQuery])
 
-
+  // Get unique asset IDs for thumbnail fetching
   const assetIds = useMemo(() => {
     return items.map((item) => item.assetId).filter((id, index, self) => self.indexOf(id) === index)
   }, [items])
 
-
+  // Fetch thumbnails using react-query + zustand
   const { thumbnails } = useInventoryThumbnails(assetIds, items.length > 0)
 
-
+  // Infinite scroll observer
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -261,7 +261,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
         : 'repeat(auto-fill, minmax(200px, 1fr))'
   }
 
-
+  // Handle item click
   const handleItemClick = useCallback(
     (item: (typeof items)[0]) => {
       setSelectedAccessory({
@@ -273,7 +273,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
     [thumbnails]
   )
 
-
+  // Handle context menu
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, item: { assetId: number; name: string; assetType?: string | number }) => {
       setContextMenu({
@@ -287,7 +287,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
     []
   )
 
-
+  // Handle download OBJ
   const handleDownloadObj = useCallback(async (assetId: number, assetName: string) => {
     try {
       const result = await (window as any).api.downloadAsset3D(assetId, 'obj', assetName)
@@ -297,7 +297,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
     }
   }, [])
 
-
+  // Handle download texture
   const handleDownloadTexture = useCallback(async (assetId: number, assetName: string) => {
     try {
       const result = await (window as any).api.downloadAsset3D(assetId, 'texture', assetName)
@@ -307,13 +307,13 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
     }
   }, [])
 
-
+  // Handle copy asset ID
   const handleCopyAssetId = useCallback(async (assetId: number) => {
     try {
       await navigator.clipboard.writeText(String(assetId))
     } catch (err) {
       console.error('Failed to copy asset ID:', err)
-
+      // Fallback for older browsers
       const textArea = document.createElement('textarea')
       textArea.value = String(assetId)
       document.body.appendChild(textArea)
@@ -351,7 +351,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
   return (
     <TooltipProvider>
       <div className="flex h-full bg-neutral-950">
-        {}
+        {/* Left Sidebar Filter */}
         <InventoryFilterSidebar
           categories={INVENTORY_CATEGORIES}
           selectedCategory={selectedCategory}
@@ -365,7 +365,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
         />
 
         <div className="flex-1 flex flex-col min-w-0">
-          {}
+          {/* Toolbar */}
           <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
             <div className="flex items-center gap-4 flex-1">
               <h1 className="text-xl font-bold text-white">Inventory</h1>
@@ -375,7 +375,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
             </div>
 
             <div className="flex items-center gap-3">
-              {}
+              {/* Search */}
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -385,7 +385,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
 
               <div className="h-6 w-[1px] bg-neutral-800 mx-1" />
 
-              {}
+              {/* View Mode Toggle */}
               <div className="flex bg-neutral-900 rounded-lg p-1 border border-neutral-800">
                 <button
                   onClick={() => setViewMode('default')}
@@ -405,7 +405,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
             </div>
           </div>
 
-          {}
+          {/* Content */}
           <div className="flex-1 overflow-y-auto scrollbar-thin bg-neutral-950">
             <AnimatePresence mode="wait">
               {isLoading && items.length === 0 ? (
@@ -497,7 +497,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
           </div>
         </div>
 
-        {}
+        {/* Player Inventory Sheet */}
         {playerInventorySheet && (
           <PlayerInventorySheet
             isOpen={!!playerInventorySheet}
@@ -508,7 +508,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
           />
         )}
 
-        {}
+        {/* Context Menu */}
         <InventoryItemContextMenu
           activeMenu={contextMenu}
           onClose={() => setContextMenu(null)}
@@ -518,7 +518,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
           onCopyAssetId={handleCopyAssetId}
         />
 
-        {}
+        {/* Accessory Details Modal */}
         <AccessoryDetailsModal
           isOpen={!!selectedAccessory}
           onClose={() => setSelectedAccessory(null)}

@@ -177,14 +177,14 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
   const [fontError, setFontError] = useState<string | null>(null)
   const [isAddingFont, setIsAddingFont] = useState(false)
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false)
-
-
+  
+  // PIN input refs
   const backupPinRefs = useRef<(HTMLInputElement | null)[]>([])
   const backupPinConfirmRefs = useRef<(HTMLInputElement | null)[]>([])
   const restorePinRefs = useRef<(HTMLInputElement | null)[]>([])
   const restoreBackupPinRefs = useRef<(HTMLInputElement | null)[]>([])
 
-
+  // Reset refs when dialogs close or step changes
   useEffect(() => {
     if (!isBackupDialogOpen) {
       backupPinRefs.current = []
@@ -198,8 +198,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
       restoreBackupPinRefs.current = []
     }
   }, [isRestoreDialogOpen])
-
-
+  
+  // Reliable focus helper: try RAF then timeout fallback
   const focusFirstRef = (refs: React.MutableRefObject<(HTMLInputElement | null)[]>) => {
     const tryFocus = () => {
       for (let i = 0; i < refs.current.length; i++) {
@@ -210,7 +210,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             el.select && el.select()
             return true
           } catch (e) {
-
+            // ignore
           }
         }
       }
@@ -225,13 +225,13 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
       tryFocus()
     }
   }
-
+  
   const queryClient = useQueryClient()
   const setAppUnlocked = useSetAppUnlocked()
   const addNotification = useNotificationTrayStore((s) => s.addNotification)
   const { showNotification } = useNotification()
 
-
+  // Use shared installations store instead of local state + localStorage
   const installations = useInstallations()
 
   const sidebarTabOrder = useMemo(
@@ -251,7 +251,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
   )
   const hiddenSidebarTabsSet = useMemo(() => new Set(sidebarHiddenTabs), [sidebarHiddenTabs])
 
-
+  // Custom fonts queries
   const { data: customFonts = [] } = useQuery({
     queryKey: ['customFonts'],
     queryFn: () => window.api.getCustomFonts(),
@@ -264,7 +264,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
     staleTime: Infinity
   })
 
-
+  // Load fonts and apply active font on mount
   useEffect(() => {
     customFonts.forEach((font) => {
       loadFont(font).catch(console.error)
@@ -275,10 +275,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
     applyFont(activeFont)
   }, [activeFont])
 
-
+  // Focus first PIN input when dialogs open
   useEffect(() => {
     if (isBackupDialogOpen && backupStep === 'pin') {
-
+      // Clear all refs when entering PIN verification step
       backupPinRefs.current = new Array(6).fill(null)
       backupPinConfirmRefs.current = new Array(6).fill(null)
       focusFirstRef(backupPinRefs)
@@ -287,7 +287,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
 
   useEffect(() => {
     if (isBackupDialogOpen && backupStep === 'backuppin') {
-
+      // Clear all refs when entering backup PIN setup step
       backupPinRefs.current = new Array(6).fill(null)
       backupPinConfirmRefs.current = new Array(6).fill(null)
       focusFirstRef(backupPinRefs)
@@ -296,7 +296,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
 
   useEffect(() => {
     if (isRestoreDialogOpen && restoreStep === 'pin') {
-
+      // Clear all refs when entering PIN verification step
       restorePinRefs.current = new Array(6).fill(null)
       restoreBackupPinRefs.current = new Array(6).fill(null)
       focusFirstRef(restorePinRefs)
@@ -305,7 +305,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
 
   useEffect(() => {
     if (isRestoreDialogOpen && restoreStep === 'backuppin') {
-
+      // Clear all refs when entering backup PIN step
       restorePinRefs.current = new Array(6).fill(null)
       restoreBackupPinRefs.current = new Array(6).fill(null)
       focusFirstRef(restoreBackupPinRefs)
@@ -360,7 +360,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
       return
     }
 
-
+    // Check if font already exists
     if (customFonts.some((f) => f.family.toLowerCase() === trimmedFamily.toLowerCase())) {
       setFontError('This font has already been added')
       return
@@ -379,12 +379,12 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
     }
   }
 
-
+  // Backup handlers
   const handleBackupAccounts = async () => {
     setBackupError(null)
-
+    
     if (backupStep === 'pin') {
-
+      // Verify user PIN first
       const pinStr = backupPin.join('')
       if (backupPin.some(digit => digit === '')) {
         setBackupError('Please enter all 6 digits')
@@ -405,10 +405,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
         setBackupPin(Array(6).fill(''))
       }
     } else if (backupStep === 'backuppin') {
-
+      // Create backup with backup PIN
       const pin1 = backupPin.join('')
       const pin2 = backupPinConfirm.join('')
-
+      
       if (backupPin.some(digit => digit === '')) {
         setBackupError('Please enter all 6 digits for encryption PIN')
         return
@@ -426,7 +426,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
 
       setIsBackupLoading(true)
       try {
-
+        // Ensure we have the latest accounts after PIN verification.
         let accountsData = (queryClient.getQueryData(['accounts']) as Account[] | undefined) || []
         if (!accountsData || accountsData.length === 0) {
           try {
@@ -460,9 +460,9 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
 
   const handleRestoreBackup = async () => {
     setRestoreError(null)
-
+    
     if (restoreStep === 'pin') {
-
+      // Verify user PIN first
       const pinStr = restorePin.join('')
       if (restorePin.some(digit => digit === '')) {
         setRestoreError('Please enter all 6 digits')
@@ -482,7 +482,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
         setRestorePin(Array(6).fill(''))
       }
     } else if (restoreStep === 'file') {
-
+      // Open file picker
       try {
         const filepath = await window.api.pickBackupFile()
         if (filepath) {
@@ -493,7 +493,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
         setRestoreError('File selection failed: ' + (error instanceof Error ? error.message : String(error)))
       }
     } else if (restoreStep === 'backuppin') {
-
+      // Restore with backup PIN
       const pinStr = restoreBackupPin.join('')
       if (restoreBackupPin.some(digit => digit === '')) {
         setRestoreError('Please enter all 6 digits')
@@ -507,7 +507,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
       setIsRestoreLoading(true)
       try {
         const restoredAccounts = await window.api.restoreBackup(selectedBackupFile, pinStr)
-
+        // Save restored accounts to storage
         await window.api.saveAccounts(restoredAccounts as Account[])
         addNotification({
           type: 'success',
@@ -520,7 +520,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
         setRestoreBackupPin(Array(6).fill(''))
         setSelectedBackupFile(null)
         setRestoreError(null)
-
+        // Refresh accounts from storage
         queryClient.invalidateQueries({ queryKey: ['accounts'] })
       } catch (error) {
         const msg = (error instanceof Error ? error.message : String(error))
@@ -532,7 +532,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
     }
   }
 
-
+  // PIN input handler with proper ref management (matches PinSetupDialog)
   const handlePinInputChange = useCallback(
     (index: number, value: string, setter: any, refs: React.MutableRefObject<(HTMLInputElement | null)[]>) => {
       const digit = value.slice(-1)
@@ -580,7 +580,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
     []
   )
 
-
+  // PIN input grid renderer
   const renderPinInputs = (
     values: string[],
     setter: any,
@@ -611,35 +611,35 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                 }
                 return next
               })
-
+              // focus the last pasted digit (or next available)
               requestAnimationFrame(() => {
                 const lastIndex = Math.min(index + digits.length - 1, refs.current.length - 1)
                 refs.current[lastIndex]?.focus()
               })
             } catch (err) {
-
+              // ignore
             }
           }}
           onPointerDown={() => {
-
+            // Ensure input receives focus on pointer interaction; do not stop propagation
             try {
               refs.current[index]?.focus()
             } catch (err) {
-
+              /* ignore */
             }
           }}
           onTouchStart={() => {
             try {
               refs.current[index]?.focus()
             } catch (err) {
-
+              /* ignore */
             }
           }}
           onClick={() => {
             try {
               refs.current[index]?.focus()
             } catch (err) {
-
+              /* ignore */
             }
           }}
           aria-label={`PIN digit ${index + 1}`}
@@ -651,7 +651,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
     </div>
   )
 
-
+  // Notification settings from store
   const notifyFriendOnline = useNotifyFriendOnline()
   const notifyFriendInGame = useNotifyFriendInGame()
   const notifyFriendRemoved = useNotifyFriendRemoved()
@@ -661,7 +661,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
   const setNotifyFriendRemoved = useNotificationTrayStore((state) => state.setNotifyFriendRemoved)
   const setNotifyServerLocation = useNotificationTrayStore((state) => state.setNotifyServerLocation)
 
-
+  // Discord Rich Presence
   const { data: discordRPCEnabled = false, refetch: refetchDiscordRPC } = useQuery({
     queryKey: ['discordRPCEnabled'],
     queryFn: () => window.api.isDiscordRPCEnabled(),
@@ -746,14 +746,14 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
   }
 
   const handlePinSave = async (newPin: string | null, currentPin?: string) => {
-
+    // Use secure setPin API - requires current PIN if one is already set
     const result = await window.api.setPin(newPin, currentPin)
     if (result.success) {
-
+      // If PIN is set, mark app as unlocked so user isn't immediately locked out
       if (newPin) {
         setAppUnlocked(true)
       }
-
+      // Invalidate settings query to update UI (pinCode: 'SET')
       await queryClient.invalidateQueries({ queryKey: queryKeys.settings.snapshot() })
     }
     return result
@@ -804,11 +804,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
         <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Settings</h2>
       </div>
 
-      {}
+      {/* Tabs Header */}
       <div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="max-w-2xl mx-auto">
           <div className="relative flex">
-            {}
+            {/* Animated sliding indicator */}
             <motion.div
               className="absolute bottom-0 h-0.5 bg-[var(--accent-color)] z-20"
               initial={false}
@@ -896,10 +896,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
         </div>
       </div>
 
-      {}
+      {/* Content Area */}
       <div className="flex-1 overflow-y-auto p-8 scrollbar-thin">
         <div className="max-w-2xl mx-auto pb-8">
-          {}
+          {/* General Settings */}
           {activeTab === 'general' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
@@ -1118,7 +1118,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             </div>
           )}
 
-          {}
+          {/* Appearance Settings */}
           {activeTab === 'appearance' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
@@ -1348,7 +1348,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             </div>
           )}
 
-          {}
+          {/* Notifications Settings */}
           {activeTab === 'notifications' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
@@ -1409,7 +1409,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             </div>
           )}
 
-          {}
+          {/* Security Settings */}
           {activeTab === 'security' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
@@ -1518,7 +1518,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             </div>
           )}
 
-          {}
+          {/* About Settings */}
           {activeTab === 'about' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>

@@ -61,7 +61,7 @@ const ProfileTab: React.FC<ProfileTabProps> = memo(
     )
   },
   (prevProps, nextProps) => {
-
+    // Only re-render if the account ID or cookie changed
     return (
       prevProps.account.id === nextProps.account.id &&
       prevProps.account.cookie === nextProps.account.cookie &&

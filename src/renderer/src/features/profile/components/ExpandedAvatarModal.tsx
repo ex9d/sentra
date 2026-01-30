@@ -20,7 +20,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
   profile,
   cookie
 }) => {
-
+  // Track if 3D viewer should be mounted (delayed unmount for exit animation)
   const [shouldMount3D, setShouldMount3D] = useState(false)
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
     }
   }, [isOpen])
 
-
+  // Handle ESC key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -40,7 +40,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
     }
 
     if (isOpen) {
-      window.addEventListener('keydown', handleEscape, true)
+      window.addEventListener('keydown', handleEscape, true) // Use capture phase to handle before other handlers
       return () => {
         window.removeEventListener('keydown', handleEscape, true)
       }
@@ -49,7 +49,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
   }, [isOpen, onClose])
 
   const handleExitComplete = () => {
-
+    // Unmount 3D viewer after exit animation completes
     if (!isOpen) {
       setShouldMount3D(false)
     }
@@ -66,7 +66,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
           className="fixed inset-0 z-[100] flex items-center justify-center"
           onClick={onClose}
         >
-          {}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -74,7 +74,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             className="absolute inset-0 bg-black/90 backdrop-blur-xl"
           />
 
-          {}
+          {/* Animated Grid Floor */}
           <div
             className="absolute inset-0 opacity-20 pointer-events-none"
             style={{
@@ -86,10 +86,10 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             }}
           />
 
-          {}
+          {/* Radial gradient overlay */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_rgba(0,0,0,0.6)_100%)] pointer-events-none" />
 
-          {}
+          {/* Close button */}
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -104,7 +104,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             <X size={24} />
           </motion.button>
 
-          {}
+          {/* User info badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -124,7 +124,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             </div>
           </motion.div>
 
-          {}
+          {/* Hint text */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -135,7 +135,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             Drag to rotate • Scroll to zoom • ESC or click anywhere to close
           </motion.div>
 
-          {}
+          {/* 3D Avatar Container */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}

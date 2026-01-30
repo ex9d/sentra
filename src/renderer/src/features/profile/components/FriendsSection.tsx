@@ -68,7 +68,7 @@ export const FriendsSection: React.FC<FriendsSectionProps> = ({
       </div>
 
       <div className="relative overflow-visible">
-        {}
+        {/* Left scroll button */}
         <AnimatePresence>
           {canScrollLeft && (
             <motion.button
@@ -84,7 +84,7 @@ export const FriendsSection: React.FC<FriendsSectionProps> = ({
             </motion.button>
           )}
         </AnimatePresence>
-        {}
+        {/* Right scroll button */}
         <AnimatePresence>
           {canScrollRight && (
             <motion.button
@@ -100,11 +100,11 @@ export const FriendsSection: React.FC<FriendsSectionProps> = ({
             </motion.button>
           )}
         </AnimatePresence>
-        {}
+        {/* Left fade gradient */}
         {canScrollLeft && (
           <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[var(--color-surface-strong)] to-transparent z-10 pointer-events-none" />
         )}
-        {}
+        {/* Right fade gradient */}
         {canScrollRight && (
           <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[var(--color-surface-strong)] to-transparent z-10 pointer-events-none" />
         )}

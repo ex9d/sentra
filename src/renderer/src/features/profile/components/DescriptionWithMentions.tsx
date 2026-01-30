@@ -29,7 +29,7 @@ export const DescriptionWithMentions: React.FC<DescriptionWithMentionsProps> = (
 
   const descriptionContent = useMemo(() => {
     if (!mentionSourceText) {
-
+      // If no mentions, just linkify URLs
       return linkify(description)
     }
 
@@ -41,7 +41,7 @@ export const DescriptionWithMentions: React.FC<DescriptionWithMentionsProps> = (
 
     while ((match = regex.exec(description)) !== null) {
       if (match.index > lastIndex) {
-
+        // Linkify the text segment before the mention
         const textSegment = description.slice(lastIndex, match.index)
         const linkifiedSegment = linkify(textSegment)
         nodes.push(
@@ -93,7 +93,7 @@ export const DescriptionWithMentions: React.FC<DescriptionWithMentionsProps> = (
     }
 
     if (lastIndex < description.length) {
-
+      // Linkify the remaining text after the last mention
       const textSegment = description.slice(lastIndex)
       const linkifiedSegment = linkify(textSegment)
       nodes.push(

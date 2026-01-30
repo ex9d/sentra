@@ -37,7 +37,7 @@ const formatContent = (content: string) => {
 export const NewsCard: React.FC<NewsCardProps> = ({ post, isThreadChild, hasThreadParent }) => {
   return (
     <div className="relative">
-      {}
+      {/* Thread connector line */}
       {hasThreadParent && (
         <div className="absolute left-[2.4rem] -top-6 bottom-6 w-0.5 bg-[var(--color-border)] -z-10" />
       )}
@@ -154,7 +154,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({ post, isThreadChild, hasThre
         </div>
       </Card>
 
-      {}
+      {/* Render children threads recursively */}
       {post.threadChildren?.map((childPost) => (
         <NewsCard key={childPost.id} post={childPost} isThreadChild={true} hasThreadParent={true} />
       ))}

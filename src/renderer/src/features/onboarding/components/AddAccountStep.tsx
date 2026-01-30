@@ -26,7 +26,7 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-
+  // Cookie method state
   const [cookie, setCookie] = useState('')
   const [isCookieBlurred, setIsCookieBlurred] = useState(true)
 
@@ -85,13 +85,13 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
     const data = await window.api.validateCookie(cookieValue)
     const avatarUrl = await window.api.getAvatarUrl(data.id.toString())
 
-
+    // Get existing accounts to check for duplicates
     const existingAccounts = await window.api.getAccounts()
     if (existingAccounts.some((acc: Account) => acc.id === data.id.toString())) {
       throw new Error('Account already added')
     }
 
-
+    // Create the new account
     const newAccount: Account = {
       id: data.id.toString(),
       displayName: data.displayName,
@@ -108,7 +108,7 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
       followingCount: 0
     }
 
-
+    // Save all accounts including the new one
     await window.api.saveAccounts([...existingAccounts, newAccount])
 
     setSuccess(true)

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@shared/queryKeys'
 
-
+// Fetch user outfits for profile view
 export function useUserProfileOutfits(userId: number, cookie: string, enabled: boolean = false) {
   return useQuery({
     queryKey: queryKeys.userProfile.outfits(userId, cookie, false),
@@ -31,6 +31,6 @@ export function useUserProfileOutfits(userId: number, cookie: string, enabled: b
       return []
     },
     enabled: enabled && !!cookie && !!userId,
-    staleTime: 30 * 1000
+    staleTime: 30 * 1000 // 30 seconds
   })
 }

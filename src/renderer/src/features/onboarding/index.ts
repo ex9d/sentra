@@ -1,4 +1,4 @@
-
+// Onboarding feature exports
 export { default as OnboardingScreen } from './components/OnboardingScreen'
 export { default as AddAccountStep } from './components/AddAccountStep'
 export { default as PinSetupStep } from './components/PinSetupStep'
