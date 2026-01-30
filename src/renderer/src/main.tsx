@@ -7,7 +7,6 @@ import './index.css'
 
 const rendererStart = performance.now()
 ;(window as any).__perfRendererStart = rendererStart
-console.log('[perf:renderer] entry', rendererStart.toFixed(1))
 
 const queryClient = new QueryClient({
   defaultOptions: {

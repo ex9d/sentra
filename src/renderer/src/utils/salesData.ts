@@ -11,7 +11,6 @@ export async function getSalesData(assetId: number): Promise<SalesItem | null> {
     const result = await window.api.getSalesData(assetId)
     return result
   } catch (error) {
-    console.error('[salesData] Failed to get sales data:', error)
     return null
   }
 }
@@ -31,7 +30,6 @@ export async function getBatchSalesData(assetIds: number[]): Promise<Map<number,
     }
     return salesMap
   } catch (error) {
-    console.error('[salesData] Failed to get batch sales data:', error)
     return new Map()
   }
 }

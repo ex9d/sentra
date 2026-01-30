@@ -173,9 +173,7 @@ const Object3DLoader: React.FC<Object3DLoaderProps> = ({
 
     const loadObject = async () => {
       try {
-        console.log('[Object3DLoader] Loading from manifest URL:', manifestUrl)
         const object = await load3DObjectFromUrl(manifestUrl, objectName)
-        console.log('[Object3DLoader] Object loaded successfully:', objectName)
 
         if (cancelled) {
           dispose3DObject(object)
@@ -213,7 +211,6 @@ const Object3DLoader: React.FC<Object3DLoaderProps> = ({
       } catch (err: any) {
         if (!cancelled) {
           const errMsg = err?.message || 'Failed to load 3D object'
-          console.error('[Object3DLoader] Failed to load:', { manifestUrl, error: errMsg })
           if (errMsg !== 'No imageUrl found in avatar thumbnail data.') {
             console.error(`Failed to load 3D thumbnail`, err)
           }

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { spawn, move } from 'multithreading'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 
 export type SerializedMesh = {
   type: 'Mesh'
@@ -223,72 +224,133 @@ const loadFromManifest = async (
   const objTextResponse = await fetch(objUrl)
   if (!objTextResponse.ok) throw new Error(`Failed to load OBJ: ${objTextResponse.status}`)
   const objText = await objTextResponse.text()
+  // Attempt to parse OBJ in a worker for performance. If worker bundling
+  // fails in production (Vite runtime helpers missing), fallback to
+  // parsing on the main thread so 3D still functions.
 
-  const handle = spawn(move(objText), async (text) => {
-    const THREE = await import('three')
-    const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js')
+  const parseObjAndCenterMain = (objText: string) => {
+    const loader = new OBJLoader()
+    const object = loader.parse(objText)
 
-    const parseObjAndCenter = (objText: string) => {
-      const loader = new OBJLoader()
-      const object = loader.parse(objText)
+    // Center
+    const box = new THREE.Box3().setFromObject(object)
+    const center = new THREE.Vector3()
+    box.getCenter(center)
 
-      // Center
-      const box = new THREE.Box3().setFromObject(object)
-      const center = new THREE.Vector3()
-      box.getCenter(center)
-
-      // Translate geometries
-      const translateGeometry = (geometry: THREE.BufferGeometry) => {
-        geometry.translate(-center.x, -center.y, -center.z)
-      }
-
-      const serialize = (obj: THREE.Object3D): any => {
-        if ((obj as any).isMesh) {
-          const mesh = obj as THREE.Mesh
-          const geo = mesh.geometry
-
-          translateGeometry(geo)
-
-          let index: Uint16Array | Uint32Array | null = null
-          if (geo.index) {
-            index = geo.index.array as Uint16Array | Uint32Array
-          }
-
-          return {
-            type: 'Mesh',
-            name: mesh.name,
-            geometry: {
-              position: geo.attributes.position.array as Float32Array,
-              normal: geo.attributes.normal ? (geo.attributes.normal.array as Float32Array) : null,
-              uv: geo.attributes.uv ? (geo.attributes.uv.array as Float32Array) : null,
-              index
-            },
-            materialName: Array.isArray(mesh.material)
-              ? mesh.material[0].name
-              : (mesh.material as THREE.Material).name
-          }
-        } else {
-          return {
-            type: 'Group',
-            name: obj.name,
-            children: obj.children.map(serialize)
-          }
-        }
-      }
-
-      return serialize(object)
+    // Translate geometries
+    const translateGeometry = (geometry: THREE.BufferGeometry) => {
+      geometry.translate(-center.x, -center.y, -center.z)
     }
 
-    return parseObjAndCenter(text)
-  })
+    const serialize = (obj: THREE.Object3D): any => {
+      if ((obj as any).isMesh) {
+        const mesh = obj as THREE.Mesh
+        const geo = mesh.geometry
 
-  const result = await handle.join()
+        translateGeometry(geo)
 
-  if (!result.ok) {
-    throw new Error(String((result as any).error))
+        let index: Uint16Array | Uint32Array | null = null
+        if (geo.index) {
+          index = geo.index.array as Uint16Array | Uint32Array
+        }
+
+        return {
+          type: 'Mesh',
+          name: mesh.name,
+          geometry: {
+            position: geo.attributes.position.array as Float32Array,
+            normal: geo.attributes.normal ? (geo.attributes.normal.array as Float32Array) : null,
+            uv: geo.attributes.uv ? (geo.attributes.uv.array as Float32Array) : null,
+            index
+          },
+          materialName: Array.isArray(mesh.material)
+            ? mesh.material[0].name
+            : (mesh.material as THREE.Material).name
+        }
+      } else {
+        return {
+          type: 'Group',
+          name: obj.name,
+          children: obj.children.map(serialize)
+        }
+      }
+    }
+
+    return serialize(object)
   }
 
-  const object = reconstructObject(result.value)
+  let resultValue: any = null
+
+  try {
+    const handle = spawn(move(objText), async (text) => {
+      const THREE = await import('three')
+      const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js')
+
+      const parseObjAndCenter = (objText: string) => {
+        const loader = new OBJLoader()
+        const object = loader.parse(objText)
+
+        const box = new THREE.Box3().setFromObject(object)
+        const center = new THREE.Vector3()
+        box.getCenter(center)
+
+        const translateGeometry = (geometry: THREE.BufferGeometry) => {
+          geometry.translate(-center.x, -center.y, -center.z)
+        }
+
+        const serialize = (obj: THREE.Object3D): any => {
+          if ((obj as any).isMesh) {
+            const mesh = obj as THREE.Mesh
+            const geo = mesh.geometry
+
+            translateGeometry(geo)
+
+            let index: Uint16Array | Uint32Array | null = null
+            if (geo.index) {
+              index = geo.index.array as Uint16Array | Uint32Array
+            }
+
+            return {
+              type: 'Mesh',
+              name: mesh.name,
+              geometry: {
+                position: geo.attributes.position.array as Float32Array,
+                normal: geo.attributes.normal ? (geo.attributes.normal.array as Float32Array) : null,
+                uv: geo.attributes.uv ? (geo.attributes.uv.array as Float32Array) : null,
+                index
+              },
+              materialName: Array.isArray(mesh.material)
+                ? mesh.material[0].name
+                : (mesh.material as THREE.Material).name
+            }
+          } else {
+            return {
+              type: 'Group',
+              name: obj.name,
+              children: obj.children.map(serialize)
+            }
+          }
+        }
+
+        return serialize(object)
+      }
+
+      return parseObjAndCenter(text)
+    })
+
+    const joinResult = await handle.join()
+    if (joinResult.ok) {
+      resultValue = joinResult.value
+    } else {
+      // If worker failed, fallback to main-thread parser
+      resultValue = parseObjAndCenterMain(objText)
+    }
+  } catch (err: any) {
+    // Common production failure is __vitePreload not defined — detect and fallback
+    resultValue = parseObjAndCenterMain(objText)
+  }
+
+  const object = reconstructObject(resultValue)
   object.name = objectName
 
   object.traverse((child: any) => {
