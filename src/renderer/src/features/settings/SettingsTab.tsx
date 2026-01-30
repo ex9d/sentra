@@ -56,7 +56,6 @@ import {
   useNotifyFriendRemoved,
   useNotifyServerLocation
 } from '../system/stores/useNotificationTrayStore'
-import { useNotification } from '../system/stores/useSnackbarStore'
 import { useSetAppUnlocked } from '../../stores/useUIStore'
 import { queryKeys } from '../../../../shared/queryKeys'
 import PinSetupDialog from '../../components/UI/security/PinSetupDialog'
