@@ -1,12 +1,12 @@
+/**
+ * Central barrel export for all query hooks
+ * Re-exports from feature-based API directories for backward compatibility
+ */
 
-
-
-
-
-
+// Query Keys
 export { queryKeys } from '@shared/queryKeys'
 
-
+// Avatar hooks
 export {
   useCurrentAvatar,
   useInventory,
@@ -23,7 +23,7 @@ export {
   useDeleteOutfit
 } from '@renderer/features/avatar/api/useAvatar'
 
-
+// Rolimons hooks
 export {
   useRolimonsData,
   useRolimonsItem,
@@ -44,7 +44,7 @@ export {
   type RolimonsPlayerData
 } from '@renderer/features/avatar/api/useRolimons'
 
-
+// Catalog hooks
 export {
   useCatalogNavigation,
   useCatalogSearch,
@@ -52,7 +52,7 @@ export {
   useCatalogSearchSuggestions
 } from '@renderer/features/catalog/api/useCatalog'
 
-
+// Friends hooks
 export {
   useFriends,
   useFriendRequests,
@@ -62,7 +62,7 @@ export {
   useUnfriend
 } from '@renderer/features/friends/api/useFriends'
 
-
+// Games hooks
 export {
   useGameSorts,
   useGamesInSort,
@@ -74,10 +74,10 @@ export {
   useRemoveFavoriteGame
 } from '@renderer/features/games/api/useGames'
 
-
+// Game servers hooks
 export { useGameServers, useGameName } from '@renderer/features/games/api/useServers'
 
-
+// Groups hooks
 export {
   useJoinedGroups,
   usePendingGroups,
@@ -98,7 +98,7 @@ export {
   type GroupSocialLink
 } from '@renderer/features/groups/api/useGroups'
 
-
+// Inventory hooks
 export {
   useInventoryV2,
   useInventoryV2SinglePage,
@@ -106,7 +106,7 @@ export {
   type UseInventoryV2Params
 } from '@renderer/features/inventory/api/useInventory'
 
-
+// Logs hooks
 export {
   useLogs,
   useLogContent,
@@ -114,16 +114,16 @@ export {
   useDeleteAllLogs
 } from '@renderer/features/system/api/useLogs'
 
-
+// Re-export from auth feature (accounts management)
 export {
   useAccountsManager,
   useAccountStatusPolling
 } from '@renderer/features/auth/api/useAccounts'
 
-
+// Re-export settings manager
 export { useSettingsManager } from '@renderer/features/settings/api/useSettings'
 
-
+// Asset Details / Owners / Resellers hooks (TanStack Query based)
 export {
   useAssetDetailsQuery,
   useAssetRecommendationsQuery,
@@ -150,7 +150,7 @@ export {
   useProgressiveThumbnails
 } from '@renderer/features/avatar/api/useBatchQueries'
 
-
+// Re-export user profile hooks
 export {
   useExtendedUserDetails,
   useFriendStats,
@@ -167,7 +167,7 @@ export {
   useUserPresence
 } from '@renderer/features/users/api/useUserProfile'
 
-
+// Re-export profile platform hooks (consolidated API)
 export {
   useUserProfilePlatform,
   useUserProfileHeader,

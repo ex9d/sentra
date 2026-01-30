@@ -7,12 +7,12 @@ export const useAvatarRenderResize = (containerRef: React.RefObject<HTMLElement 
   const startXRef = useRef(0)
   const startWidthRef = useRef(0)
 
-
+  // Keep ref in sync
   useEffect(() => {
     avatarRenderWidthRef.current = avatarRenderWidth
   }, [avatarRenderWidth])
 
-
+  // Load saved width on mount
   useEffect(() => {
     const loadWidth = async () => {
       try {
@@ -27,7 +27,7 @@ export const useAvatarRenderResize = (containerRef: React.RefObject<HTMLElement 
     loadWidth()
   }, [])
 
-
+  // Save width when resizing stops
   const handleMouseUp = useCallback(() => {
     setIsResizing(false)
     document.body.style.cursor = ''

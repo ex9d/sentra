@@ -117,18 +117,18 @@ const drawToCanvas = (bitmap: ImageBitmap, size: number): ImageData => {
 }
 
 export type DominantAccentOptions = {
-
+  /** Downsample size (pixels). Larger is more accurate but slower. */
   sampleSize?: number
   signal?: AbortSignal
 }
 
 const cache = new Map<string, string>()
 
-
-
-
-
-
+/**
+ * Picks a UI-friendly dominant color from an image URL.
+ *
+ * Groups similar shades by hue so "mostly orange" becomes orange even with shading.
+ */
 export const getDominantAccentColorFromImageUrl = async (
   url: string,
   options: DominantAccentOptions = {}
@@ -147,7 +147,7 @@ export const getDominantAccentColorFromImageUrl = async (
 
     const data = imageData.data
 
-
+    // 24 hue buckets (15° each) + 1 neutral bucket for low saturation pixels.
     const bucketCount = 25
     const weightSums = new Array<number>(bucketCount).fill(0)
     const rSums = new Array<number>(bucketCount).fill(0)
@@ -164,7 +164,7 @@ export const getDominantAccentColorFromImageUrl = async (
 
       const { h, s, l } = rgbToHsl({ r, g, b })
 
-
+      // Skip extreme whites/blacks which are often outlines/background.
       if (l < 0.05 || l > 0.97) continue
 
       const alphaWeight = a / 255
@@ -192,7 +192,7 @@ export const getDominantAccentColorFromImageUrl = async (
       }
     }
 
-
+    // Prefer a chromatic bucket if it's reasonably competitive.
     const neutralWeight = weightSums[24]
     if (bestBucket === 24) {
       let bestChromatic = -1
@@ -221,7 +221,7 @@ export const getDominantAccentColorFromImageUrl = async (
       b: bSums[bestBucket] / bestWeight
     }
 
-
+    // Make the chosen accent more UI-friendly (avoid nearly-black/white accents).
     let hsl = rgbToHsl(avg)
     hsl = {
       h: hsl.h,

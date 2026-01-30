@@ -1,16 +1,16 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 
 export const useSidebarResize = () => {
-  const [sidebarWidth, setSidebarWidth] = useState(288)
+  const [sidebarWidth, setSidebarWidth] = useState(288) // Default w-72 (72 * 4 = 288px)
   const [isResizing, setIsResizing] = useState(false)
   const sidebarWidthRef = useRef(sidebarWidth)
 
-
+  // Keep ref in sync
   useEffect(() => {
     sidebarWidthRef.current = sidebarWidth
   }, [sidebarWidth])
 
-
+  // Load saved width on mount
   useEffect(() => {
     const loadWidth = async () => {
       try {
@@ -25,7 +25,7 @@ export const useSidebarResize = () => {
     loadWidth()
   }, [])
 
-
+  // Save width when resizing stops
   const handleMouseUp = useCallback(() => {
     setIsResizing(false)
     document.body.style.cursor = ''

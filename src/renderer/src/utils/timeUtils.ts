@@ -3,7 +3,7 @@ export const timeAgo = (dateString: string): string => {
 
   const date = new Date(dateString)
   if (isNaN(date.getTime())) {
-
+    // Fallback for existing "Just now" or other non-date strings
     return dateString
   }
 

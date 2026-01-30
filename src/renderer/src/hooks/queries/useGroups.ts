@@ -8,7 +8,7 @@ import {
   type GroupStoreResponse
 } from '@shared/ipc-schemas/games'
 
-
+// Types for group data
 export interface GroupMembership {
   group: {
     id: number
@@ -96,9 +96,9 @@ export interface GroupSocialLink {
   title: string
 }
 
-
-
-
+/**
+ * Fetch all groups a user has joined with thumbnails
+ */
 export function useJoinedGroups(userId: number | null) {
   return useQuery({
     queryKey: queryKeys.groups.userGroups(userId || 0),
@@ -109,7 +109,7 @@ export function useJoinedGroups(userId: number | null) {
 
       if (groups.length === 0) return []
 
-
+      // Fetch thumbnails for all groups
       const groupIds = groups.map((g: any) => g.group.id)
       const thumbnails = await window.api.getGroupThumbnails(groupIds)
 
@@ -119,13 +119,13 @@ export function useJoinedGroups(userId: number | null) {
       }))
     },
     enabled: !!userId,
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 
-
-
-
+/**
+ * Fetch pending group join requests for the authenticated user
+ */
 export function usePendingGroups(account: Account | null) {
   return useQuery({
     queryKey: queryKeys.groups.pending(account?.id || ''),
@@ -136,7 +136,7 @@ export function usePendingGroups(account: Account | null) {
 
       if (pendingGroups.length === 0) return []
 
-
+      // Fetch thumbnails for all groups
       const groupIds = pendingGroups.map((g: any) => g.group.id)
       const thumbnails = await window.api.getGroupThumbnails(groupIds)
 
@@ -146,13 +146,13 @@ export function usePendingGroups(account: Account | null) {
       }))
     },
     enabled: !!account?.cookie,
-    staleTime: 30 * 1000
+    staleTime: 30 * 1000 // 30 seconds
   })
 }
 
-
-
-
+/**
+ * Fetch detailed group info
+ */
 export function useGroupDetails(groupId: number | null, cookie?: string) {
   return useQuery({
     queryKey: queryKeys.groups.details(groupId || 0),
@@ -161,13 +161,13 @@ export function useGroupDetails(groupId: number | null, cookie?: string) {
       return window.api.getGroupDetails(groupId, cookie)
     },
     enabled: !!groupId,
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 
-
-
-
+/**
+ * Fetch group roles
+ */
 export function useGroupRoles(groupId: number | null) {
   return useQuery({
     queryKey: queryKeys.groups.roles(groupId || 0),
@@ -176,13 +176,13 @@ export function useGroupRoles(groupId: number | null) {
       return window.api.getGroupRoles(groupId)
     },
     enabled: !!groupId,
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000 // 5 minutes
   })
 }
 
-
-
-
+/**
+ * Fetch games created by a group
+ */
 export function useGroupGames(groupId: number | null) {
   return useQuery({
     queryKey: queryKeys.groups.games(groupId || 0),
@@ -194,7 +194,7 @@ export function useGroupGames(groupId: number | null) {
 
       if (games.length === 0) return games
 
-
+      // Fetch thumbnails for games
       const universeIds = games.map((g: any) => g.id)
       try {
         const thumbnails = await window.api.getBatchThumbnails(universeIds)
@@ -209,13 +209,13 @@ export function useGroupGames(groupId: number | null) {
       }
     },
     enabled: !!groupId,
-    staleTime: 2 * 60 * 1000
+    staleTime: 2 * 60 * 1000 // 2 minutes
   })
 }
 
-
-
-
+/**
+ * Fetch group social links
+ */
 export function useGroupSocialLinks(account: Account | null, groupId: number | null) {
   return useQuery({
     queryKey: queryKeys.groups.socialLinks(groupId || 0),
@@ -224,13 +224,13 @@ export function useGroupSocialLinks(account: Account | null, groupId: number | n
       return window.api.getGroupSocialLinks(account.cookie, groupId)
     },
     enabled: !!groupId && !!account?.cookie,
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000 // 5 minutes
   })
 }
 
-
-
-
+/**
+ * Fetch group wall posts
+ */
 export function useGroupWallPosts(groupId: number | null) {
   return useQuery({
     queryKey: queryKeys.groups.wall(groupId || 0),
@@ -239,7 +239,7 @@ export function useGroupWallPosts(groupId: number | null) {
       try {
         return await window.api.getGroupWallPosts(groupId)
       } catch (error: any) {
-
+        // Handle permission errors (403) and rate limits (429) gracefully
         if (error?.message?.includes('403') || error?.message?.includes('429')) {
           throw new Error('Wall access denied')
         }
@@ -247,18 +247,18 @@ export function useGroupWallPosts(groupId: number | null) {
       }
     },
     enabled: !!groupId,
-    staleTime: 30 * 1000,
+    staleTime: 30 * 1000, // 30 seconds
     retry: (failureCount, error: any) => {
-
+      // Don't retry on permission errors
       if (error?.message?.includes('Wall access denied')) return false
       return failureCount < 2
     }
   })
 }
 
-
-
-
+/**
+ * Fetch group members
+ */
 export function useGroupMembers(groupId: number | null, roleId?: number) {
   return useQuery({
     queryKey: queryKeys.groups.members(groupId || 0, roleId),
@@ -267,13 +267,13 @@ export function useGroupMembers(groupId: number | null, roleId?: number) {
       return window.api.getGroupMembers(groupId, undefined, undefined, roleId)
     },
     enabled: !!groupId,
-    staleTime: 60 * 1000
+    staleTime: 60 * 1000 // 1 minute
   })
 }
 
-
-
-
+/**
+ * Cancel a pending group join request
+ */
 export function useCancelPendingRequest(account: Account | null) {
   const queryClient = useQueryClient()
 
@@ -283,15 +283,15 @@ export function useCancelPendingRequest(account: Account | null) {
       return window.api.cancelPendingGroupRequest(account.cookie, groupId)
     },
     onSuccess: () => {
-
+      // Invalidate pending groups cache
       queryClient.invalidateQueries({ queryKey: queryKeys.groups.pending(account?.id || '') })
     }
   })
 }
 
-
-
-
+/**
+ * Leave a group
+ */
 export function useLeaveGroup(account: Account | null) {
   const queryClient = useQueryClient()
 
@@ -301,7 +301,7 @@ export function useLeaveGroup(account: Account | null) {
       return window.api.leaveGroup(account.cookie, groupId)
     },
     onSuccess: () => {
-
+      // Invalidate user groups cache
       if (account?.userId) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.groups.userGroups(parseInt(account.userId))
@@ -311,9 +311,9 @@ export function useLeaveGroup(account: Account | null) {
   })
 }
 
-
-
-
+/**
+ * Search group store items with infinite scrolling
+ */
 export function useGroupStore(groupId: number | null, keyword?: string, cookie?: string) {
   return useInfiniteQuery({
     queryKey: queryKeys.groups.store(groupId || 0, keyword),
@@ -324,6 +324,6 @@ export function useGroupStore(groupId: number | null, keyword?: string, cookie?:
     initialPageParam: '' as string,
     getNextPageParam: (lastPage) => lastPage.nextPageCursor || undefined,
     enabled: !!groupId,
-    staleTime: 30 * 1000
+    staleTime: 30 * 1000 // 30 seconds
   })
 }

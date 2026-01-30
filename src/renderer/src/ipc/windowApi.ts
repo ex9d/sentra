@@ -114,7 +114,7 @@ export interface FavoritesApi {
 }
 
 export interface SettingsApi {
-
+  // Window control
   focusWindow: () => Promise<void>
   hasConfig: () => Promise<boolean>
 
@@ -130,22 +130,22 @@ export interface SettingsApi {
   setSettings: (settings: SettingsPatch) => Promise<void>
   getExcludeFullGames: () => Promise<boolean>
   setExcludeFullGames: (excludeFullGames: boolean) => Promise<void>
-
+  // Custom Fonts
   getCustomFonts: () => Promise<{ family: string; url: string }[]>
   addCustomFont: (font: { family: string; url: string }) => Promise<void>
   removeCustomFont: (family: string) => Promise<void>
   getActiveFont: () => Promise<string | null>
   setActiveFont: (family: string | null) => Promise<void>
-
+  // Secure PIN verification - auth state managed in main process
   verifyPin: (pin: string) => Promise<{
     success: boolean
     locked: boolean
     remainingAttempts: number
     lockoutSeconds?: number
   }>
-
+  // Check if PIN is currently verified in main process
   isPinVerified: () => Promise<boolean>
-
+  // Set PIN - requires current PIN if one is already set (security)
   setPin: (
     newPin: string | null,
     currentPin?: string
@@ -286,7 +286,7 @@ export interface AvatarApi {
     idempotencyKey?: string
   ) => Promise<any>
   getAssetHierarchy: (assetId: number) => Promise<any>
-
+  // 3D Manifest APIs - authenticated
   getAvatar3DManifest: (
     cookie: string,
     userId: number | string
@@ -362,7 +362,7 @@ export interface FlagsApi {
   setFFlags: (installPath: string, flags: FFlags) => Promise<void>
 }
 
-
+// Rolimons API response types
 export interface RolimonsItemDetails {
   success: boolean
   item_count: number
@@ -523,7 +523,7 @@ export interface CatalogItemsSearchParams {
   limit?: number
   cursor?: string
   includeNotForSale?: boolean
-  cookie?: string
+  cookie?: string // Optional cookie for authenticated requests (higher rate limits)
 }
 
 export interface CatalogItemsSearchResponse {
@@ -552,7 +552,7 @@ export interface CatalogApi {
   ) => Promise<{ success: boolean; message?: string; path?: string }>
 }
 
-
+// Groups API types
 export interface GroupDetails {
   id: number
   name: string
@@ -678,7 +678,7 @@ export interface GroupsApi {
   ) => Promise<GroupStoreResponse>
 }
 
-
+// Transactions API types
 import type {
   TransactionTotals,
   TransactionTimeFrame
@@ -706,7 +706,7 @@ export interface UpdaterApi {
   onUpdaterStatus: (callback: (state: UpdateState) => void) => () => void
 }
 
-
+// Catalog Database API types
 export interface CatalogDbSearchResult {
   AssetId: number
   Name: string
@@ -779,12 +779,12 @@ export interface NewsApi {
 }
 
 export interface AccountSettingsApi {
-
+  // GET methods
   getAccountSettingsJson: (cookie: string) => Promise<AccountSettingsJson>
   getUserSettingsAndOptions: (cookie: string) => Promise<UserSettingsAndOptions>
   getCombinedAccountSettings: (cookie: string) => Promise<CombinedAccountSettings>
   getThemeTypes: (cookie: string) => Promise<string[]>
-
+  // UPDATE methods
   updateInventoryPrivacy: (
     cookie: string,
     privacyLevel: PrivacyLevel
@@ -815,7 +815,7 @@ export interface AccountSettingsApi {
   ) => Promise<UpdateSettingResult>
   sendVerificationEmail: (cookie: string, freeItem?: boolean) => Promise<UpdateSettingResult>
   redeemPromoCode: (cookie: string, code: string) => Promise<RedeemPromoCodeResponse>
-
+  // Account Information API methods
   getDescription: (cookie: string) => Promise<DescriptionResponse>
   updateDescription: (cookie: string, description: string) => Promise<UpdateSettingResult>
   getGender: (cookie: string) => Promise<GenderResponse>
@@ -840,7 +840,7 @@ export interface AccountSettingsApi {
   ) => Promise<UpdateSettingResult>
 }
 
-
+// Discord Rich Presence types
 export interface DiscordPresenceState {
   isEnabled: boolean
   isConnected: boolean

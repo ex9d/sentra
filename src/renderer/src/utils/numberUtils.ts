@@ -19,7 +19,7 @@ export const formatNumber = (
   const formatAbbreviated = (abbreviated: number, suffix: string): string => {
     const multiplier = Math.pow(10, precision)
     const truncated = Math.trunc(abbreviated * multiplier) / multiplier
-
+    // Format with precision, then remove trailing zeros and decimal point if not needed
     const formatted = truncated.toFixed(precision).replace(/\.?0+$/, '')
     return `${sign}${formatted}${suffix}`
   }

@@ -25,7 +25,7 @@ export function useHorizontalScroll(
   const [canScrollRight, setCanScrollRight] = useState(false)
 
   const checkScroll = useCallback(() => {
-
+    // Cancel any pending RAF to avoid stacking
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current)
     }
@@ -37,11 +37,11 @@ export function useHorizontalScroll(
       const newCanScrollLeft = scrollLeft > 0
       const newCanScrollRight = scrollLeft + clientWidth < scrollWidth - 1
 
-
+      // Only update state if values actually changed
       setCanScrollLeft((prev) => (prev !== newCanScrollLeft ? newCanScrollLeft : prev))
       setCanScrollRight((prev) => (prev !== newCanScrollRight ? newCanScrollRight : prev))
 
-
+      // Trigger onNearEnd callback if scrolled near end
       if (onNearEnd && scrollWidth - (scrollLeft + clientWidth) < nearEndThreshold) {
         onNearEnd()
       }
@@ -58,7 +58,7 @@ export function useHorizontalScroll(
   }, [])
 
   useEffect(() => {
-
+    // Defer initial check to avoid layout thrashing during mount
     const timeoutId = setTimeout(checkScroll, 0)
     const el = scrollRef.current
 
@@ -75,7 +75,7 @@ export function useHorizontalScroll(
       if (el) el.removeEventListener('scroll', checkScroll)
       window.removeEventListener('resize', checkScroll)
     }
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, checkScroll])
 
   return {
