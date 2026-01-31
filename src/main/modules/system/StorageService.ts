@@ -37,6 +37,8 @@ const storeDataSchema = z.object({
   windowHeight: z.number().optional(),
   // Encrypted accounts stored as base64 string
   encryptedAccounts: z.string().optional(),
+  // Encrypted license key (AES + user PIN)
+  encryptedLicense: z.string().optional(),
   favoriteGames: z.array(z.string()).optional(),
   favoriteItems: z.array(favoriteItemSchema).optional(),
   excludeFullGames: z.boolean().optional(),
@@ -392,6 +394,46 @@ class StorageService {
    */
   public getPinHash(): string | null {
     return this.data.settings?.pinCodeHash ?? null
+  }  /**
+   * Get encrypted license (if any)
+   */
+  public getEncryptedLicense(): string | null {
+    return this.data.encryptedLicense ?? null
+  }
+
+  /**
+   * Store an encrypted license string (or null to clear)
+   */
+  public setEncryptedLicense(encrypted: string | null): void {
+    if (encrypted === null) {
+      if (this.data.encryptedLicense) delete this.data.encryptedLicense
+    } else {
+      this.data.encryptedLicense = encrypted
+    }
+    this.save()
+  }
+
+  /**
+   * Delete encrypted license
+   */
+  public deleteEncryptedLicense(): void {
+    if (this.data.encryptedLicense) {
+      delete this.data.encryptedLicense
+      this.save()
+    }
+  }
+
+  /**
+   * Clear all stored data and persist an empty config.json
+   */
+  public clearAll(): void {
+    this.data = {}
+    try {
+      MultiInstance.Disable()
+    } catch (e) {
+      // ignore
+    }
+    this.save()
   }
 
   /**

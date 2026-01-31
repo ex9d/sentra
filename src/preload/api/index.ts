@@ -11,7 +11,7 @@ export { avatarApi, inventoryApi, catalogApi, catalogDatabaseApi } from './avata
 export { gamesApi, groupsApi } from './games'
 
 // System domain (system, pin, install, netlog, catalogDb)
-export { systemApi, pinApi, installApi, netlogApi, catalogDbApi } from './system'
+export { systemApi, licenseApi, pinApi, installApi, netlogApi, catalogDbApi } from './system'
 
 // Auth
 export { authApi } from './auth'

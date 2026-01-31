@@ -66,6 +66,38 @@ export const systemApi = {
 }
 
 // ============================================================================
+// LICENSE API
+// ============================================================================
+
+export const licenseApi = {
+  redeemLicense: (licenseKey: string, userPin?: string) =>
+    invoke(
+      'license:redeem',
+      z.object({ success: z.boolean(), message: z.string().nullable() }),
+      licenseKey,
+      userPin
+    ),
+    logout: () =>
+      invoke(
+        'app:logout',
+        z.object({ success: z.boolean(), message: z.string().nullable().optional() })
+      ),
+  validateStoredLicense: () =>
+    invoke(
+      'license:validate-stored',
+      z.object({
+        success: z.boolean(),
+        hasLicense: z.boolean().optional(),
+        isValid: z.boolean().optional(),
+        isBanned: z.boolean().optional(),
+        code: z.string().optional(),
+        message: z.string().nullable(),
+        requiresPin: z.boolean().optional()
+      })
+    )
+}
+
+// ============================================================================
 // PIN API
 // ============================================================================
 
