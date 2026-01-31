@@ -88,7 +88,7 @@ const NewsTab = lazy(() => import('./features/news/index'))
 const AccountSettingsTab = lazy(() => import('./features/accountSettings/index'))
 const GameDetailsModal = lazy(() => import('./features/games/Modals/GameDetailsModal'))
 const AccessoryDetailsModal = lazy(() => import('./features/avatar/Modals/AccessoryDetailsModal'))
-const UniversalProfileModal = lazy(() => import('./components/Modals/UniversalProfileModal'))
+import UniversalProfileModal from './components/Modals/UniversalProfileModal'
 const CommandPalette = lazy(() => import('./features/command-palette/index'))
 
 interface JoinConfig {
@@ -108,6 +108,7 @@ const App: React.FC = () => {
   const queryClient = useQueryClient()
 
   const hasCompletedOnboarding = useHasCompletedOnboarding()
+  const isInitialized = useOnboardingStore((state) => state.isInitialized)
   const initializeFirstLaunch = useOnboardingStore((state) => state.initializeFirstLaunch)
 
   // Initialize onboarding first launch detection early
@@ -802,7 +803,7 @@ const App: React.FC = () => {
     }
   }
 
-  if (isLoadingAccounts || isLoadingSettings) {
+  if (!isInitialized || isLoadingAccounts || isLoadingSettings) {
     return (
       <div className="flex h-screen w-full bg-[var(--color-app-bg)] text-[var(--color-text-muted)] font-sans">
         <LoadingSpinnerFullPage label="Loading..." />
