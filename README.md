@@ -174,7 +174,7 @@ This repository does not currently include dedicated unit or integration test sc
 To create a production-ready build of the application:
 
 ```bash
-npm run build
+npm run build:win
 ```
 This command will compile the application and generate distributable packages in the `out` directory, configured by `electron-builder.yml`.
 
