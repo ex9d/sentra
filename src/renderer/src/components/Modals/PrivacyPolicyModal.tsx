@@ -27,8 +27,8 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, onClose
                             <p className="text-sm text-neutral-400 mb-4">Last Updated: December 2025</p>
                             <p className="text-base leading-relaxed">
                                 Sentra ("we", "our", or "us") is committed to protecting your privacy. This Privacy
-                                Policy explains how our open-source release of the Roblox launcher application
-                                collects, uses, and discloses information.
+                                Policy explains how the Roblox launcher application collects, uses, and discloses
+                                information.
                             </p>
                         </div>
 
@@ -98,28 +98,15 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, onClose
                                     <strong className="text-neutral-200">Encryption:</strong> Sensitive account data
                                     may be encrypted at rest on your device, depending on your OS capabilities.
                                 </li>
-                                <li>
-                                    <strong className="text-neutral-200">Open Source:</strong> Our code is open
-                                    source, allowing the community to audit and verify our security and privacy
-                                    practices.
-                                </li>
+                                {/* Open-source statement removed per request */}
                             </ul>
                         </section>
 
                         <section className="space-y-3">
                             <h3 className="text-white font-semibold text-lg">4. Contact Us</h3>
-                            <p className="text-sm leading-relaxed">
-                                If you have any questions about this Privacy Policy or our practices, please open an
-                                issue on our{' '}
-                                <a
-                                    href="https://github.com/sashaga2a24/sentra/issues"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[var(--accent-color)] hover:underline"
-                                >
-                                    GitHub Repository
-                                </a>
-                                .
+                                <p className="text-sm leading-relaxed">
+                                If you have any questions about this Privacy Policy or our practices, please contact the
+                                project maintainers.
                             </p>
                         </section>
                     </div>
