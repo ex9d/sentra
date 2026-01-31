@@ -1,10 +1,10 @@
 {
   "name": "sentra",
-  "version": "1.0.6",
-  "description": "Open source roblox account manager.",
+  "version": "1.0.7",
+  "description": "Best all-in-one Roblox account manager.",
   "main": "./out/main/index.js",
   "author": "experimentid (sashaga2a24)",
-  "homepage": "https://github.com/sashaga2a24/sentra",
+  "homepage": "https://github.com/sashaga2a24/",
   "scripts": {
     "preview": "electron-vite preview",
     "format": "prettier --write .",
@@ -57,6 +57,8 @@
     "yauzl": "^3.2.0",
     "zod": "^4.1.12",
     "zustand": "^5.0.8"
+    ,
+    "@keyauthjs/client": "*"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
