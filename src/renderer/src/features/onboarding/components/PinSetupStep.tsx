@@ -186,6 +186,8 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
           onChange={(e) => handleInputChange(index, e.target.value, target)}
           onKeyDown={(e) => handleKeyDown(index, e, target)}
           disabled={isSubmitting}
+          tabIndex={0}
+          style={{ pointerEvents: 'auto' }}
           className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-mono rounded-lg border-2 bg-neutral-900 text-white focus:outline-none transition-all ${
             isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
           } ${

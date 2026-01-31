@@ -796,6 +796,24 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
     onUpdateSettings({ accentColor: DEFAULT_ACCENT_COLOR })
   }
 
+  const handleLogout = async () => {
+    if (!confirm('Are you sure you want to logout? This will clear all local configuration data.')) return
+    try {
+      const res = await (window.api as any).logout()
+      if (res && res.success) {
+        // Clear onboarding persisted state in renderer and reload to show license screen
+        try {
+          localStorage.removeItem('onboarding-storage')
+        } catch {}
+        window.location.reload()
+      } else {
+        alert('Logout failed: ' + (res?.message || 'Unknown error'))
+      }
+    } catch (err) {
+      alert('Logout error: ' + (err instanceof Error ? err.message : String(err)))
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-[var(--color-surface)] text-[var(--color-text-secondary)]">
       <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] flex items-center justify-between px-6 z-20">
@@ -1056,7 +1074,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                 </SettingsCard>
               </Section>
 
-              <Section title="Integrations" description="Connect Altman with external services.">
+              <Section title="Integrations" description="Connect Sentra with external services.">
                 <SettingsCard
                   title="Discord Rich Presence"
                   description="Show your current activity on Discord, including the game you're playing."
@@ -1064,7 +1082,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                 >
                   <ToggleRow
                     title="Discord Rich Presence"
-                    description="Let Discord display when you're browsing or playing through Altman."
+                    description="Let Discord display when you're browsing or playing through Sentra."
                     checked={discordRPCEnabled}
                     onChange={() => toggleDiscordRPC.mutate(!discordRPCEnabled)}
                     disabled={toggleDiscordRPC.isPending}
@@ -1420,7 +1438,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
               <Section title="Access control" description="Protect the app with a 6-digit PIN.">
                 <SettingsCard
                   title="PIN lock"
-                  description="Set a PIN that must be entered when Altman starts."
+                  description="Set a PIN that must be entered when Sentra starts."
                   icon={<Lock size={16} />}
                 >
                   <div className="flex items-center gap-3 flex-wrap">
@@ -1534,32 +1552,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                 </SettingsCard>
               </Section>
 
-              <Section title="About Sentra" description="Project info and helpful links.">
-                <SettingsCard
-                  title="Sentra"
-                  description="The open-source Roblox launcher."
-                  icon={<Info size={16} />}
-                >
-                  <div className="flex gap-4">
-                    <a
-                      href="https://github.com/sashaga2a24/sentra"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-[var(--accent-color)] hover:underline"
-                    >
-                      GitHub Repository
-                    </a>
-                    <a
-                      href="https://github.com/sashaga2a24/sentra/issues"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-[var(--accent-color)] hover:underline"
-                    >
-                      Report an Issue
-                    </a>
-                  </div>
-                </SettingsCard>
-              </Section>
+              {/* About Sentra removed per request (no open-source references) */}
 
               <Section title="Legal" description="Terms and policies.">
                 <SettingsCard
@@ -1572,6 +1565,23 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                     className="text-xs text-[var(--accent-color)] hover:underline flex items-center gap-1"
                   >
                     View Privacy Policy
+                  </button>
+                </SettingsCard>
+              </Section>
+
+              {/* Reset HWID removed: functionality is unsupported */}
+
+              <Section title="Session" description="Manage local data and application state.">
+                <SettingsCard
+                  title="Clear Data"
+                  description="Clear all local configuration data and return to the login screen."
+                  icon={<AlertTriangle size={16} />}
+                >
+                  <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
+                  >
+                    Clear Data
                   </button>
                 </SettingsCard>
               </Section>

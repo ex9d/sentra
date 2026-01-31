@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, User, Lock, Download, Bell, Sparkles, LucideIcon } from 'lucide-react'
+import { ChevronRight, User, Download, Lock, Bell, Sparkles, LucideIcon } from 'lucide-react'
 import { useOnboardingStore, OnboardingStep, useIsFirstLaunch } from '../stores/useOnboardingStore'
 import appIcon from '../../../../../../resources/build/icons/png/512x512.png'
 import AddAccountStep from './AddAccountStep'
@@ -10,6 +10,7 @@ import NotificationsStep from './NotificationsStep'
 
 const STEPS: { id: OnboardingStep; label: string; icon: LucideIcon }[] = [
   { id: 'welcome', label: 'Welcome', icon: Sparkles },
+  { id: 'license', label: 'License', icon: Lock },
   { id: 'pin', label: 'Security', icon: Lock },
   { id: 'account', label: 'Account', icon: User },
   { id: 'installation', label: 'Install', icon: Download },
@@ -92,7 +93,7 @@ const OnboardingScreen: React.FC = () => {
             <div className="flex items-center gap-2">
               {STEPS.slice(1).map((step, index) => {
                 const stepIndex = index + 1 // Offset by 1 since we skip welcome
-                const isActive = STEPS.findIndex((s) => s.id === currentStep) === stepIndex
+                const isActive = currentStep === step.id
                 const isCompleted = currentStepIndex > stepIndex
 
                 return (
@@ -177,7 +178,7 @@ const OnboardingScreen: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
               >
-                The open-source Roblox launcher
+                Best all-in-one Roblox account manager.
               </motion.p>
 
               {/* Welcome content */}
@@ -224,6 +225,20 @@ const OnboardingScreen: React.FC = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </motion.div>
+          )}
+
+          {/* License Step */}
+          {currentStep === 'license' && (
+            <motion.div
+              key="license"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              transition={{ duration: 0.3 }}
+              className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 shadow-2xl w-full"
+            >
+              <LicenseStep onComplete={handleComplete} />
             </motion.div>
           )}
 
@@ -297,6 +312,77 @@ const OnboardingScreen: React.FC = () => {
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       />
     </motion.div>
+  )
+}
+
+function LicenseStep({ onComplete }: { onComplete: () => void }) {
+  const [license, setLicense] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const handleSubmit = async () => {
+    if (!license.trim()) return
+    setIsLoading(true)
+    setMessage(null)
+    try {
+      // Call main process to redeem license
+      const res = await (window.api as any).redeemLicense(license, '')
+      if (res && res.success) {
+        setMessage({ type: 'success', text: res.message || 'License accepted' })
+        setTimeout(() => onComplete(), 800)
+      } else {
+        // Prefer parsed details.message if provided by main
+        const detailMsg = res?.details?.message || res?.details?.error || res?.details?.message?.message
+        setMessage({ type: 'error', text: detailMsg || res?.message || 'Invalid license' })
+      }
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'error', text: 'An error occurred' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="w-full">
+      <h2 className="text-xl font-semibold mb-2">Enter License Key</h2>
+      <p className="text-sm text-[var(--color-text-muted)] mb-4">Please enter your license key to continue.</p>
+
+      <div className="grid gap-4">
+        <input
+          className="w-full p-3 rounded-md bg-neutral-900 border border-neutral-800"
+          placeholder="License key"
+          value={license}
+          onChange={(e) => setLicense(e.target.value)}
+          disabled={isLoading}
+          tabIndex={0}
+          style={{ pointerEvents: 'auto' }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSubmit()
+          }}
+        />
+
+        {message && (
+          <div
+            className={`text-sm p-3 rounded-md ${
+              message.type === 'success' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <button
+            className="pressable px-4 py-2 rounded-md bg-neutral-800"
+            onClick={handleSubmit}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Checking...' : 'Submit'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -3,6 +3,7 @@ import { devtools, persist } from 'zustand/middleware'
 
 export type OnboardingStep =
   | 'welcome'
+  | 'license'
   | 'account'
   | 'pin'
   | 'installation'
@@ -14,6 +15,7 @@ interface OnboardingState {
   currentStep: OnboardingStep
   skippedSteps: OnboardingStep[]
   isFirstLaunch: boolean
+  isInitialized: boolean
 }
 
 interface OnboardingActions {
@@ -30,7 +32,8 @@ const initialState: OnboardingState = {
   hasCompletedOnboarding: false,
   currentStep: 'welcome',
   skippedSteps: [],
-  isFirstLaunch: false
+  isFirstLaunch: false,
+  isInitialized: false
 }
 
 export const useOnboardingStore = create<OnboardingStore>()(
@@ -67,13 +70,30 @@ export const useOnboardingStore = create<OnboardingStore>()(
             const hasConfig = await window.api.hasConfig()
             if (!hasConfig) {
               set(
-                { isFirstLaunch: true, hasCompletedOnboarding: false },
+                { isFirstLaunch: true, hasCompletedOnboarding: false, isInitialized: true },
                 false,
                 'initializeFirstLaunch'
               )
+              return
             }
+
+            // If config exists, validate stored license for ban status
+            const licenseValidation = await (window.api as any).validateStoredLicense()
+            if (licenseValidation && licenseValidation.isBanned) {
+              // License is banned or already used; force re-onboarding
+              set(
+                { hasCompletedOnboarding: false, currentStep: 'license', isInitialized: true },
+                false,
+                'initializeFirstLaunch - license banned'
+              )
+              return
+            }
+
+            // License is valid or not present; initialization complete
+            set({ isInitialized: true }, false, 'initializeFirstLaunch - complete')
           } catch (error) {
             console.error('Failed to check first launch:', error)
+            set({ isInitialized: true }, false, 'initializeFirstLaunch - error')
           }
         }
       }),
