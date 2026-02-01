@@ -1,6 +1,4 @@
-import os from 'os'
 import fs from 'fs'
-import { execSync } from 'child_process'
 import crypto from 'crypto'
 
 type KeyAuthOptions = {
@@ -73,37 +71,7 @@ export default class KeyAuthWrapper {
     }
   }
 
-  private get_hwid(): string {
-    const platform = os.platform()
-    if (platform === 'linux') {
-      try {
-        return fs.readFileSync('/etc/machine-id', 'utf-8').trim()
-      } catch (err) {
-        throw new Error('Failed to retrieve HWID on Linux')
-      }
-    }
-    if (platform === 'win32') {
-      try {
-        const winUser = os.userInfo().username
-        const out = execSync(`wmic useraccount where name='${winUser}' get sid`).toString().split('\n')
-        const sid = out[1]?.trim()
-        if (!sid) throw new Error('SID undefined')
-        return sid
-      } catch (err) {
-        throw new Error('Failed to retrieve HWID on Windows')
-      }
-    }
-    if (platform === 'darwin') {
-      try {
-        const out = execSync("ioreg -l | grep IOPlatformSerialNumber").toString()
-        const parts = out.split('=')
-        return parts[1]?.trim().replace(/\"/g, '') ?? ''
-      } catch (err) {
-        throw new Error('Failed to retrieve HWID on macOS')
-      }
-    }
-    throw new Error('Unsupported platform for HWID')
-  }
+  // HWID handling removed: KeyAuth manages device identification server-side.
 
   public async init(): Promise<Result> {
     if (this.sessionid && this.initialized) return { ok: true, data: { sessionid: this.sessionid } }
@@ -152,16 +120,15 @@ export default class KeyAuthWrapper {
 
   public async login(username: string, password: string, code?: string, hwid?: string): Promise<Result> {
     if (!this.initialized || !this.sessionid) return { ok: false, message: 'not initialized' }
-    hwid = hwid ?? this.get_hwid()
     const post_data: any = {
       type: 'login',
       name: this.name,
       ownerid: this.ownerid,
       sessionid: this.sessionid,
       username,
-      pass: password,
-      hwid
+      pass: password
     }
+    if (hwid) post_data.hwid = hwid
     if (code) post_data.code = code
 
     const r = await this.__do_request(post_data)
@@ -179,15 +146,14 @@ export default class KeyAuthWrapper {
 
   public async license(key: string, code?: string, hwid?: string): Promise<Result> {
     if (!this.initialized || !this.sessionid) return { ok: false, message: 'not initialized' }
-    hwid = hwid ?? this.get_hwid()
     const post_data: any = {
       type: 'license',
       name: this.name,
       ownerid: this.ownerid,
       sessionid: this.sessionid,
-      key,
-      hwid
+      key
     }
+    if (hwid) post_data.hwid = hwid
     if (code) post_data.code = code
 
     const r = await this.__do_request(post_data)
