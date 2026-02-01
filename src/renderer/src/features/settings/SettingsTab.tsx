@@ -1117,9 +1117,9 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                         ? 'This option is unavailable on macOS.'
                         : 'Launch more than one Roblox client at the same time.'
                     }
-                    checked={false}
-                    onChange={() => { }}
-                    disabled
+                    checked={settings.allowMultipleInstances}
+                    onChange={() => onUpdateSettings({ allowMultipleInstances: !settings.allowMultipleInstances })}
+                    disabled={isMac}
                     hint={
                       !isMac && (
                         <span className="text-xs text-yellow-600/80">
