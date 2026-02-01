@@ -196,16 +196,20 @@ app.whenReady().then(async () => {
       if (!initialized) {
         console.log('[KeyAuth] Scheduling retry in 5 seconds...')
         keyAuthRetryTimer = setInterval(async () => {
-          keyAuthRetryCount++
-          if (keyAuthRetryCount > MAX_KEYAUTH_RETRIES) {
-            console.warn(`[KeyAuth] Max retries (${MAX_KEYAUTH_RETRIES}) reached, giving up`)
-            if (keyAuthRetryTimer) clearInterval(keyAuthRetryTimer)
-            return
-          }
-          console.log(`[KeyAuth] Retry attempt ${keyAuthRetryCount}/${MAX_KEYAUTH_RETRIES}...`)
-          const retrySuccess = await initializeKeyAuth(KEYAUTH_NAME, KEYAUTH_OWNERID, KEYAUTH_VERSION)
-          if (retrySuccess && keyAuthRetryTimer) {
-            clearInterval(keyAuthRetryTimer)
+          try {
+            keyAuthRetryCount++
+            if (keyAuthRetryCount > MAX_KEYAUTH_RETRIES) {
+              console.warn(`[KeyAuth] Max retries (${MAX_KEYAUTH_RETRIES}) reached, giving up`)
+              if (keyAuthRetryTimer) clearInterval(keyAuthRetryTimer)
+              return
+            }
+            console.log(`[KeyAuth] Retry attempt ${keyAuthRetryCount}/${MAX_KEYAUTH_RETRIES}...`)
+            const retrySuccess = await initializeKeyAuth(KEYAUTH_NAME, KEYAUTH_OWNERID, KEYAUTH_VERSION)
+            if (retrySuccess && keyAuthRetryTimer) {
+              clearInterval(keyAuthRetryTimer)
+            }
+          } catch (err) {
+            console.error('[KeyAuth] Retry error:', err)
           }
         }, 5000)
       }
