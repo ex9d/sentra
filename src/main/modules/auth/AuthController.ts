@@ -44,7 +44,21 @@ export const registerAuthHandlers = (): void => {
     if (!account || !account.cookie) {
       throw new Error('Account not found or cookie unavailable')
     }
+
+    const settings = storageService.getSettings()
+    const windowWidth = settings.browserWindowWidth
+    const windowHeight = settings.browserWindowHeight
+    const finalUrl = url || 'https://www.roblox.com/home'
     
-    await RobloxLoginWindowService.openBrowserWithAccount(account.cookie, url)
+    await RobloxLoginWindowService.openBrowserWithAccount(account.cookie, finalUrl, windowWidth ?? undefined, windowHeight ?? undefined)
+  })
+
+  handle('export-cookies', z.tuple([z.array(z.string())]), async (_, accountIds) => {
+    const accounts = storageService.getAccounts()
+    const cookies = accountIds
+      .map((id) => accounts.find((a) => a.id === id)?.cookie)
+      .filter((cookie): cookie is string => !!cookie)
+    
+    return cookies.join('\n')
   })
 }

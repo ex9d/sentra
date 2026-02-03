@@ -1,4 +1,4 @@
-import { BrowserWindow, BrowserWindowConstructorOptions, session, shell } from 'electron'
+import { BrowserWindow, BrowserWindowConstructorOptions, session, shell, BrowserView, ipcMain } from 'electron'
 import type { Cookie, Event as ElectronEvent } from 'electron'
 
 export class RobloxLoginWindowService {
@@ -66,11 +66,8 @@ export class RobloxLoginWindowService {
 
         loginSession.cookies.on('changed', handleCookieChange)
         loginSession.setPermissionRequestHandler((_wc, permission, callback) => {
-          if (permission && this.PERMITTED_PERMISSIONS.has(permission)) {
-            callback(true)
-          } else {
-            callback(false)
-          }
+          if (permission && this.PERMITTED_PERMISSIONS.has(permission)) callback(true)
+          else callback(false)
         })
 
         const windowOptions: BrowserWindowConstructorOptions = {
@@ -93,20 +90,35 @@ export class RobloxLoginWindowService {
         this.loginWindow = new BrowserWindow(windowOptions)
 
         const userAgent = this.getRealisticUserAgent()
-        if (userAgent) {
-          this.loginWindow.webContents.setUserAgent(userAgent)
-        }
+        if (userAgent) this.loginWindow.webContents.setUserAgent(userAgent)
 
         this.loginWindow.on('ready-to-show', () => {
           this.loginWindow?.show()
           this.loginWindow?.focus()
         })
 
+        this.loginWindow.webContents.on('render-process-gone', (_event, details) => {
+          console.error('[RobloxLoginWindow] Renderer process gone:', details)
+          try {
+            if (this.loginWindow && !this.loginWindow.isDestroyed()) {
+              this.loginWindow.close()
+            }
+          } catch (err) {
+            console.warn('[RobloxLoginWindow] Error during cleanup after renderer gone:', err)
+          }
+        })
+
+        this.loginWindow.on('unresponsive', () => {
+          try {
+            if (this.loginWindow && !this.loginWindow.isDestroyed()) {
+              this.loginWindow.close()
+            }
+          } catch {}
+        })
+
         this.loginWindow.on('closed', async () => {
           await cleanup()
-          if (!isResolved) {
-            reject(rejectionError ?? new Error('LOGIN_WINDOW_CLOSED'))
-          }
+          if (!isResolved) reject(rejectionError ?? new Error('LOGIN_WINDOW_CLOSED'))
         })
 
         this.loginWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -145,19 +157,21 @@ export class RobloxLoginWindowService {
     return this.pendingPromise
   }
 
-  static async openBrowserWithAccount(cookie: string, url: string = 'https://www.roblox.com/home'): Promise<void> {
+  static async openBrowserWithAccount(
+    cookie: string,
+    url: string = 'https://www.roblox.com/home',
+    windowWidth?: number,
+    windowHeight?: number
+  ): Promise<void> {
     const partition = `persist:account-browser-${Date.now()}`
     const browserSession = session.fromPartition(partition, { cache: true })
 
     let browserWindow: BrowserWindow | null = null
 
     try {
-      // Validate and set the security cookie before opening the window
       try {
         await browserSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
-      } catch (error) {
-        console.warn('[RobloxBrowser] Failed to clear previous cookie:', error)
-      }
+      } catch {}
 
       await browserSession.cookies.set({
         url: 'https://www.roblox.com',
@@ -167,22 +181,21 @@ export class RobloxLoginWindowService {
         path: '/',
         httpOnly: true,
         secure: true,
-        expirationDate: Math.floor(Date.now() / 1000) + 31536000 // 1 year from now
+        expirationDate: Math.floor(Date.now() / 1000) + 31536000
       })
 
       const windowOptions: BrowserWindowConstructorOptions = {
-        width: 1280,
-        height: 800,
+        width: windowWidth && windowWidth > 0 ? windowWidth : 1280,
+        height: windowHeight && windowHeight > 0 ? windowHeight : 800,
         title: 'Roblox Browser',
         autoHideMenuBar: true,
         backgroundColor: '#050505',
-        parent: BrowserWindow.getFocusedWindow() ?? undefined,
-        modal: false,
         show: true,
         webPreferences: {
-          partition: partition,
+          partition,
           nodeIntegration: false,
           contextIsolation: true,
+          webviewTag: true,
           spellcheck: true
         }
       }
@@ -190,62 +203,91 @@ export class RobloxLoginWindowService {
       browserWindow = new BrowserWindow(windowOptions)
 
       const userAgent = this.getRealisticUserAgent()
-      if (userAgent) {
-        browserWindow.webContents.setUserAgent(userAgent)
-      }
+      if (userAgent) browserWindow.webContents.setUserAgent(userAgent)
 
-      browserWindow.on('ready-to-show', () => {
-        browserWindow?.show()
-        browserWindow?.focus()
+      browserWindow.webContents.on('render-process-gone', () => {
+        if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close()
+      })
+
+      browserWindow.on('unresponsive', () => {
+        if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close()
       })
 
       browserWindow.on('closed', async () => {
         browserWindow = null
-        // Clean up the session partition
         try {
           await browserSession.clearCache()
           await browserSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
-        } catch (error) {
-          console.warn('[RobloxBrowser] Failed to clean up session after close:', error)
+        } catch {}
+      })
+
+      const toolbarHeight = 40
+
+      const toolbarView = new BrowserView({ webPreferences: { nodeIntegration: true, contextIsolation: false } })
+      const contentView = new BrowserView({ webPreferences: { partition, nodeIntegration: false, contextIsolation: true } })
+
+      browserWindow.setBrowserView(toolbarView)
+      browserWindow.addBrowserView(contentView)
+
+      const resizeViews = () => {
+        if (!browserWindow || browserWindow.isDestroyed()) return
+        const [w, h] = browserWindow.getContentSize()
+        toolbarView.setBounds({ x: 0, y: 0, width: w, height: toolbarHeight })
+        contentView.setBounds({ x: 0, y: toolbarHeight, width: w, height: Math.max(0, h - toolbarHeight) })
+        toolbarView.setAutoResize({ width: true })
+        contentView.setAutoResize({ width: true, height: true })
+      }
+
+      resizeViews()
+      browserWindow.on('resize', resizeViews)
+
+      const ipcChannel = 'sentra-browser-cmd'
+
+      const ipcHandler = (_event: any, cmd: string, payload?: any) => {
+        if (!contentView?.webContents) return
+        switch (cmd) {
+          case 'back':
+            if (contentView.webContents.canGoBack()) contentView.webContents.goBack()
+            break
+          case 'forward':
+            if (contentView.webContents.canGoForward()) contentView.webContents.goForward()
+            break
+          case 'reload':
+            contentView.webContents.reload()
+            break
+          case 'load':
+            if (typeof payload === 'string') {
+              let u = payload.trim()
+              if (!/^https?:\/\//i.test(u)) u = 'https://' + u
+              contentView.webContents.loadURL(u)
+            }
+            break
         }
+      }
+
+      ipcMain.on(ipcChannel, ipcHandler)
+
+      browserWindow.on('closed', () => {
+        ipcMain.removeListener(ipcChannel, ipcHandler)
       })
 
-      browserWindow.webContents.setWindowOpenHandler(({ url }) => {
-        shell.openExternal(url)
-        return { action: 'deny' }
-      })
-
-      await browserWindow.loadURL(url, {
+      await contentView.webContents.loadURL(url, {
         httpReferrer: 'https://www.roblox.com/',
         userAgent: browserWindow.webContents.getUserAgent()
       })
     } catch (error) {
-      console.error('[RobloxBrowser] Failed to open browser with account:', error)
-      if (browserWindow && !browserWindow.isDestroyed()) {
-        browserWindow.close()
-        browserWindow = null
-      }
-      // Clean up on error
+      if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close()
       try {
         await browserSession.clearCache()
         await browserSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
-      } catch (e) {
-        console.warn('[RobloxBrowser] Failed to clean up session on error:', e)
-      }
+      } catch {}
       throw error instanceof Error ? error : new Error('Failed to open browser with account')
     }
   }
 
-  private static getRealisticUserAgent(): string | null {
+  private static getRealisticUserAgent(): string {
     const focused = BrowserWindow.getFocusedWindow()
-    if (focused) {
-      const existingUA = focused.webContents.userAgent
-      if (existingUA) {
-        return existingUA
-      }
-    }
-
-    // Fall back to a recent Windows Chrome UA to avoid Electron default signature
+    if (focused?.webContents.userAgent) return focused.webContents.userAgent
     return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
   }
 }

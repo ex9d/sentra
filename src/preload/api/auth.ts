@@ -14,5 +14,7 @@ export const authApi = {
     invoke('complete-quick-login', z.string(), code, privateKey),
   openRobloxLoginWindow: () => invoke('open-roblox-login-window', z.string()),
   openBrowserWithAccount: (accountId: string, url?: string) =>
-    invoke('open-browser-with-account', z.void(), accountId, url)
+    invoke('open-browser-with-account', z.void(), accountId, url),
+  exportCookies: (accountIds: string[]) =>
+    invoke('export-cookies', z.string(), accountIds)
 }

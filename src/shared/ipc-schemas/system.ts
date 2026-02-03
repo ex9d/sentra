@@ -61,7 +61,7 @@ const optionalPathSchema = z.union([z.string().min(1), z.null()]).optional()
 const accentColorSchema = z.string().regex(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/)
 const sidebarTabIdEnum = z.enum(SIDEBAR_TAB_IDS)
 const themePreferenceSchema = z.enum(['system', 'dark', 'light'])
-const tintPreferenceSchema = z.enum(['neutral', 'cool'])
+const tintPreferenceSchema = z.enum(['neutral', 'cool', 'warm', 'forest', 'twilight'])
 const sidebarHiddenTabsSchema = z
   .array(sidebarTabIdEnum)
   .refine((tabs) => tabs.every((tab) => !LOCKED_SIDEBAR_TABS.includes(tab)), {
@@ -84,11 +84,15 @@ export const settingsSchema = z.object({
   useDynamicAccentColor: z.boolean(),
   theme: themePreferenceSchema,
   tint: tintPreferenceSchema,
+  customTheme: z.string().optional(),
   showSidebarProfileCard: z.boolean(),
   privacyMode: z.boolean(),
   sidebarTabOrder: z.array(sidebarTabIdEnum),
   sidebarHiddenTabs: sidebarHiddenTabsSchema,
-  pinCode: pinCodeSchema
+  pinCode: pinCodeSchema,
+  browserWindowWidth: z.number().nullable().optional(),
+  browserWindowHeight: z.number().nullable().optional(),
+  showReturnPageButton: z.boolean().optional()
 })
 
 export const settingsPatchSchema = z.object({
@@ -99,11 +103,15 @@ export const settingsPatchSchema = z.object({
   useDynamicAccentColor: z.boolean().optional(),
   theme: themePreferenceSchema.optional(),
   tint: tintPreferenceSchema.optional(),
+  customTheme: z.string().optional(),
   showSidebarProfileCard: z.boolean().optional(),
   privacyMode: z.boolean().optional(),
   sidebarTabOrder: z.array(sidebarTabIdEnum).optional(),
   sidebarHiddenTabs: sidebarHiddenTabsSchema.optional(),
-  pinCode: pinCodeSchema.optional()
+  pinCode: pinCodeSchema.optional(),
+  browserWindowWidth: z.number().nullable().optional(),
+  browserWindowHeight: z.number().nullable().optional(),
+  showReturnPageButton: z.boolean().optional()
 })
 
 export type SettingsSnapshot = z.infer<typeof settingsSchema>

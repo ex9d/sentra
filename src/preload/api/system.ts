@@ -36,7 +36,39 @@ export const systemApi = {
 
   // Settings
   getSettings: () => invoke('get-settings', S.settingsSchema),
-  setSettings: (settings: unknown) => invoke('set-settings', z.void(), settings),
+  // Sanitize settings before sending to main process to avoid IPC validation
+  // failures when the running main process uses stale compiled schemas.
+  setSettings: (settings: unknown) => {
+    try {
+      const outgoing: any = settings && typeof settings === 'object' ? { ...(settings as any) } : settings
+
+      // Remove `customTheme` (handled client-side) to avoid unknown-key rejections
+      if (outgoing && typeof outgoing === 'object' && 'customTheme' in outgoing) {
+        delete outgoing.customTheme
+      }
+
+      // Normalize `tint` to values the running main process currently accepts.
+      // If the main is still on the old enum, it likely only accepts ['neutral','cool'].
+      if (outgoing && typeof outgoing === 'object' && 'tint' in outgoing) {
+        const allowed = ['neutral', 'cool']
+        const t = String(outgoing.tint)
+        if (!allowed.includes(t)) {
+          const map: Record<string, string> = {
+            warm: 'neutral',
+            forest: 'neutral',
+            twilight: 'cool',
+            default: 'neutral'
+          }
+          outgoing.tint = map[t] ?? 'neutral'
+        }
+      }
+
+      return invoke('set-settings', z.void(), outgoing)
+    } catch (err) {
+      // Fallback to direct send if something unexpected occurs
+      return invoke('set-settings', z.void(), settings)
+    }
+  },
 
   // Game server settings
   getExcludeFullGames: () => invoke('get-exclude-full-games', z.boolean()),

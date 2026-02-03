@@ -26,7 +26,7 @@ const customFontSchema = z.object({
 
 const sidebarTabIdEnum = z.enum(SIDEBAR_TAB_IDS)
 const themePreferenceEnum = z.enum(['system', 'dark', 'light'])
-const tintPreferenceEnum = z.enum(['neutral', 'cool'])
+const tintPreferenceEnum = z.enum(['neutral', 'cool', 'warm', 'forest', 'twilight'])
 
 const storeDataSchema = z.object({
   sidebarWidth: z.number().optional(),
@@ -53,12 +53,16 @@ const storeDataSchema = z.object({
       useDynamicAccentColor: z.boolean().optional(),
       theme: themePreferenceEnum.optional(),
       tint: tintPreferenceEnum.optional(),
+      customTheme: z.string().optional(),
       privacyMode: z.boolean().optional(),
       showSidebarProfileCard: z.boolean().optional(),
       sidebarTabOrder: z.array(sidebarTabIdEnum).optional(),
       sidebarHiddenTabs: z.array(sidebarTabIdEnum).optional(),
       // pinCodeHash stores the encrypted, hashed PIN (not plain text)
-      pinCodeHash: z.string().nullable().optional()
+      pinCodeHash: z.string().nullable().optional(),
+      browserWindowWidth: z.number().nullable().optional(),
+      browserWindowHeight: z.number().nullable().optional(),
+      showReturnPageButton: z.boolean().optional()
     })
     .optional()
 })
@@ -385,7 +389,10 @@ class StorageService {
       privacyMode: this.data.settings?.privacyMode ?? false,
       sidebarTabOrder,
       sidebarHiddenTabs,
-      pinCode: this.data.settings?.pinCodeHash ? 'SET' : null
+      pinCode: this.data.settings?.pinCodeHash ? 'SET' : null,
+      browserWindowWidth: this.data.settings?.browserWindowWidth ?? null,
+      browserWindowHeight: this.data.settings?.browserWindowHeight ?? null,
+      showReturnPageButton: this.data.settings?.showReturnPageButton ?? false
     }
   }
 
@@ -588,6 +595,9 @@ class StorageService {
     sidebarTabOrder?: TabId[]
     sidebarHiddenTabs?: TabId[]
     pinCode?: string | null
+    browserWindowWidth?: number | null
+    browserWindowHeight?: number | null
+    showReturnPageButton?: boolean
   }): void {
     const nextSettings = { ...this.getSettings() }
 
@@ -649,6 +659,18 @@ class StorageService {
 
     if ('pinCode' in settings) {
       this.setPin(settings.pinCode ?? null)
+    }
+
+    if ('browserWindowWidth' in settings) {
+      nextSettings.browserWindowWidth = settings.browserWindowWidth ?? null
+    }
+
+    if ('browserWindowHeight' in settings) {
+      nextSettings.browserWindowHeight = settings.browserWindowHeight ?? null
+    }
+
+    if ('showReturnPageButton' in settings) {
+      nextSettings.showReturnPageButton = !!settings.showReturnPageButton
     }
 
     nextSettings.sidebarTabOrder = sanitizeSidebarOrder(nextSettings.sidebarTabOrder)
