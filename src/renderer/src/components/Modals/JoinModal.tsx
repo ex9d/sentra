@@ -1,16 +1,18 @@
 import React, { useState } from 'react'
-import { X, Play, User, MapPin, Briefcase, LogIn } from 'lucide-react'
+import { X, Play, User, MapPin, Briefcase, LogIn, Globe, Copy } from 'lucide-react'
 import { JoinMethod, JoinConfig } from '../../types'
 import { Dialog, DialogContent } from '../UI/dialogs/Dialog'
 
-interface JoinModalProps {
+export interface JoinModalProps {
   isOpen: boolean
   onClose: () => void
   onLaunch: (config: JoinConfig) => void
+  onOpenBrowsers?: () => void
+  onGetCookies?: () => void
   selectedCount: number
 }
 
-const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, selectedCount }) => {
+const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, onOpenBrowsers, onGetCookies, selectedCount }) => {
   const [method, setMethod] = useState<JoinMethod>(JoinMethod.Username)
   const [target, setTarget] = useState('')
   const [placeId, setPlaceId] = useState('')
@@ -34,9 +36,9 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
               <LogIn className="text-neutral-300" size={20} />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-white">Join Game</h3>
+              <h3 className="text-xl font-semibold text-white">Launch Options</h3>
               <p className="text-sm text-neutral-500">
-                Launching {selectedCount} selected account{selectedCount !== 1 ? 's' : ''}
+                {selectedCount} selected account{selectedCount !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
@@ -156,12 +158,42 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
             )}
           </div>
 
-          {/* Footer Action */}
-          <div className="pt-2">
+          {/* Footer Actions */}
+          <div className="pt-2 flex gap-3">
+            {selectedCount > 1 && (
+              <>
+                {onOpenBrowsers && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenBrowsers()
+                      onClose()
+                    }}
+                    className="pressable flex-1 flex items-center justify-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-medium py-3 rounded border border-neutral-800 transition-colors"
+                  >
+                    <Globe size={16} />
+                    <span>Open Browsers</span>
+                  </button>
+                )}
+                {onGetCookies && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onGetCookies()
+                      onClose()
+                    }}
+                    className="pressable flex-1 flex items-center justify-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-medium py-3 rounded border border-neutral-800 transition-colors"
+                  >
+                    <Copy size={16} />
+                    <span>Get Cookies</span>
+                  </button>
+                )}
+              </>
+            )}
             <button
               type="submit"
               disabled={!target || (method === JoinMethod.JobId && !placeId)}
-              className="pressable w-full flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] text-md font-bold py-3 rounded shadow-lg shadow-[0_10px_30px_var(--accent-color-shadow)] border border-[var(--accent-color-border)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="pressable flex-1 flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] text-md font-bold py-3 rounded shadow-lg shadow-[0_10px_30px_var(--accent-color-shadow)] border border-[var(--accent-color-border)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play size={16} fill="currentColor" />
               <span>Launch Game</span>

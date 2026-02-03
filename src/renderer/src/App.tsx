@@ -48,6 +48,7 @@ import {
   useNotifyServerLocation
 } from './features/system/stores/useNotificationTrayStore'
 import { useTheme } from './theme/ThemeContext'
+import { ThemeEffects } from './components/ThemeEffects'
 
 import {
   useActiveTab,
@@ -172,6 +173,7 @@ const App: React.FC = () => {
   // Remove account confirmation dialog state
   const [removeAccountOpen, setRemoveAccountOpen] = useState(false)
   const [removeAccountId, setRemoveAccountId] = useState<string | null>(null)
+  const [removeMultipleCount, setRemoveMultipleCount] = useState(0)
 
   const { accounts, isLoading: isLoadingAccounts, setAccounts, addAccount } = useAccountsManager()
   const { settings, isLoading: isLoadingSettings, updateSettings } = useSettingsManager()
@@ -669,7 +671,7 @@ const App: React.FC = () => {
 
     try {
       // Open Roblox home in default browser
-      await window.api.openBrowserWithAccount(id, 'https://roblox.com/home')
+      await window.api.openBrowserWithAccount(id, 'https://www.roblox.com/home')
       showNotification(`Opening Roblox home for ${account.displayName || account.username}...`, 'info')
     } catch (error) {
       console.error('Failed to open browser:', error)
@@ -716,6 +718,91 @@ const App: React.FC = () => {
     setShowBrowserCustomDialog(false)
     setBrowserCustomUrl('')
     setBrowserCustomAccountId(null)
+  }
+
+  const handleOpenBrowsers = async () => {
+    const accountsToOpen = accounts.filter((acc) => selectedIds.has(acc.id))
+    if (accountsToOpen.length === 0) {
+      showNotification('No accounts selected', 'warning')
+      return
+    }
+
+    let openedCount = 0
+    for (const account of accountsToOpen) {
+      if (!account.cookie) {
+        showNotification(`Skipping ${account.displayName || account.username}: No valid cookie`, 'warning')
+        continue
+      }
+
+      try {
+        await window.api.openBrowserWithAccount(account.id, 'https://www.roblox.com/home')
+        openedCount++
+        // Add small delay between opening browsers to prevent overwhelming the system
+        await new Promise(resolve => setTimeout(resolve, 300))
+      } catch (error) {
+        console.error(`Failed to open browser for ${account.displayName}:`, error)
+        showNotification(
+          `Failed to open browser for ${account.displayName || account.username}`,
+          'error'
+        )
+      }
+    }
+
+    if (openedCount > 0) {
+      showNotification(`Opened ${openedCount} browser window${openedCount !== 1 ? 's' : ''}`, 'success')
+    }
+  }
+
+  const handleGetCookie = async (id: string) => {
+    const account = accounts.find((a) => a.id === id)
+    if (!account) {
+      showNotification('Account not found', 'error')
+      return
+    }
+
+    if (account.cookie) {
+      try {
+        await navigator.clipboard.writeText(account.cookie)
+        showNotification(`Cookie copied for ${account.displayName || account.username}`, 'success')
+      } catch (error) {
+        console.error('Failed to copy cookie:', error)
+        showNotification('Failed to copy cookie to clipboard', 'error')
+      }
+    } else {
+      showNotification(`No cookie available for ${account.displayName || account.username}`, 'warning')
+    }
+  }
+
+  const handleGetCookies = async () => {
+    const accountsToExport = accounts.filter((acc) => selectedIds.has(acc.id))
+    if (accountsToExport.length === 0) {
+      showNotification('No accounts selected', 'warning')
+      return
+    }
+
+    const cookies = accountsToExport
+      .filter((acc) => acc.cookie)
+      .map((acc) => acc.cookie)
+      .join('\n')
+
+    if (cookies.length === 0) {
+      showNotification('No valid cookies found in selected accounts', 'warning')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(cookies)
+      showNotification(
+        `Copied ${accountsToExport.filter((acc) => acc.cookie).length} cookie${
+          accountsToExport.filter((acc) => acc.cookie).length !== 1 ? 's' : ''
+        } to clipboard`,
+        'success'
+      )
+    } catch (error) {
+      console.error('Failed to copy cookies:', error)
+      showNotification('Failed to copy cookies to clipboard', 'error')
+    }
+    setActiveMenu(null)
   }
 
   const handleEditNote = (id: string) => {
@@ -816,7 +903,7 @@ const App: React.FC = () => {
       id="app-container"
       className={`flex h-screen w-full bg-[var(--color-app-bg)] text-[var(--color-text-muted)] font-sans overflow-hidden overflow-x-hidden selection:bg-[var(--accent-color-soft)] selection:text-[var(--color-text-primary)] ${settings.privacyMode ? 'privacy-mode' : ''}`}
     >
-      {/* Sidebar */}
+        {/* Sidebar */}
       <Sidebar
         sidebarWidth={sidebarWidth}
         isResizing={isResizing}
@@ -830,7 +917,7 @@ const App: React.FC = () => {
       />
 
       {/* Main Content Wrapper */}
-      <main className="flex-1 flex flex-col min-w-0 bg-[var(--color-surface)] h-full relative overflow-hidden text-[var(--color-text-secondary)]">
+      <main className="flex-1 flex flex-col min-w-0 bg-[var(--color-surface)] h-full relative overflow-hidden text-[var(--color-text-secondary)]" style={{ zIndex: 3 }}>
         {/* Title Bar spacer */}
         <div
           className="h-[45px] bg-[var(--color-titlebar)] flex-shrink-0 w-full border-b border-[var(--color-border)] flex items-center justify-end"
@@ -974,6 +1061,8 @@ const App: React.FC = () => {
         isOpen={modals.join}
         onClose={() => closeModal('join')}
         onLaunch={handleLaunch}
+        onOpenBrowsers={handleOpenBrowsers}
+        onGetCookies={handleGetCookies}
         selectedCount={selectedIds.size}
       />
 
@@ -1134,27 +1223,43 @@ const App: React.FC = () => {
         onReauth={handleReauth}
         onOpenBrowserHome={handleOpenBrowserHome}
         onOpenBrowserCustom={handleOpenBrowserCustom}
+        onGetCookie={handleGetCookie}
         onRemove={handleIndividualRemove}
         onClose={() => setActiveMenu(null)}
       />
 
       <AlertDialog
         isOpen={removeAccountOpen}
-        onClose={() => setRemoveAccountOpen(false)}
-        title="Remove Account"
-        message="Are you sure you want to remove this account? This action cannot be undone."
+        onClose={() => {
+          setRemoveAccountOpen(false)
+          setRemoveAccountId(null)
+          setRemoveMultipleCount(0)
+        }}
+        title={removeAccountId ? 'Remove Account' : `Remove ${removeMultipleCount} Accounts`}
+        message={
+          removeAccountId
+            ? 'Are you sure you want to remove this account? This action cannot be undone.'
+            : `Are you sure you want to remove ${removeMultipleCount} account${removeMultipleCount !== 1 ? 's' : ''}? This action cannot be undone.`
+        }
         type="confirm"
         confirmText="Remove"
         cancelText="Cancel"
         onConfirm={() => {
           if (removeAccountId) {
+            // Single account removal
             setAccounts((prev) => prev.filter((acc) => acc.id !== removeAccountId))
             if (selectedIds.has(removeAccountId)) {
               const newSet = new Set(selectedIds)
               newSet.delete(removeAccountId)
               setSelectedIds(newSet)
             }
+          } else if (removeMultipleCount > 0) {
+            // Multiple accounts removal
+            setAccounts((prev) => prev.filter((acc) => !selectedIds.has(acc.id)))
+            setSelectedIds(new Set())
           }
+          setRemoveAccountId(null)
+          setRemoveMultipleCount(0)
         }}
         isDangerous
       />
@@ -1169,6 +1274,9 @@ const App: React.FC = () => {
 
       {/* Onboarding Screen Overlay */}
       <AnimatePresence>{!hasCompletedOnboarding && <OnboardingScreen />}</AnimatePresence>
+
+      {/* Theme Effects - Particle engine for visual effects */}
+      <ThemeEffects />
     </div>
   )
 }

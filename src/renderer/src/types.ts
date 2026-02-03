@@ -120,7 +120,7 @@ export interface GameServer {
 
 export const DEFAULT_ACCENT_COLOR = '#e05c1a'
 
-export type TintPreference = 'neutral' | 'cool'
+export type TintPreference = 'neutral' | 'cool' | 'warm' | 'forest' | 'twilight'
 
 export type ThemePreference = 'system' | 'dark' | 'light'
 
@@ -132,11 +132,17 @@ export interface Settings {
   useDynamicAccentColor: boolean
   theme: ThemePreference
   tint: TintPreference
+  customTheme?: string // custom theme name ('default', 'hearts', 'aurora', etc.)
   showSidebarProfileCard: boolean
   privacyMode: boolean
   sidebarTabOrder: TabId[]
   sidebarHiddenTabs: TabId[]
   pinCode: string | null
+  // Browser window defaults for in-app browser windows (optional)
+  browserWindowWidth?: number | null
+  browserWindowHeight?: number | null
+  // Show a return-page button inside the in-app browser window UI
+  showReturnPageButton?: boolean
 }
 
 export type AccessoryType =

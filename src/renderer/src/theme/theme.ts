@@ -127,6 +127,37 @@ const tintPalettes: Record<
       border: '#1f1f26',
       borderStrong: '#292933'
     }
+    ,
+    warm: {
+      appBackground: '#050502',
+      surface: '#0c0b0a',
+      surfaceStrong: '#12100f',
+      surfaceMuted: '#171413',
+      surfaceHover: '#1c1918',
+      titlebar: '#151211',
+      border: '#1f1b1a',
+      borderStrong: '#2b2524'
+    },
+    forest: {
+      appBackground: '#050705',
+      surface: '#0c0f0c',
+      surfaceStrong: '#111611',
+      surfaceMuted: '#161b15',
+      surfaceHover: '#1c211b',
+      titlebar: '#151a14',
+      border: '#1f241f',
+      borderStrong: '#2a302a'
+    },
+    twilight: {
+      appBackground: '#07050b',
+      surface: '#0f0d14',
+      surfaceStrong: '#15121a',
+      surfaceMuted: '#1a1720',
+      surfaceHover: '#211e28',
+      titlebar: '#17131c',
+      border: '#26222b',
+      borderStrong: '#332e37'
+    }
   },
   light: {
     neutral: {
@@ -148,6 +179,37 @@ const tintPalettes: Record<
       titlebar: '#ffffff',
       border: '#dce1eb',
       borderStrong: '#c8d0e0'
+    }
+    ,
+    warm: {
+      appBackground: '#fff6f3',
+      surface: '#fffdfb',
+      surfaceStrong: '#fff7f4',
+      surfaceMuted: '#fff3f0',
+      surfaceHover: '#fff0ee',
+      titlebar: '#fffdfb',
+      border: '#f6d7cf',
+      borderStrong: '#efc4b7'
+    },
+    forest: {
+      appBackground: '#f6faf6',
+      surface: '#ffffff',
+      surfaceStrong: '#f9fdf9',
+      surfaceMuted: '#f0f5f0',
+      surfaceHover: '#ebf1eb',
+      titlebar: '#ffffff',
+      border: '#dce8dc',
+      borderStrong: '#cfe0cf'
+    },
+    twilight: {
+      appBackground: '#f6f5fb',
+      surface: '#ffffff',
+      surfaceStrong: '#fbf9ff',
+      surfaceMuted: '#f3f1f8',
+      surfaceHover: '#eeecf6',
+      titlebar: '#ffffff',
+      border: '#e1dbef',
+      borderStrong: '#cfc6e6'
     }
   }
 }
