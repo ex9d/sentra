@@ -147,9 +147,8 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
     try {
       const result = await window.api.setPin(enteredPin)
       if (result.success) {
-        // Invalidate settings query to update UI (pinCode: 'SET')
         await queryClient.invalidateQueries({ queryKey: queryKeys.settings.snapshot() })
-        setSuccess(true)
+        setSuccess(true) // Triggers the success UI inside AnimatePresence
         setTimeout(() => onComplete(), 1500)
       } else {
         setError(result.error || 'Failed to set PIN')
@@ -185,9 +184,8 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
           value={digit}
           onChange={(e) => handleInputChange(index, e.target.value, target)}
           onKeyDown={(e) => handleKeyDown(index, e, target)}
-          disabled={isSubmitting}
+          disabled={isSubmitting || success}
           tabIndex={0}
-          style={{ pointerEvents: 'auto' }}
           className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-mono rounded-lg border-2 bg-neutral-900 text-white focus:outline-none transition-all ${
             isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
           } ${
@@ -211,7 +209,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
           onClick={() => handleNumpadClick(String(num), target)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          disabled={isSubmitting}
+          disabled={isSubmitting || success}
           className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800 hover:border-neutral-700 text-lg font-medium transition-colors disabled:opacity-50"
         >
           {num}
@@ -222,7 +220,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
         onClick={() => handleClear(target)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        disabled={isSubmitting}
+        disabled={isSubmitting || success}
         className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:border-neutral-700 transition-colors flex items-center justify-center disabled:opacity-50"
       >
         <X className="w-5 h-5" />
@@ -232,7 +230,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
         onClick={() => handleNumpadClick('0', target)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        disabled={isSubmitting}
+        disabled={isSubmitting || success}
         className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800 hover:border-neutral-700 text-lg font-medium transition-colors disabled:opacity-50"
       >
         0
@@ -242,7 +240,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
         onClick={() => handleBackspace(target)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        disabled={isSubmitting}
+        disabled={isSubmitting || success}
         className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:border-neutral-700 transition-colors flex items-center justify-center disabled:opacity-50"
       >
         <Delete className="w-5 h-5" />
@@ -250,120 +248,119 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
     </div>
   )
 
-  if (success) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center justify-center py-8"
-      >
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
-          className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mb-6"
-        >
-          <Check className="w-10 h-10 text-emerald-500" />
-        </motion.div>
-        <h3 className="text-xl font-semibold text-white mb-2">PIN Set!</h3>
-        <p className="text-neutral-400 text-sm">Your app is now protected</p>
-      </motion.div>
-    )
-  }
-
   return (
     <div className="space-y-6">
-      <div className="text-center mb-6">
-        <div className="w-16 h-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center mx-auto mb-4">
-          <Lock className="w-8 h-8 text-neutral-400" />
-        </div>
-        <h3 className="text-lg font-semibold text-white mb-1">
-          {step === 'enter' ? 'Create a PIN' : 'Confirm your PIN'}
-        </h3>
-        <p className="text-sm text-neutral-500">
-          {step === 'enter'
-            ? 'Set a 6-digit PIN to protect your app'
-            : 'Re-enter your PIN to confirm'}
-        </p>
-      </div>
-
       <AnimatePresence mode="wait">
-        {step === 'enter' && (
+        {success ? (
           <motion.div
-            key="enter"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="space-y-6"
+            key="success"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center py-8"
           >
-            {renderPinInputs(pin, inputRefs, 'pin')}
-
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => setShowPin(!showPin)}
-                className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-              >
-                {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                {showPin ? 'Hide PIN' : 'Show PIN'}
-              </button>
-            </div>
-
-            {renderNumpad('pin')}
-
-            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-
-            <button
-              onClick={handleContinue}
-              disabled={pin.join('').length !== 6}
-              className="pressable w-full flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
+              className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mb-6"
             >
-              Continue
-            </button>
+              <Check className="w-10 h-10 text-emerald-500" />
+            </motion.div>
+            <h3 className="text-xl font-semibold text-white mb-2">PIN Set!</h3>
+            <p className="text-neutral-400 text-sm">Your app is now protected</p>
           </motion.div>
-        )}
-
-        {step === 'confirm' && (
+        ) : (
           <motion.div
-            key="confirm"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
+            key="setup-container"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            {renderPinInputs(confirmPin, confirmInputRefs, 'confirm')}
-
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => setShowPin(!showPin)}
-                className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-              >
-                {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                {showPin ? 'Hide PIN' : 'Show PIN'}
-              </button>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-neutral-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-1">
+                {step === 'enter' ? 'Create a PIN' : 'Confirm your PIN'}
+              </h3>
+              <p className="text-sm text-neutral-500">
+                {step === 'enter'
+                  ? 'Set a 6-digit PIN to protect your app'
+                  : 'Re-enter your PIN to confirm'}
+              </p>
             </div>
 
-            {renderNumpad('confirm')}
-
-            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-
-            <div className="flex gap-3">
-              <button
-                onClick={handleBack}
-                disabled={isSubmitting}
-                className="flex-1 px-4 py-3 text-sm font-medium text-neutral-400 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors disabled:opacity-50"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={confirmPin.join('').length !== 6 || isSubmitting}
-                className="pressable flex-1 flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Saving...' : 'Set PIN'}
-              </button>
-            </div>
+            <AnimatePresence mode="wait">
+              {step === 'enter' ? (
+                <motion.div
+                  key="enter-step"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="space-y-6"
+                >
+                  {renderPinInputs(pin, inputRefs, 'pin')}
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                    >
+                      {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPin ? 'Hide PIN' : 'Show PIN'}
+                    </button>
+                  </div>
+                  {renderNumpad('pin')}
+                  {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+                  <button
+                    onClick={handleContinue}
+                    disabled={pin.join('').length !== 6}
+                    className="pressable w-full flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Continue
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="confirm-step"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
+                >
+                  {renderPinInputs(confirmPin, confirmInputRefs, 'confirm')}
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                    >
+                      {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPin ? 'Hide PIN' : 'Show PIN'}
+                    </button>
+                  </div>
+                  {renderNumpad('confirm')}
+                  {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleBack}
+                      disabled={isSubmitting}
+                      className="flex-1 px-4 py-3 text-sm font-medium text-neutral-400 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={confirmPin.join('').length !== 6 || isSubmitting}
+                      className="pressable flex-1 flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? 'Saving...' : 'Set PIN'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
