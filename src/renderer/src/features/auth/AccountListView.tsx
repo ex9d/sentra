@@ -24,13 +24,9 @@ interface AccountListViewProps {
   accounts: Account[]
   selectedIds: Set<string>
   onToggleSelect: (id: string) => void
-  onToggleSelectAll: () => void
-  allSelected: boolean
-  isIndeterminate: boolean
   onMenuOpen: (e: React.MouseEvent, id: string) => void
   onInfoOpen: (e: React.MouseEvent, account: Account) => void
   onMoveAccount?: (fromId: string, toId: string) => void
-  allowMultipleInstances: boolean
   voiceBanInfo?: Record<string, { message: string; endsAt?: number }>
   privacyMode?: boolean
 }
@@ -59,13 +55,9 @@ const AccountListView = ({
   accounts,
   selectedIds,
   onToggleSelect,
-  onToggleSelectAll,
-  allSelected,
-  isIndeterminate,
   onMenuOpen,
   onInfoOpen,
   onMoveAccount,
-  allowMultipleInstances,
   voiceBanInfo,
   privacyMode
 }: AccountListViewProps) => {
@@ -119,6 +111,98 @@ const AccountListView = ({
     ]
   )
 
+  // Memoize itemContent to prevent re-renders of all rows when selection changes
+  const itemContent = useCallback(
+    (_index: number, account: Account) => {
+      const isSelected = selectedIds instanceof Set ? selectedIds.has(account.id) : false
+      return (
+      <>
+        <td
+          className="px-3 md:px-6 py-3 md:py-4 whitespace-nowrap w-12"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <CustomCheckbox
+            checked={isSelected}
+            onChange={() => onToggleSelect(account.id)}
+          />
+        </td>
+        <td className="px-3 md:px-6 py-3 md:py-4 whitespace-nowrap">
+          <div className="flex items-center">
+            <div className="h-10 w-10 flex-shrink-0 relative">
+              <img
+                className="h-10 w-10 rounded-full bg-neutral-900 object-cover ring-2 ring-neutral-900 group-hover:ring-neutral-800 transition-all"
+                src={account.avatarUrl}
+                alt=""
+                style={privacyMode ? { filter: 'blur(16px)' } : undefined}
+              />
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-solid rounded-full ${getStatusBorderColor(account.status)} ${getStatusColor(account.status)}`}
+              ></span>
+            </div>
+            <div className="ml-4">
+              <div
+                className={`text-base font-medium transition-colors ${
+                  isSelected
+                    ? 'text-white'
+                    : 'text-neutral-200 group-hover:text-white'
+                }`}
+                style={privacyMode ? { filter: 'blur(16px)' } : undefined}
+              >
+                {account.displayName}
+              </div>
+              <div
+                className="text-sm text-neutral-500"
+                style={privacyMode ? { filter: 'blur(16px)' } : undefined}
+              >
+                @{account.username}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center group/id">
+            <span 
+              className="text-[15px] text-neutral-500 font-mono"
+              style={privacyMode ? { filter: 'blur(16px)' } : undefined}
+            >{account.userId}</span>
+            <CopyUserIdButton userId={account.userId} />
+          </div>
+        </td>
+        <td className="px-3 md:px-6 py-3 md:py-4 whitespace-nowrap">
+          <div className="flex flex-col items-start gap-1">
+            <StatusBadge status={account.status} />
+            {voiceBanInfo?.[account.id] && (
+              <span className="text-xs text-red-400">{voiceBanInfo[account.id].message}</span>
+            )}
+          </div>
+        </td>
+        <td className="hidden md:table-cell px-6 py-4">
+          <div className="text-sm text-neutral-500 min-w-[100px] break-words group-hover:text-neutral-400">
+            {account.notes || <span className="opacity-20 italic">Empty</span>}
+          </div>
+        </td>
+        <td className="px-3 md:px-6 py-3 md:py-4 whitespace-nowrap text-right text-base font-medium">
+          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => onInfoOpen(e, account)}
+                  className="pressable text-neutral-500 hover:text-white transition-colors p-2 hover:bg-neutral-800 rounded"
+                >
+                  <Info size={20} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Account Info</TooltipContent>
+            </Tooltip>
+          </div>
+        </td>
+
+      </>
+    )
+    },
+    [selectedIds, onToggleSelect, onInfoOpen, privacyMode, voiceBanInfo]
+  )
+
   const tableComponents = useMemo<TableComponents<Account, AccountRowContext>>(
     () => ({
       Table: ({ style, ...props }) => (
@@ -136,6 +220,7 @@ const AccountListView = ({
       )),
       TableRow: ({ item: account, ...props }) => {
         const ctx = useContext(AccountRowContext)!
+        const isSelected = ctx.selectedIds instanceof Set ? ctx.selectedIds.has(account.id) : false
         return (
           <tr
             {...props}
@@ -144,7 +229,7 @@ const AccountListView = ({
             onDragOver={ctx.handleDragOver}
             onDrop={(e) => ctx.handleDrop(e, account.id)}
             className={`group hover:bg-neutral-900/60 transition-colors cursor-pointer ${
-              ctx.selectedIds.has(account.id) ? 'bg-neutral-900/80' : ''
+              isSelected ? 'bg-neutral-900/80' : ''
             }`}
             onClick={() => ctx.onToggleSelect(account.id)}
             onContextMenu={(e) => ctx.onMenuOpen(e, account.id)}
@@ -169,13 +254,6 @@ const AccountListView = ({
                 scope="col"
                 className="px-3 md:px-6 py-3 md:py-4 text-left w-12 bg-neutral-950 border-b border-neutral-800"
               >
-                {allowMultipleInstances && (
-                  <CustomCheckbox
-                    checked={allSelected}
-                    indeterminate={isIndeterminate}
-                    onChange={onToggleSelectAll}
-                  />
-                )}
               </th>
               <th
                 scope="col"
@@ -209,87 +287,7 @@ const AccountListView = ({
               </th>
             </tr>
           )}
-          itemContent={(_index, account) => (
-            <>
-              <td
-                className="px-3 md:px-6 py-3 md:py-4 whitespace-nowrap w-12"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <CustomCheckbox
-                  checked={selectedIds.has(account.id)}
-                  onChange={() => onToggleSelect(account.id)}
-                />
-              </td>
-              <td className="px-3 md:px-6 py-3 md:py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="h-10 w-10 flex-shrink-0 relative">
-                    <img
-                      className="h-10 w-10 rounded-full bg-neutral-900 object-cover ring-2 ring-neutral-900 group-hover:ring-neutral-800 transition-all"
-                      src={account.avatarUrl}
-                      alt=""
-                      style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                    />
-                    <span
-                      className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-solid rounded-full ${getStatusBorderColor(account.status)} ${getStatusColor(account.status)}`}
-                    ></span>
-                  </div>
-                  <div className="ml-4">
-                    <div
-                      className={`text-base font-medium transition-colors ${
-                        selectedIds.has(account.id)
-                          ? 'text-white'
-                          : 'text-neutral-200 group-hover:text-white'
-                      }`}
-                      style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                    >
-                      {account.displayName}
-                    </div>
-                    <div 
-                      className="text-sm text-neutral-500"
-                      style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                    >@{account.username}</div>
-                  </div>
-                </div>
-              </td>
-              <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center group/id">
-                  <span 
-                    className="text-[15px] text-neutral-500 font-mono"
-                    style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                  >{account.userId}</span>
-                  <CopyUserIdButton userId={account.userId} />
-                </div>
-              </td>
-              <td className="px-3 md:px-6 py-3 md:py-4 whitespace-nowrap">
-                <div className="flex flex-col items-start gap-1">
-                  <StatusBadge status={account.status} />
-                  {voiceBanInfo?.[account.id] && (
-                    <span className="text-xs text-red-400">{voiceBanInfo[account.id].message}</span>
-                  )}
-                </div>
-              </td>
-              <td className="hidden md:table-cell px-6 py-4">
-                <div className="text-sm text-neutral-500 min-w-[100px] break-words group-hover:text-neutral-400">
-                  {account.notes || <span className="opacity-20 italic">Empty</span>}
-                </div>
-              </td>
-              <td className="px-3 md:px-6 py-3 md:py-4 whitespace-nowrap text-right text-base font-medium">
-                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={(e) => onInfoOpen(e, account)}
-                        className="pressable text-neutral-500 hover:text-white transition-colors p-2 hover:bg-neutral-800 rounded"
-                      >
-                        <Info size={20} />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Account Info</TooltipContent>
-                  </Tooltip>
-                </div>
-              </td>
-            </>
-          )}
+          itemContent={itemContent}
         />
       </div>
     </AccountRowContext.Provider>

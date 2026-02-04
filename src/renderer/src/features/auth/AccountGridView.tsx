@@ -51,11 +51,15 @@ const AccountGridView = ({
     }
   }
 
+  const isIdSelected = (id: string): boolean => {
+    return selectedIds.has(id)
+  }
+
   return (
     <div className="h-full w-full overflow-y-auto scrollbar-thin p-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-24">
         {accounts.map((account) => {
-          const isSelected = selectedIds.has(account.id)
+          const isSelected = isIdSelected(account.id)
           return (
             <Card
               key={account.id}

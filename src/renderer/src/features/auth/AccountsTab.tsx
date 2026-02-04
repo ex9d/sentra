@@ -1,10 +1,10 @@
-import React, { useState, useMemo, memo } from 'react'
+import React, { useState, useMemo, memo, useCallback } from 'react'
 import { Monitor } from 'lucide-react'
 import { Account, AccountStatus } from '@renderer/types'
 import AccountsToolbar from './AccountsToolbar'
 import AccountListView from './AccountListView'
 import AccountGridView from './AccountGridView'
-import { useSelectedIds, useSetSelectedIds } from '../../stores/useSelectionStore'
+import { useSelectedIds, useSetSelectedIds, useToggleSelection } from '../../stores/useSelectionStore'
 import { useSetActiveMenu, useSetInfoAccount, useOpenModal } from '../../stores/useUIStore'
 import { useVoiceSettingsForAccounts } from './api/useVoiceSettings'
 import { VoiceSettings } from '@shared/ipc-schemas'
@@ -67,6 +67,7 @@ const AccountsTab = memo(
     // Using individual selectors for optimized re-renders
     const selectedIds = useSelectedIds()
     const setSelectedIds = useSetSelectedIds()
+    const toggleSelection = useToggleSelection()
     const setActiveMenu = useSetActiveMenu()
     const setInfoAccount = useSetInfoAccount()
     const openModal = useOpenModal()
@@ -145,7 +146,7 @@ const AccountsTab = memo(
     const allSelected = filteredAccounts.length > 0 && selectedIds.size === filteredAccounts.length
     const isIndeterminate = selectedIds.size > 0 && selectedIds.size < filteredAccounts.length
 
-    const toggleSelectAll = () => {
+    const toggleSelectAll = useCallback(() => {
       if (!allowMultipleInstances) return
 
       if (allSelected) {
@@ -153,20 +154,11 @@ const AccountsTab = memo(
       } else {
         setSelectedIds(new Set(filteredAccounts.map((a) => a.id)))
       }
-    }
+    }, [allSelected, allowMultipleInstances, filteredAccounts, setSelectedIds])
 
-    const toggleSelect = (id: string) => {
-      const newSelected = new Set(selectedIds)
-      if (newSelected.has(id)) {
-        newSelected.delete(id)
-      } else {
-        if (!allowMultipleInstances) {
-          newSelected.clear()
-        }
-        newSelected.add(id)
-      }
-      setSelectedIds(newSelected)
-    }
+    const toggleSelect = useCallback((id: string) => {
+      toggleSelection(id)
+    }, [toggleSelection])
 
     const handleMenuOpen = (e: React.MouseEvent, id: string) => {
       e.preventDefault()
@@ -225,8 +217,10 @@ const AccountsTab = memo(
           onViewModeToggle={handleViewModeToggle}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
-          onDelete={() => setDeleteConfirmOpen(true)}
           onAddAccount={() => openModal('addAccount')}
+          onToggleSelectAll={toggleSelectAll}
+          allSelected={allSelected}
+          isIndeterminate={isIndeterminate}
         />
 
         <div className="flex-1 overflow-hidden relative bg-neutral-950">
@@ -253,13 +247,9 @@ const AccountsTab = memo(
               accounts={filteredAccounts}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
-              onToggleSelectAll={toggleSelectAll}
-              allSelected={allSelected}
-              isIndeterminate={isIndeterminate}
               onMenuOpen={handleMenuOpen}
               onInfoOpen={handleInfoOpen}
               onMoveAccount={!isFiltering ? handleMoveAccount : undefined}
-              allowMultipleInstances={allowMultipleInstances}
               voiceBanInfo={voiceBanInfo}
               privacyMode={privacyMode}
             />
