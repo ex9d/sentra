@@ -17,7 +17,8 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
-  AlertTriangle
+  AlertTriangle,
+  Monitor
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Color from 'color'
@@ -26,7 +27,6 @@ import {
   Account,
   Settings,
   TabId,
-  ThemePreference,
   TintPreference,
   DEFAULT_ACCENT_COLOR
 } from '../../types'
@@ -57,6 +57,7 @@ import {
   useNotifyServerLocation
 } from '../system/stores/useNotificationTrayStore'
 import { useSetAppUnlocked } from '../../stores/useUIStore'
+import { useTheme, CustomThemeName } from '../../theme/ThemeContext'
 import { queryKeys } from '../../../../shared/queryKeys'
 import PinSetupDialog from '../../components/UI/security/PinSetupDialog'
 import SpooferIcon from '../../components/UI/icons/SpooferIcon'
@@ -687,9 +688,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
     onUpdateSettings({ defaultInstallationPath: value === '' ? undefined : value })
   }
 
-  const handleThemeChange = (value: string) => {
-    onUpdateSettings({ theme: value as ThemePreference })
-  }
 
   const handleTintChange = (value: string) => {
     onUpdateSettings({ tint: value as TintPreference })
@@ -781,16 +779,95 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
     }))
   ]
 
-  const themeOptions: DropdownOption[] = [
-    { value: 'system', label: 'System', subLabel: 'Match OS setting' },
-    { value: 'light', label: 'Light' },
-    { value: 'dark', label: 'Dark' }
+  const { setCustomTheme, customTheme: contextCustomTheme } = useTheme()
+
+  // Use settings.customTheme if available, otherwise use context customTheme
+  const displayedCustomTheme = (settings.customTheme as CustomThemeName) || contextCustomTheme || 'default'
+
+  // Sync context with settings when settings change
+  useEffect(() => {
+    if (settings.customTheme && contextCustomTheme !== settings.customTheme) {
+      setCustomTheme(settings.customTheme as CustomThemeName)
+    }
+  }, [settings.customTheme, contextCustomTheme, setCustomTheme])
+
+  const customThemeOptions: DropdownOption[] = [
+    { value: 'default', label: 'Default', subLabel: 'No extra effects' },
+    { value: 'hearts', label: 'Hearts', subLabel: 'Red falling hearts' },
+    { value: 'aurora', label: 'Aurora', subLabel: 'Purple floating particles' },
+    { value: 'ocean', label: 'Ocean', subLabel: 'Blue bubbles rising' },
+    { value: 'forest', label: 'Forest', subLabel: 'Green leaves falling' },
+    { value: 'sunset', label: 'Sunset', subLabel: 'Orange sparks drifting' },
+    { value: 'cosmic', label: 'Cosmic', subLabel: 'Cyan stars twinkling' },
+    { value: 'ember', label: 'Ember', subLabel: 'Warm ember sparks' },
+    { value: 'pixel', label: 'Pixel', subLabel: 'Pixelated sprites' },
+    { value: 'breeze', label: 'Breeze', subLabel: 'Soft drifting motes' },
+    { value: 'comet', label: 'Comet', subLabel: 'Fast streaking comets' },
+    { value: 'petals', label: 'Petals', subLabel: 'Soft flower petals' }
   ]
 
-  const tintOptions: DropdownOption[] = [
-    { value: 'neutral', label: 'Neutral', subLabel: 'Gray, no color cast' },
-    { value: 'cool', label: 'Cool', subLabel: 'Slight blue tint (legacy)' }
-  ]
+  const PREV_KEY = 'app-custom-theme-prev-settings'
+
+  const handleCustomThemeChange = (value: string) => {
+    const newTheme = value as CustomThemeName
+    const themeColorMap: Record<CustomThemeName, { tint?: TintPreference; accentColor?: string }> = {
+      default: {},
+      hearts: { tint: 'warm', accentColor: '#ff2d55' },
+      aurora: { tint: 'twilight', accentColor: '#8b5cf6' },
+      ocean: { tint: 'cool', accentColor: '#06b6d4' },
+      forest: { tint: 'forest', accentColor: '#16a34a' },
+      sunset: { tint: 'warm', accentColor: '#f97316' },
+      cosmic: { tint: 'twilight', accentColor: '#06b6d4' },
+      ember: { tint: 'warm', accentColor: '#ff5722' },
+      pixel: { tint: 'neutral', accentColor: '#10b981' },
+      breeze: { tint: 'cool', accentColor: '#bae6fd' },
+      comet: { tint: 'warm', accentColor: '#ffd166' },
+      petals: { tint: 'twilight', accentColor: '#ff7ab6' }
+    }
+
+    if (newTheme === 'default') {
+      // Restore previous colors
+      try {
+        const prevSettings = localStorage.getItem(PREV_KEY)
+        if (prevSettings) {
+          const parsed = JSON.parse(prevSettings)
+          onUpdateSettings({
+            tint: parsed.tint || 'neutral',
+            accentColor: parsed.accentColor || DEFAULT_ACCENT_COLOR,
+            useDynamicAccentColor: parsed.useDynamicAccentColor ?? false
+          })
+          localStorage.removeItem(PREV_KEY)
+        }
+      } catch (e) {
+        console.warn('[SettingsTab] Failed to restore previous colors:', e)
+      }
+    } else {
+      // Save current colors before applying theme
+      if (displayedCustomTheme === 'default') {
+        try {
+          const snapshot = {
+            tint: settings.tint || 'neutral',
+            accentColor: settings.accentColor || DEFAULT_ACCENT_COLOR,
+            useDynamicAccentColor: settings.useDynamicAccentColor ?? false
+          }
+          localStorage.setItem(PREV_KEY, JSON.stringify(snapshot))
+        } catch (e) {
+          console.warn('[SettingsTab] Failed to save color snapshot:', e)
+        }
+      }
+
+      // Apply theme-specific colors; always disable dynamic accent color
+      const themeColors = themeColorMap[newTheme]
+      onUpdateSettings({
+        useDynamicAccentColor: false,
+        theme: 'dark',
+        ...themeColors
+      })
+    }
+
+    setCustomTheme(newTheme)
+    onUpdateSettings({ customTheme: newTheme })
+  }
 
   const handleResetAccent = () => {
     onUpdateSettings({ accentColor: DEFAULT_ACCENT_COLOR })
@@ -813,6 +890,14 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
       alert('Logout error: ' + (err instanceof Error ? err.message : String(err)))
     }
   }
+
+  const tintOptions: DropdownOption[] = [
+    { value: 'neutral', label: 'Neutral', subLabel: 'Gray, no color cast' },
+    { value: 'cool', label: 'Cool', subLabel: 'Slight blue tint (legacy)' },
+    { value: 'warm', label: 'Warm', subLabel: 'Slight orange tint' },
+    { value: 'forest', label: 'Forest', subLabel: 'Earthy green tint' },
+    { value: 'twilight', label: 'Twilight', subLabel: 'Purple-blue tint' }
+  ]
 
   return (
     <div className="flex flex-col h-full bg-[var(--color-surface)] text-[var(--color-text-secondary)]">
@@ -1098,39 +1183,47 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
               </Section>
 
               <Section
-                title="Advanced"
-                description="Power options that may have platform or policy restrictions."
+                title="Browser window"
+                description="Defaults for the in-app browser windows used for login and account actions."
               >
                 <SettingsCard
-                  title="Multiple instances"
-                  description={
-                    isMac
-                      ? 'Disabled on macOS.'
-                      : 'Enable launching multiple Roblox clients simultaneously.'
-                  }
-                  icon={<Lock size={16} />}
+                  title="Browser window size"
+                  description="Set the default width and height (in pixels) for browser windows. Leave empty to use the app default."
+                  icon={<Monitor size={16} />}
                 >
-                  <ToggleRow
-                    title="Allow multiple instances"
-                    description={
-                      isMac
-                        ? 'This option is unavailable on macOS.'
-                        : 'Launch more than one Roblox client at the same time.'
-                    }
-                    checked={settings.allowMultipleInstances}
-                    onChange={() => onUpdateSettings({ allowMultipleInstances: !settings.allowMultipleInstances })}
-                    disabled={isMac}
-                    hint={
-                      !isMac && (
-                        <span className="text-xs text-yellow-600/80">
-                          Note: This feature is considered to be against the Roblox Terms of
-                          Service. Use at your own risk.
-                        </span>
-                      )
-                    }
-                  />
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <label className="text-xs text-neutral-400">Width (px)</label>
+                      <input
+                        type="number"
+                        min={200}
+                        max={3840}
+                        value={settings.browserWindowWidth ?? ''}
+                        onChange={(e) =>
+                          onUpdateSettings({ browserWindowWidth: e.target.value === '' ? null : Number(e.target.value) })
+                        }
+                        className="w-32 p-2 rounded-md bg-neutral-900 border border-neutral-800 text-white"
+                      />
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="text-xs text-neutral-400">Height (px)</label>
+                      <input
+                        type="number"
+                        min={200}
+                        max={2160}
+                        value={settings.browserWindowHeight ?? ''}
+                        onChange={(e) =>
+                          onUpdateSettings({ browserWindowHeight: e.target.value === '' ? null : Number(e.target.value) })
+                        }
+                        className="w-32 p-2 rounded-md bg-neutral-900 border border-neutral-800 text-white"
+                      />
+                    </div>
+                  </div>
                 </SettingsCard>
               </Section>
+
+              {/* Advanced section removed: moved Multiple Instances toggle into Security */}
             </div>
           )}
 
@@ -1149,34 +1242,24 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                 description="Adjust the overall look of the interface."
               >
                 <SettingsCard
-                  title="Theme"
-                  description="Choose light or dark mode, or follow your system preference."
-                  icon={<Palette size={16} />}
-                >
-                  <CustomDropdown
-                    options={themeOptions}
-                    value={settings.theme}
-                    onChange={handleThemeChange}
-                    placeholder="Select theme"
-                  />
-                </SettingsCard>
-
-                <SettingsCard
                   title="Tint"
-                  description="Choose the base tint used for surfaces and backgrounds."
+                  description={displayedCustomTheme !== 'default' ? 'Tint is controlled by custom theme' : 'Choose the base tint used for surfaces and backgrounds.'}
                   icon={<Palette size={16} />}
                 >
-                  <CustomDropdown
-                    options={tintOptions}
-                    value={settings.tint}
-                    onChange={handleTintChange}
-                    placeholder="Select tint"
-                  />
+                  <div className={displayedCustomTheme !== 'default' ? 'opacity-50 pointer-events-none' : ''}>
+                    <CustomDropdown
+                      options={tintOptions}
+                      value={settings.tint}
+                      onChange={handleTintChange}
+                      placeholder="Select tint"
+                      disabled={displayedCustomTheme !== 'default'}
+                    />
+                  </div>
                 </SettingsCard>
 
                 <SettingsCard
                   title="Accent color"
-                  description="Customize the highlight color used for buttons, indicators, and focus rings."
+                  description={displayedCustomTheme !== 'default' ? 'Color is controlled by custom theme' : 'Customize the highlight color used for buttons, indicators, and focus rings.'}
                   icon={<Palette size={16} />}
                 >
                   <ToggleRow
@@ -1186,12 +1269,13 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                     onChange={() =>
                       onUpdateSettings({ useDynamicAccentColor: !settings.useDynamicAccentColor })
                     }
+                    disabled={displayedCustomTheme !== 'default'}
                   />
 
                   <div
                     className={cn(
                       'flex items-center gap-3 transition-opacity duration-200',
-                      settings.useDynamicAccentColor && 'opacity-50 pointer-events-none'
+                      (settings.useDynamicAccentColor || displayedCustomTheme !== 'default') && 'opacity-50 pointer-events-none'
                     )}
                   >
                     <button
@@ -1232,6 +1316,24 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                       </div>
                     </div>
                   </div>
+                </SettingsCard>
+
+                <SettingsCard
+                  title="Custom Theme"
+                  description="Add visual effects and animations to your interface."
+                  icon={<Palette size={16} />}
+                >
+                  <CustomDropdown
+                    options={customThemeOptions}
+                    value={displayedCustomTheme}
+                    onChange={handleCustomThemeChange}
+                    placeholder="Select custom theme"
+                  />
+                  {displayedCustomTheme !== 'default' && (
+                    <p className="text-xs text-neutral-500 mt-3">
+                      Active custom theme with auto-applied colors. Switch to "Default" to restore previous colors.
+                    </p>
+                  )}
                 </SettingsCard>
               </Section>
 
@@ -1529,6 +1631,29 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                       Restore accounts from a backup file.
                     </p>
                   </div>
+                </SettingsCard>
+              </Section>
+
+              <Section title="Advanced Features" description="Power options that may violate platform policies.">
+                <SettingsCard
+                  title="Multiple Roblox instances"
+                  description="Control whether multiple Roblox clients may be launched simultaneously."
+                  icon={<Lock size={16} />}
+                >
+                  <ToggleRow
+                    title="Allow multiple Roblox instances"
+                    description={isMac ? 'Disabled on macOS.' : 'Enable launching multiple Roblox clients simultaneously.'}
+                    checked={settings.allowMultipleInstances}
+                    onChange={() => onUpdateSettings({ allowMultipleInstances: !settings.allowMultipleInstances })}
+                    disabled={isMac}
+                    hint={
+                      !isMac && (
+                        <span className="text-xs text-yellow-600/80">
+                          Note: This feature may violate Roblox Terms of Service. Use at your own risk.
+                        </span>
+                      )
+                    }
+                  />
                 </SettingsCard>
               </Section>
             </div>
