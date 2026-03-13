@@ -1,6 +1,5 @@
 /// <reference types="electron-vite/node" />
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import KeyAuthWrapper from './lib/KeyAuthWrapper'
 import { join } from 'path'
 import { existsSync, readFileSync } from 'fs'
 import { getDataFile } from './utils/paths'
@@ -15,11 +14,6 @@ const logPerf = (label: string) => {
 }
 
 let storageService: typeof import('./modules/system/StorageService').storageService
-let keyAuthClient: InstanceType<typeof KeyAuthWrapper> | null = null
-let keyAuthSessionId: string | null = null
-let keyAuthRetryTimer: NodeJS.Timeout | null = null
-let keyAuthRetryCount = 0
-const MAX_KEYAUTH_RETRIES = 3
 
 // Prevent multiple instances of the app from running (Windows-only, but harmless on other platforms)
 // This lock is essential for normal operation but can block app restart on Windows
@@ -31,9 +25,6 @@ if (!gotTheLock) {
 } else {
   appLock = gotTheLock
 }
-
-// Export for use in other modules
-export { keyAuthClient }
 
 // Helper for gracefully handling app shutdown during updates
 export function gracefulShutdownForUpdate(): void {
@@ -158,88 +149,7 @@ app.whenReady().then(async () => {
   // Update global references
   storageService = loadedModules.storageService
 
-  // Helper function to initialize KeyAuth with retry logic
-  async function initializeKeyAuth(KEYAUTH_NAME: string, KEYAUTH_OWNERID: string, KEYAUTH_VERSION: string): Promise<boolean> {
-    try {
-      const tempClient = new KeyAuthWrapper({
-        name: KEYAUTH_NAME,
-        ownerid: KEYAUTH_OWNERID,
-        version: KEYAUTH_VERSION,
-        url: 'https://keyauth.win/api/1.3/'
-      })
-
-      console.log('[KeyAuth] Attempting initialization...')
-      const initResult = await tempClient.init()
-      if (!initResult.ok) {
-        console.error('[KeyAuth] Init failed:', initResult.message, initResult.details)
-        return false
-      } else {
-        keyAuthClient = tempClient
-        keyAuthSessionId = (initResult.data as any)?.sessionid ?? null
-        console.log('[KeyAuth] Successfully initialized, session:', keyAuthSessionId ? 'ok' : 'none')
-        keyAuthRetryCount = 0
-        return true
-      }
-    } catch (err) {
-      console.error('[KeyAuth] Initialization error:', err)
-      return false
-    }
-  }
-
-  // Initialize KeyAuth client if environment variables are present
-  try {
-    let KEYAUTH_NAME = process.env.KEYAUTH_NAME
-    let KEYAUTH_OWNERID = process.env.KEYAUTH_OWNERID
-    let KEYAUTH_SECRET = process.env.KEYAUTH_SECRET
-    let KEYAUTH_VERSION = process.env.KEYAUTH_VERSION
-
-    // SECURITY: NEVER attempt to load secrets from stored config
-    // KeyAuth credentials MUST come from environment variables only
-    // This prevents plaintext storage of sensitive credentials
-
-    // SECURITY: KeyAuth credentials MUST be provided via environment variables
-    // Never hardcode credentials, especially KEYAUTH_SECRET. If credentials are missing,
-    // the system will skip KeyAuth initialization to fail securely.
-    if (!KEYAUTH_NAME || !KEYAUTH_OWNERID || !KEYAUTH_SECRET || !KEYAUTH_VERSION) {
-      console.warn('[SECURITY] KeyAuth credentials not provided via environment variables. KeyAuth system disabled.')
-      console.warn('[SECURITY] To enable KeyAuth, set KEYAUTH_NAME, KEYAUTH_OWNERID, KEYAUTH_SECRET, and KEYAUTH_VERSION environment variables.')
-      keyAuthClient = null
-      return
-    }
-
-    if (KEYAUTH_NAME && KEYAUTH_OWNERID && KEYAUTH_VERSION) {
-      const initialized = await initializeKeyAuth(KEYAUTH_NAME, KEYAUTH_OWNERID, KEYAUTH_VERSION)
-      
-      // Set up retry timer if initialization failed
-      if (!initialized) {
-        console.log('[KeyAuth] Scheduling retry in 5 seconds...')
-        keyAuthRetryTimer = setInterval(async () => {
-          try {
-            keyAuthRetryCount++
-            if (keyAuthRetryCount > MAX_KEYAUTH_RETRIES) {
-              console.warn(`[KeyAuth] Max retries (${MAX_KEYAUTH_RETRIES}) reached, giving up`)
-              if (keyAuthRetryTimer) clearInterval(keyAuthRetryTimer)
-              return
-            }
-            console.log(`[KeyAuth] Retry attempt ${keyAuthRetryCount}/${MAX_KEYAUTH_RETRIES}...`)
-            const retrySuccess = await initializeKeyAuth(KEYAUTH_NAME, KEYAUTH_OWNERID, KEYAUTH_VERSION)
-            if (retrySuccess && keyAuthRetryTimer) {
-              clearInterval(keyAuthRetryTimer)
-            }
-          } catch (err) {
-            console.error('[KeyAuth] Retry error:', err)
-          }
-        }, 5000)
-      }
-    } else {
-      console.log('[KeyAuth] Environment variables not set; skipping initialization')
-      keyAuthClient = null
-    }
-  } catch (err) {
-    console.error('[KeyAuth] Failed to initialize:', err)
-    keyAuthClient = null
-  }
-
+  // KeyAuth completely removed
   logPerf('modules-loaded')
 
   // Register handlers
@@ -281,12 +191,6 @@ app.whenReady().then(async () => {
     }
   })
 
-  // DISABLED: License redeem handler - licensing system disabled
-  // ipcMain.handle('license:redeem', async (_event, licenseKey: string, userPin: string) => { ... })
-
-  // IPC: Reset HWID / clear license
-  // Note: reset-hwid removed — functionality requires KeyAuth subscription. Do not expose.
-
   // IPC: Logout / clear all config data
   ipcMain.handle('app:logout', async () => {
     try {
@@ -297,13 +201,6 @@ app.whenReady().then(async () => {
       return { success: false, message: err?.message ?? String(err) }
     }
   })
-
-  // DISABLED: License validation handler - licensing system disabled
-  // ipcMain.handle('license:validate-stored', async () => { ... })
-
-
-  // DISABLED: Periodic license session refresh - licensing system disabled
-  // setInterval(async () => { ... }, 6 * 60 * 60 * 1000)
 
   loadedModules.registerUpdaterHandlers(mainWindow)
 
