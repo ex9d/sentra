@@ -1,0 +1,9 @@
+{
+    "extends": "tsconfig/client.json",
+    "compilerOptions": {
+        "plugins": [{ "name": "client" }],
+        "outDir": "./dist"
+    },
+    "include": ["src"],
+    "exclude": ["node_modules", "./dist/**/*"]
+}
