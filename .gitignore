@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+
+# build output
+out/
+dist/
+build/
+
+# archives
+*.zip
+
+# logs
+*.log
+
+# macOS
+.DS_Store
+
+# vscode local settings
+.vscode/
+
+# temp
+tmp/
+temp/
+.cache/

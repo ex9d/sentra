@@ -1,0 +1,76 @@
+appId: com.sentra.app
+productName: sentra
+directories:
+  buildResources: resources/build
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+extraResources:
+  # ALL resources go INSIDE the app folder for x64 Windows
+  - from: 'assets/lists/roblox_items.db'
+    to: 'assets/lists/roblox_items.db'
+  - from: 'resources/app-update.yml'
+    to: 'app-update.yml'
+  - from: 'resources/spoofer'
+    to: 'spoofer'
+  - from: 'assets/spoofer'
+    to: 'spoofer'
+  - from: 'assets/icons'
+    to: 'assets/icons'
+asar: true
+asarUnpack:
+  - resources/**
+  - spoofer/**
+win:
+  executableName: sentra
+  legalTrademarks: sentra
+  fileAssociations: []
+  icon: resources/build/icons/win/icon.ico
+nsis:
+  oneClick: false
+  perMachine: true                # ensures files go to C:\Program Files
+  allowToChangeInstallationDirectory: true
+  runAfterFinish: true
+  deleteAppDataOnUninstall: false
+  installerIcon: resources/build/icons/win/icon.ico
+  uninstallerIcon: resources/build/icons/win/icon.ico
+  artifactName: ${name}-setup-${version}.${ext}
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: sentra
+mac:
+  identity: "-"
+  executableName: sentra
+  category: public.app-category.utilities
+  icon: resources/build/icons/mac/icon.icns
+  entitlements: entitlements.plist
+  entitlementsInherit: entitlements.plist
+  extendInfo:
+    CFBundleName: sentra
+    CFBundleDisplayName: sentra
+    NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  notarize: false
+  target:
+    - dmg
+    - zip
+dmg:
+  artifactName: ${name}-${version}.${ext}
+linux:
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: electronjs.org
+  category: Utility
+  icon: resources/build/icons/png
+appImage:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false
+publish:
+  provider: github
+  owner: sashaga2a24
+  repo: installer

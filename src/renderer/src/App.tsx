@@ -1,0 +1,1304 @@
+import type { } from './window'
+import React, { useState, useMemo, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
+import notificationIcon from '../../../resources/build/icons/png/256x256.png'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Search } from 'lucide-react'
+import { Account, AccountStatus, JoinMethod } from './types'
+import { mapPresenceToStatus, isActiveStatus } from './utils/statusUtils'
+import { applyAccentColor } from './utils/themeUtils'
+import { getDominantAccentColorFromImageUrl } from './utils/imageAccentColor'
+import JoinModal from './components/Modals/JoinModal'
+import EditNoteModal from './features/auth/Modals/EditNoteModal'
+import AddAccountModal from './features/auth/Modals/AddAccountModal'
+import Sidebar from './components/UI/navigation/Sidebar'
+import NotificationTray from './components/UI/feedback/NotificationTray'
+import SnackbarContainer from './features/system/components/SnackbarContainer'
+
+import ContextMenu from './components/UI/menus/ContextMenu'
+import AccountsTab from './features/auth/index'
+import PinLockScreen from './components/UI/security/PinLockScreen'
+import AlertDialog from './components/UI/dialogs/AlertDialog'
+import { OnboardingScreen, useHasCompletedOnboarding, useOnboardingStore } from './features/onboarding'
+import { useSidebarResize } from './hooks/useSidebarResize'
+import { useClickOutside } from './hooks/useClickOutside'
+import { useNotification } from './features/system/stores/useSnackbarStore'
+import InstanceSelectionModal from './components/Modals/InstanceSelectionModal'
+import { useInstallations } from './features/install/stores/useInstallationsStore'
+import { LoadingSpinnerFullPage } from './components/UI/feedback/LoadingSpinner'
+import {
+  useAccountsManager,
+  useAccountStatusPolling,
+  useSettingsManager,
+  useFriends
+} from './hooks/queries'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '../../shared/queryKeys'
+import {
+  getVisibleSidebarTabs,
+  sanitizeSidebarHidden,
+  sanitizeSidebarOrder,
+  SIDEBAR_TAB_IDS
+} from '@shared/navigation'
+import { useCommandPaletteStore } from './features/command-palette/stores/useCommandPaletteStore'
+import { initCatalogSearchIndex } from './features/command-palette/hooks'
+import ErrorBoundary from './components/ErrorBoundary'
+import { useFriendPresenceNotifications } from './hooks/useFriendPresenceNotifications'
+import { useFriendJoinPopup } from './hooks/useFriendJoinPopup'
+import {
+  useNotificationTrayStore,
+  useNotifyServerLocation
+} from './features/system/stores/useNotificationTrayStore'
+import { useTheme } from './theme/ThemeContext'
+import { ThemeEffects } from './components/ThemeEffects'
+
+import {
+  useActiveTab,
+  useSetActiveTab,
+  useModals,
+  useOpenModal,
+  useCloseModal,
+  useActiveMenu,
+  useSetActiveMenu,
+  useEditingAccount,
+  useSetEditingAccount,
+  useInfoAccount,
+  useSetInfoAccount,
+  useSelectedGame,
+  useSetSelectedGame,
+  usePendingLaunchConfig,
+  useSetPendingLaunchConfig,
+  useAvailableInstallations,
+  useSetAvailableInstallations,
+  useAppUnlocked,
+  useSetAppUnlocked
+} from './stores/useUIStore'
+
+import { useSelectedIds, useSetSelectedIds } from './stores/useSelectionStore'
+
+const ProfileTab = lazy(() => import('./features/profile/index'))
+const FriendsTab = lazy(() => import('./features/friends/index'))
+const GroupsTab = lazy(() => import('./features/groups/index'))
+const GamesTab = lazy(() => import('./features/games/index'))
+const CatalogTab = lazy(() => import('./features/catalog/index'))
+const InventoryTab = lazy(() => import('./features/inventory/index'))
+const TransactionsTab = lazy(() => import('./features/transactions/index'))
+const LogsTab = lazy(() => import('./features/system/LogsView'))
+const SettingsTab = lazy(() => import('./features/settings/index'))
+const AvatarTab = lazy(() => import('./features/avatar/index'))
+const InstallTab = lazy(() => import('./features/install/index'))
+const ExecutorTab = lazy(() => import('./features/executor/index'))
+const WatcherTab = lazy(() => import('./features/watcher/index'))
+const NewsTab = lazy(() => import('./features/news/index'))
+const AccountSettingsTab = lazy(() => import('./features/accountSettings/index'))
+const GameDetailsModal = lazy(() => import('./features/games/Modals/GameDetailsModal'))
+const AccessoryDetailsModal = lazy(() => import('./features/avatar/Modals/AccessoryDetailsModal'))
+import UniversalProfileModal from './components/Modals/UniversalProfileModal'
+const CommandPalette = lazy(() => import('./features/command-palette/index'))
+
+interface JoinConfig {
+  method: JoinMethod
+  target: string
+}
+
+const isMac = window.platform?.isMac ?? false
+
+const App: React.FC = () => {
+  const catalogInitTriggeredRef = useRef(false)
+  const lastAvatarRefreshAtRef = useRef(0)
+  const avatarRefreshInFlightRef = useRef(false)
+  const onboardingInitializedRef = useRef(false)
+
+  const { showNotification } = useNotification()
+  const queryClient = useQueryClient()
+
+  const hasCompletedOnboarding = useHasCompletedOnboarding()
+  const isInitialized = useOnboardingStore((state) => state.isInitialized)
+  const initializeFirstLaunch = useOnboardingStore((state) => state.initializeFirstLaunch)
+
+  // Initialize onboarding first launch detection early
+  useEffect(() => {
+    if (onboardingInitializedRef.current) return
+    onboardingInitializedRef.current = true
+    initializeFirstLaunch()
+  }, [initializeFirstLaunch])
+
+  const isAppUnlocked = useAppUnlocked()
+  const setAppUnlocked = useSetAppUnlocked()
+
+  const handlePinUnlock = useCallback(() => {
+    setAppUnlocked(true)
+    queryClient.invalidateQueries({ queryKey: queryKeys.accounts.list() })
+  }, [queryClient, setAppUnlocked])
+
+  const refreshRecentlyPlayed = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.games.recentlyPlayed() })
+  }, [queryClient])
+
+  const notifyServerLocation = useNotifyServerLocation()
+  const addTrayNotification = useNotificationTrayStore((state) => state.addNotification)
+
+  const openCommandPalette = useCommandPaletteStore((s) => s.open)
+  const isCommandPaletteOpen = useCommandPaletteStore((s) => s.isOpen)
+
+  // Defer catalog search index init until command palette is actually opened
+  useEffect(() => {
+    if (!isCommandPaletteOpen || catalogInitTriggeredRef.current) return
+    catalogInitTriggeredRef.current = true
+    initCatalogSearchIndex()
+  }, [isCommandPaletteOpen])
+
+  const activeTab = useActiveTab()
+  const setActiveTabState = useSetActiveTab()
+  const modals = useModals()
+  const openModal = useOpenModal()
+  const closeModal = useCloseModal()
+  const activeMenu = useActiveMenu()
+  const setActiveMenu = useSetActiveMenu()
+  const editingAccount = useEditingAccount()
+  const setEditingAccount = useSetEditingAccount()
+  const infoAccount = useInfoAccount()
+  const setInfoAccount = useSetInfoAccount()
+  const selectedGame = useSelectedGame()
+  const setSelectedGame = useSetSelectedGame()
+  const pendingLaunchConfig = usePendingLaunchConfig()
+  const setPendingLaunchConfig = useSetPendingLaunchConfig()
+  const availableInstallations = useAvailableInstallations()
+  const setAvailableInstallations = useSetAvailableInstallations()
+
+  const selectedIds = useSelectedIds()
+  const setSelectedIds = useSetSelectedIds()
+
+  const { accounts, isLoading: isLoadingAccounts, setAccounts, addAccount } = useAccountsManager()
+
+  const { settings, isLoading: isLoadingSettings, updateSettings } = useSettingsManager()
+
+  // Remove account confirmation dialog state
+  const [removeAccountOpen, setRemoveAccountOpen] = useState(false)
+  const [removeAccountId, setRemoveAccountId] = useState<string | null>(null)
+  const [removeMultipleCount, setRemoveMultipleCount] = useState(0)
+
+  // Browser custom URL dialog state
+  const [showBrowserCustomDialog, setShowBrowserCustomDialog] = useState(false)
+  const [browserCustomUrl, setBrowserCustomUrl] = useState('')
+  const [browserCustomAccountId, setBrowserCustomAccountId] = useState<string | null>(null)
+
+  const refreshAccountAvatarUrls = useCallback(
+    async (options?: { force?: boolean }) => {
+      const force = options?.force ?? false
+      const now = Date.now()
+      const minIntervalMs = 60 * 1000
+      if (!force && now - lastAvatarRefreshAtRef.current < minIntervalMs) return
+      if (avatarRefreshInFlightRef.current) return
+
+      avatarRefreshInFlightRef.current = true
+      const currentAccounts = queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || []
+      const userIds = currentAccounts
+        .map((a) => Number(a.userId))
+        .filter((id) => Number.isFinite(id))
+
+      if (userIds.length === 0) {
+        avatarRefreshInFlightRef.current = false
+        return
+      }
+
+      try {
+        // Prioritize selectedAccount's cookie, fall back to any available cookie for authenticated requests (better rate limits)
+        const selectedAccounts = selectedIds.size > 0 ? Array.from(selectedIds) : []
+        const selectedAccountId = selectedAccounts[0]
+        const selectedAccount = currentAccounts.find((a) => a.id === selectedAccountId)
+        const cookie = selectedAccount?.cookie || currentAccounts.find((a) => a.cookie)?.cookie
+        const avatarMap = await window.api.getBatchUserAvatars(userIds, '420x420', cookie)
+        setAccounts((prev) => {
+          let changed = false
+          const next = prev.map((acc) => {
+            const uid = Number(acc.userId)
+            const nextUrl = Number.isFinite(uid) ? avatarMap[uid] : null
+
+            if (nextUrl && nextUrl !== acc.avatarUrl) {
+              changed = true
+              return { ...acc, avatarUrl: nextUrl }
+            }
+            return acc
+          })
+
+          return changed ? next : prev
+        })
+
+        lastAvatarRefreshAtRef.current = now
+      } catch (error) {
+        console.warn('[accounts] failed to refresh avatar thumbnails', error instanceof Error ? error.message : String(error))
+        showNotification('Failed to refresh avatar thumbnails', 'error')
+      } finally {
+        avatarRefreshInFlightRef.current = false
+      }
+    },
+    [queryClient, setAccounts]
+  )
+
+  // Keep account avatars from going stale (Roblox thumbnails can change when you update your avatar).
+  const initialAvatarRefreshRef = useRef(false)
+  useEffect(() => {
+    if (isLoadingAccounts) return
+
+    if (!initialAvatarRefreshRef.current) {
+      void refreshAccountAvatarUrls({ force: true })
+      initialAvatarRefreshRef.current = true
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshAccountAvatarUrls()
+    }, 60 * 1000)
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [isLoadingAccounts, refreshAccountAvatarUrls])
+
+  const sidebarTabOrder = useMemo(
+    () => sanitizeSidebarOrder(settings.sidebarTabOrder),
+    [settings.sidebarTabOrder]
+  )
+  const sidebarHiddenTabs = useMemo(
+    () => sanitizeSidebarHidden(settings.sidebarHiddenTabs),
+    [settings.sidebarHiddenTabs]
+  )
+  const visibleSidebarTabs = useMemo(
+    () => getVisibleSidebarTabs(sidebarTabOrder, sidebarHiddenTabs),
+    [sidebarHiddenTabs, sidebarTabOrder]
+  )
+
+  useAccountStatusPolling()
+
+  const initialSelectionApplied = useRef(false)
+
+  useEffect(() => {
+    if (!isLoadingAccounts && !isLoadingSettings && !initialSelectionApplied.current) {
+      if (settings.primaryAccountId && accounts.some((a) => a.id === settings.primaryAccountId)) {
+        setSelectedIds(new Set([settings.primaryAccountId]))
+      }
+      initialSelectionApplied.current = true
+    }
+  }, [isLoadingAccounts, isLoadingSettings, accounts, settings.primaryAccountId, setSelectedIds])
+
+  const sidebarRef = useRef<HTMLElement>(null)
+  const { sidebarWidth, isResizing, setIsResizing } = useSidebarResize()
+
+  const filterRef = useRef<HTMLDivElement>(null)
+
+  useClickOutside(filterRef, () => { })
+
+  useEffect(() => {
+    if (!activeMenu) return
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('[data-menu-id]') && !target.closest('.fixed.z-\\[1100\\]')) {
+        setActiveMenu(null)
+      }
+    }
+
+    const handleScroll = () => setActiveMenu(null)
+
+    document.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('scroll', handleScroll, true)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
+  }, [activeMenu, setActiveMenu])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        if (!isCommandPaletteOpen) {
+          openCommandPalette()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [openCommandPalette, isCommandPaletteOpen])
+
+  const selectedAccountId = useMemo(() => {
+    return selectedIds.size === 1 ? Array.from(selectedIds)[0] : null
+  }, [selectedIds])
+
+  const selectedAccount = useMemo(() => {
+    return accounts.find((a) => a.id === selectedAccountId) || null
+  }, [accounts, selectedAccountId])
+
+  // Refetch thumbnails when switching accounts (cached by the 60s throttle).
+  useEffect(() => {
+    if (!selectedAccountId || isLoadingAccounts) return
+    void refreshAccountAvatarUrls()
+  }, [isLoadingAccounts, refreshAccountAvatarUrls, selectedAccountId])
+
+  const accentAvatarUrl = useMemo(() => {
+    if (selectedAccount?.avatarUrl) return selectedAccount.avatarUrl
+    if (settings.primaryAccountId) {
+      return accounts.find((a) => a.id === settings.primaryAccountId)?.avatarUrl ?? null
+    }
+    return null
+  }, [accounts, selectedAccount?.avatarUrl, settings.primaryAccountId])
+
+  // If dynamic accent color is enabled, derive it from the current account's avatar.
+  useEffect(() => {
+    if (!settings.useDynamicAccentColor || !accentAvatarUrl) return
+
+    const controller = new AbortController()
+    getDominantAccentColorFromImageUrl(accentAvatarUrl, { signal: controller.signal })
+      .then((hex) => {
+        if (controller.signal.aborted) return
+        applyAccentColor(hex)
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return
+        console.warn('[theme] failed to derive accent from avatar thumbnail', error)
+      })
+
+    return () => controller.abort()
+  }, [accentAvatarUrl, settings.useDynamicAccentColor])
+
+  const { data: friendsData = [] } = useFriends(selectedAccount)
+
+  useFriendPresenceNotifications(friendsData, !!selectedAccount, selectedAccount?.id)
+  useFriendJoinPopup()
+
+  const [quickProfileUserId, setQuickProfileUserId] = useState<string | null>(null)
+
+  const { setTheme } = useTheme()
+
+  useEffect(() => {
+    setTheme(settings.theme ?? 'system')
+  }, [settings.theme, setTheme])
+
+  useEffect(() => {
+    const isSidebarTab = SIDEBAR_TAB_IDS.includes(activeTab)
+    if (isSidebarTab && !visibleSidebarTabs.includes(activeTab)) {
+      const fallbackTab = visibleSidebarTabs[0]
+      if (fallbackTab) {
+        setActiveTabState(fallbackTab)
+      }
+    }
+  }, [activeTab, setActiveTabState, visibleSidebarTabs])
+
+  // Update Discord RPC when tab changes
+  useEffect(() => {
+    window.api.setDiscordRPCTab(activeTab).catch((error) => {
+      console.error('Failed to set Discord RPC tab:', error)
+    })
+  }, [activeTab])
+
+  const [commandPaletteAccessory, setCommandPaletteAccessory] = useState<{
+    id: number
+    name: string
+    imageUrl?: string
+  } | null>(null)
+
+  const handleCommandPaletteViewProfile = useCallback((userId: string) => {
+    setQuickProfileUserId(userId)
+  }, [])
+
+  const handleCommandPaletteViewAccessory = useCallback(
+    (item: { id: number; name: string; imageUrl?: string }) => {
+      setCommandPaletteAccessory(item)
+    },
+    []
+  )
+
+  const multiInstanceAllowed = settings.allowMultipleInstances
+
+  const performLaunch = async (config: JoinConfig, installPath?: string) => {
+    closeModal('join')
+
+    const accountsToLaunch = accounts.filter((acc) => selectedIds.has(acc.id))
+    if (accountsToLaunch.length === 0) {
+      showNotification('No accounts selected', 'warning')
+      return
+    }
+
+    if (accountsToLaunch.length > 1 && !multiInstanceAllowed) {
+      showNotification(
+        'Multi-instance launching is disabled in Settings.',
+        'warning'
+      )
+      return
+    }
+
+    let launchPlaceId: string | number = ''
+    let launchJobId: string | undefined = undefined
+    let launchFriendId: string | undefined = undefined
+
+    try {
+      if (config.method === JoinMethod.PlaceId) {
+        launchPlaceId = config.target
+      } else if (config.method === JoinMethod.Friend) {
+        const parts = config.target.split(':')
+        if (parts.length === 2) {
+          launchFriendId = parts[0]
+          launchPlaceId = parts[1]
+        }
+      } else if (config.method === JoinMethod.Username) {
+        const targetUser = await window.api.getUserByUsername(config.target)
+        if (!targetUser) {
+          showNotification(`User "${config.target}" not found`, 'error')
+          return
+        }
+        const cookie = accountsToLaunch[0].cookie
+        if (!cookie) {
+          showNotification('First selected account needs a valid cookie to check presence', 'error')
+          return
+        }
+        const presence = await window.api.getUserPresence(cookie, targetUser.id)
+
+        if (!presence || presence.userPresenceType !== 2) {
+          showNotification(`${config.target} is not currently in a game`, 'warning')
+          return
+        }
+        const resolvedPlaceId = presence.rootPlaceId ?? presence.placeId
+        if (!resolvedPlaceId) {
+          showNotification('Unable to determine the game location for this user.', 'error')
+          return
+        }
+        launchPlaceId = resolvedPlaceId
+        launchJobId = presence.gameId ?? undefined
+      } else if (config.method === JoinMethod.JobId) {
+        if (config.target.includes(':')) {
+          const [pid, jid] = config.target.split(':')
+          launchPlaceId = pid
+          launchJobId = jid
+        } else {
+          showNotification(
+            'Launching by Job ID requires Place ID. Use Format "PlaceID:JobID"',
+            'warning'
+          )
+          return
+        }
+      }
+
+      if (!launchPlaceId) {
+        showNotification('Invalid Place ID', 'error')
+        return
+      }
+
+      showNotification(`Launching ${accountsToLaunch.length} accounts...`, 'info')
+
+      let launchedAny = false
+
+      for (const account of accountsToLaunch) {
+        if (!account.cookie) continue
+
+        try {
+          const logsBeforeLaunch = notifyServerLocation ? await window.api.getLogs() : []
+          const logTimestampBefore =
+            logsBeforeLaunch.length > 0 ? logsBeforeLaunch[0].lastModified : 0
+
+          await window.api.launchGame(
+            account.cookie,
+            launchPlaceId,
+            launchJobId,
+            launchFriendId,
+            installPath
+          )
+          showNotification(`Launched successfully for ${account.displayName}`, 'success')
+          launchedAny = true
+
+          if (notifyServerLocation) {
+            const pollForServerLocation = async () => {
+              const maxAttempts = 15 // Poll for up to 30 seconds
+              const pollInterval = 2000 // 2 seconds between polls
+
+              for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                await new Promise((r) => setTimeout(r, pollInterval))
+
+                try {
+                  const currentLogs = await window.api.getLogs()
+                  const newLog = currentLogs.find(
+                    (log) =>
+                      log.lastModified > logTimestampBefore &&
+                      log.serverIp &&
+                      log.placeId === String(launchPlaceId)
+                  )
+
+                  if (newLog?.serverIp) {
+                    const region = await window.api.getRegionFromAddress(newLog.serverIp)
+                    if (region && region !== 'Unknown' && region !== 'Failed') {
+                      addTrayNotification({
+                        type: 'info',
+                        title: 'Server Location',
+                        message: `Connected to server in ${region}`,
+                        gameInfo: {
+                          name: `Place ${launchPlaceId}`,
+                          placeId: String(launchPlaceId)
+                        }
+                      })
+
+                      if ('Notification' in window) {
+                        if (Notification.permission === 'granted') {
+                          new Notification('Server Location', {
+                            body: `Connected to server in ${region}`,
+                            icon: notificationIcon
+                          })
+                        } else if (Notification.permission !== 'denied') {
+                          Notification.requestPermission().then((permission) => {
+                            if (permission === 'granted') {
+                              new Notification('Server Location', {
+                                body: `Connected to server in ${region}`,
+                                icon: notificationIcon
+                              })
+                            }
+                          })
+                        }
+                      }
+                    }
+                    return
+                  }
+                } catch (pollError) {
+                  console.warn('Error polling for server location:', pollError)
+                }
+              }
+              console.warn('Timed out waiting for server location from logs')
+            }
+
+            pollForServerLocation()
+          }
+
+          await new Promise((r) => setTimeout(r, 3000))
+        } catch (e: any) {
+          console.error(`Failed to launch for ${account.displayName}`, e instanceof Error ? e.message : String(e))
+          showNotification(`Failed to launch for ${account.displayName}: ${e.message}`, 'error')
+        }
+      }
+
+      if (launchedAny) {
+        window.setTimeout(() => {
+          refreshRecentlyPlayed()
+        }, 4000)
+      }
+    } catch (error: any) {
+      console.error('Launch error:', error instanceof Error ? error.message : String(error))
+      showNotification(`Launch failed: ${error.message}`, 'error')
+    }
+  }
+
+  const installations = useInstallations()
+
+  const handleLaunch = useCallback(
+    (config: JoinConfig) => {
+      const configuredPath =
+        typeof settings.defaultInstallationPath === 'string'
+          ? settings.defaultInstallationPath.trim()
+          : ''
+
+      if (configuredPath) {
+        performLaunch(config, configuredPath)
+        return
+      }
+
+      if (installations.length > 0) {
+        if (installations.length === 1) {
+          performLaunch(config, installations[0].path)
+          return
+        }
+        setAvailableInstallations(installations)
+        setPendingLaunchConfig(config)
+        closeModal('join')
+        openModal('instanceSelection')
+        return
+      }
+
+      setAvailableInstallations([])
+      setPendingLaunchConfig(config)
+      closeModal('join')
+      openModal('instanceSelection')
+    },
+    [
+      settings.defaultInstallationPath,
+      performLaunch,
+      installations,
+      setAvailableInstallations,
+      setPendingLaunchConfig,
+      closeModal,
+      openModal
+    ]
+  )
+
+  const handleCommandPaletteLaunchGame = useCallback(
+    (method: JoinMethod, target: string) => {
+      if (selectedIds.size === 0) {
+        showNotification('Select an account first to launch a game', 'warning')
+        return
+      }
+      handleLaunch({ method, target })
+    },
+    [selectedIds.size, showNotification, handleLaunch]
+  )
+
+  const handleInstanceSelect = (path?: string) => {
+    closeModal('instanceSelection')
+    if (pendingLaunchConfig) {
+      performLaunch(pendingLaunchConfig, path)
+      setPendingLaunchConfig(null)
+    }
+  }
+
+  const handleFriendJoin = (placeId: string | number, jobId?: string, userId?: string | number) => {
+    const placeTarget = typeof placeId === 'number' ? placeId.toString() : placeId
+    let config: JoinConfig
+    if (userId) {
+      config = { method: JoinMethod.Friend, target: `${userId}:${placeTarget}` }
+    } else if (jobId) {
+      config = { method: JoinMethod.JobId, target: `${placeTarget}:${jobId}` }
+    } else {
+      config = { method: JoinMethod.PlaceId, target: placeTarget }
+    }
+    handleLaunch(config)
+  }
+
+  const handleIndividualRemove = (id: string) => {
+    setRemoveAccountId(id)
+    setRemoveAccountOpen(true)
+    setActiveMenu(null)
+  }
+
+  const handleReauth = (id: string) => {
+    showNotification(`Re-authenticating account ${id}... (Mock Action)`, 'info')
+    setActiveMenu(null)
+  }
+
+  const handleOpenBrowserHome = async (id: string) => {
+    const account = accounts.find((a) => a.id === id)
+    if (!account) {
+      showNotification('Account not found', 'error')
+      setActiveMenu(null)
+      return
+    }
+
+      try {
+        // Open Roblox home in default browser
+        await window.api.openBrowserWithAccount(id, 'https://www.roblox.com/home')
+        showNotification(`Opening Roblox home for ${account.displayName || account.username}...`, 'info')
+      } catch (error) {
+      console.error('Failed to open browser:', error)
+      showNotification('Failed to open browser with account', 'error')
+    }
+    setActiveMenu(null)
+  }
+
+  const handleOpenBrowserCustom = async (id: string) => {
+    const account = accounts.find((a) => a.id === id)
+    if (!account) {
+      showNotification('Account not found', 'error')
+      setActiveMenu(null)
+      return
+    }
+
+    // Open dialog for custom URL input
+    setBrowserCustomAccountId(id)
+    setBrowserCustomUrl('')
+    setShowBrowserCustomDialog(true)
+    setActiveMenu(null)
+  }
+
+  const handleBrowserCustomUrlSubmit = async () => {
+    if (!browserCustomUrl.trim() || !browserCustomAccountId) return
+
+    const account = accounts.find((a) => a.id === browserCustomAccountId)
+    if (!account) {
+      showNotification('Account not found', 'error')
+      return
+    }
+
+    try {
+      let finalUrl = browserCustomUrl.trim()
+      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+        finalUrl = 'https://' + finalUrl
+      }
+      await window.api.openBrowserWithAccount(browserCustomAccountId, finalUrl)
+      showNotification(`Opening ${finalUrl} for ${account.displayName || account.username}...`, 'info')
+    } catch (error) {
+      console.error('Failed to open browser:', error)
+      showNotification('Failed to open browser with account', 'error')
+    }
+    setShowBrowserCustomDialog(false)
+    setBrowserCustomUrl('')
+    setBrowserCustomAccountId(null)
+  }
+
+  const handleOpenBrowsers = async () => {
+    const accountsToOpen = accounts.filter((acc) => selectedIds.has(acc.id))
+    if (accountsToOpen.length === 0) {
+      showNotification('No accounts selected', 'warning')
+      return
+    }
+
+    let openedCount = 0
+    for (const account of accountsToOpen) {
+      if (!account.cookie) {
+        showNotification(`Skipping ${account.displayName || account.username}: No valid cookie`, 'warning')
+        continue
+      }
+
+      try {
+        await window.api.openBrowserWithAccount(account.id, 'https://www.roblox.com/home')
+        openedCount++
+        // Add small delay between opening browsers to prevent overwhelming the system
+        await new Promise(resolve => setTimeout(resolve, 100))
+      } catch (error) {
+        console.error(`Failed to open browser for ${account.displayName}:`, error instanceof Error ? error.message : String(error))
+        showNotification(
+          `Failed to open browser for ${account.displayName || account.username}`,
+          'error'
+        )
+      }
+    }
+
+    if (openedCount > 0) {
+      showNotification(`Opened ${openedCount} browser window${openedCount !== 1 ? 's' : ''}`, 'success')
+    }
+  }
+
+  const handleGetCookie = async (id: string) => {
+    const account = accounts.find((a) => a.id === id)
+    if (!account) {
+      showNotification('Account not found', 'error')
+      return
+    }
+
+    if (account.cookie) {
+      try {
+        await navigator.clipboard.writeText(account.cookie)
+        showNotification(`Cookie copied for ${account.displayName || account.username}`, 'success')
+      } catch (error) {
+        console.error('Failed to copy cookie:', error instanceof Error ? error.message : String(error))
+        showNotification('Failed to copy cookie to clipboard', 'error')
+      }
+    } else {
+      showNotification(`No cookie available for ${account.displayName || account.username}`, 'warning')
+    }
+  }
+
+  const handleGetCookies = async () => {
+    const accountsToExport = accounts.filter((acc) => selectedIds.has(acc.id))
+    if (accountsToExport.length === 0) {
+      showNotification('No accounts selected', 'warning')
+      return
+    }
+
+    const cookies = accountsToExport
+      .filter((acc) => acc.cookie)
+      .map((acc) => acc.cookie)
+      .join('\n')
+
+    if (cookies.length === 0) {
+      showNotification('No valid cookies found in selected accounts', 'warning')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(cookies)
+      showNotification(
+        `Copied ${accountsToExport.filter((acc) => acc.cookie).length} cookie${
+          accountsToExport.filter((acc) => acc.cookie).length !== 1 ? 's' : ''
+        } to clipboard`,
+        'success'
+      )
+    } catch (error) {
+      console.error('Failed to copy cookies:', error instanceof Error ? error.message : String(error))
+      showNotification('Failed to copy cookies to clipboard', 'error')
+    }
+    setActiveMenu(null)
+  }
+
+  const handleEditNote = (id: string) => {
+    const account = accounts.find((a) => a.id === id)
+    if (account) {
+      setEditingAccount(account)
+    }
+    setActiveMenu(null)
+  }
+
+  const handleSaveNote = (id: string, newNote: string) => {
+    setAccounts((prev) => prev.map((acc) => (acc.id === id ? { ...acc, notes: newNote } : acc)))
+    if (infoAccount?.id === id) {
+      setInfoAccount({ ...infoAccount, notes: newNote })
+    }
+  }
+
+  const handleAddAccount = async (cookie: string, importedVia?: 'browser' | 'cookie' | 'cookielist') => {
+    try {
+      const cookieValue = cookie.trim()
+      const expectedStart =
+        '_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_'
+
+      let actualCookieValue = cookieValue
+      const match = cookieValue.match(/\.ROBLOSECURITY=([^;]+)/)
+      if (match) {
+        actualCookieValue = match[1]
+      }
+
+      if (!actualCookieValue.startsWith(expectedStart)) {
+        showNotification(
+          'Invalid cookie format. The cookie must start with the Roblox security warning.',
+          'error'
+        )
+        return
+      }
+
+      const data = await window.api.validateCookie(cookie)
+
+      if (accounts.some((acc) => acc.id === data.id.toString())) {
+        showNotification('Account already added!', 'warning')
+        return
+      }
+
+      const avatarUrl = await window.api.getAvatarUrl(data.id.toString())
+
+      let status = AccountStatus.Offline
+      try {
+        const statusData = await window.api.getAccountStatus(actualCookieValue)
+        if (statusData) {
+          status = mapPresenceToStatus(statusData.userPresenceType)
+        }
+      } catch (e) {
+        console.warn('Failed to fetch account status:', e instanceof Error ? e.message : String(e))
+      }
+
+      const newAccount: Account = {
+        id: data.id.toString(),
+        displayName: data.displayName,
+        username: data.name,
+        userId: data.id.toString(),
+        cookie: actualCookieValue,
+        status: status,
+        notes: importedVia === 'browser' ? 'Added via browser login' : 'Imported via cookie',
+        importedVia: importedVia || 'cookie',
+        avatarUrl: avatarUrl,
+        lastActive: isActiveStatus(status) ? new Date().toISOString() : '',
+        robuxBalance: 0,
+        friendCount: 0,
+        followerCount: 0,
+        followingCount: 0
+      }
+
+      const isFirstAccount = accounts.length === 0
+      addAccount(newAccount)
+
+      if (isFirstAccount) {
+        updateSettings({ primaryAccountId: newAccount.id })
+      }
+
+      closeModal('addAccount')
+      showNotification(`Successfully added account: ${newAccount.displayName}`, 'success')
+      } catch (error) {
+        console.error('Failed to add account:', error instanceof Error ? error.message : String(error))
+      showNotification('Failed to add account. Please check the cookie and try again.', 'error')
+    }
+  }
+
+  if (!isInitialized || isLoadingAccounts || isLoadingSettings) {
+    return (
+      <div className="flex h-screen w-full bg-[var(--color-app-bg)] text-[var(--color-text-muted)] font-sans">
+        <LoadingSpinnerFullPage label="Loading..." />
+      </div>
+    )
+  }
+
+  return (
+    <div
+      id="app-container"
+      className={`flex h-screen w-full bg-[var(--color-app-bg)] text-[var(--color-text-muted)] font-sans overflow-hidden overflow-x-hidden selection:bg-[var(--accent-color-soft)] selection:text-[var(--color-text-primary)] ${settings.privacyMode ? 'privacy-mode' : ''}`}
+    >
+        {/* Sidebar */}
+      <Sidebar
+        sidebarWidth={sidebarWidth}
+        isResizing={isResizing}
+        sidebarRef={sidebarRef}
+        onResizeStart={() => setIsResizing(true)}
+        selectedAccount={selectedAccount}
+        showProfileCard={settings.showSidebarProfileCard}
+        privacyMode={settings.privacyMode}
+        tabOrder={sidebarTabOrder}
+        hiddenTabs={sidebarHiddenTabs}
+      />
+
+      {/* Main Content Wrapper */}
+      <main className="flex-1 flex flex-col min-w-0 bg-[var(--color-surface)] h-full relative overflow-hidden text-[var(--color-text-secondary)]" style={{ zIndex: 3 }}>
+        {/* Title Bar spacer */}
+        <div
+          className="h-[45px] bg-[var(--color-titlebar)] flex-shrink-0 w-full border-b border-[var(--color-border)] flex items-center justify-end"
+          style={
+            {
+              WebkitAppRegion: 'drag',
+              paddingRight: isMac ? '16px' : '138px'
+            } as React.CSSProperties
+          }
+        >
+          {/* Search and Notification Bell */}
+          <div
+            className="flex items-center mr-2 gap-2"
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                openCommandPalette()
+              }}
+              className="relative p-2 rounded-md transition-all hover:bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+              title="Search (Ctrl+K)"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+            <NotificationTray onOpenUserProfile={handleCommandPaletteViewProfile} />
+            {!isMac && <div className="w-px h-5 bg-[var(--color-border)] mx-2" />}
+          </div>
+        </div>
+        {/* Tab panels - conditional rendering for performance */}
+        <div className="flex-1 flex flex-col h-full min-h-0 w-full relative tab-transition-surface">
+          {activeTab === 'Accounts' && (
+            <AccountsTab
+              accounts={accounts}
+              onAccountsChange={setAccounts}
+              allowMultipleInstances={multiInstanceAllowed}
+              privacyMode={settings.privacyMode}
+            />
+          )}
+
+          {activeTab === 'Profile' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              {selectedAccount ? (
+                <ProfileTab
+                  account={selectedAccount}
+                  privacyMode={settings.privacyMode}
+                  onJoinGame={handleFriendJoin}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)]">
+                  <p>Select an account to view profile</p>
+                </div>
+              )}
+            </Suspense>
+          )}
+
+          {activeTab === 'News' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <NewsTab />
+            </Suspense>
+          )}
+
+          {activeTab === 'Friends' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <FriendsTab selectedAccount={selectedAccount} onFriendJoin={handleFriendJoin} />
+            </Suspense>
+          )}
+
+          {activeTab === 'Groups' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <GroupsTab selectedAccount={selectedAccount} />
+            </Suspense>
+          )}
+
+          {activeTab === 'Games' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <GamesTab onGameSelect={setSelectedGame} />
+            </Suspense>
+          )}
+
+          {activeTab === 'Catalog' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <CatalogTab
+                onItemSelect={handleCommandPaletteViewAccessory}
+                onCreatorSelect={(creatorId) => setQuickProfileUserId(String(creatorId))}
+                cookie={accounts.find((a) => a.cookie)?.cookie}
+              />
+            </Suspense>
+          )}
+
+          {activeTab === 'Inventory' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <InventoryTab account={selectedAccount} />
+            </Suspense>
+          )}
+
+          {activeTab === 'Transactions' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <TransactionsTab account={selectedAccount} />
+            </Suspense>
+          )}
+
+          {activeTab === 'Logs' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <LogsTab privacyMode={settings.privacyMode} />
+            </Suspense>
+          )}
+
+          {activeTab === 'Avatar' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <AvatarTab account={selectedAccount} />
+            </Suspense>
+          )}
+
+          {activeTab === 'Install' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <InstallTab />
+            </Suspense>
+          )}
+
+          {activeTab === 'Executor' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <ExecutorTab />
+            </Suspense>
+          )}
+
+          {activeTab === 'Watcher' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <WatcherTab />
+            </Suspense>
+          )}
+
+          {activeTab === 'Settings' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <SettingsTab
+                accounts={accounts}
+                settings={settings}
+                onUpdateSettings={updateSettings}
+              />
+            </Suspense>
+          )}
+
+          {activeTab === 'AccountSettings' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <AccountSettingsTab account={selectedAccount} privacyMode={settings.privacyMode} />
+            </Suspense>
+          )}
+        </div>
+      </main>
+
+      {/* Global Modals */}
+      <JoinModal
+        isOpen={modals.join}
+        onClose={() => closeModal('join')}
+        onLaunch={handleLaunch}
+        onOpenBrowsers={handleOpenBrowsers}
+        onGetCookies={handleGetCookies}
+        selectedCount={selectedIds.size}
+      />
+
+      <AddAccountModal
+        isOpen={modals.addAccount}
+        onClose={() => closeModal('addAccount')}
+        onAdd={handleAddAccount}
+      />
+
+      <EditNoteModal
+        isOpen={!!editingAccount}
+        onClose={() => setEditingAccount(null)}
+        onSave={handleSaveNote}
+        account={editingAccount}
+        privacyMode={settings.privacyMode}
+      />
+
+      <Suspense fallback={null}>
+        <UniversalProfileModal
+          isOpen={!!infoAccount}
+          onClose={() => setInfoAccount(null)}
+          userId={infoAccount?.userId || null}
+          selectedAccount={infoAccount}
+          privacyMode={settings.privacyMode}
+          initialData={{
+            name: infoAccount?.username,
+            displayName: infoAccount?.displayName,
+            status: infoAccount?.status,
+            headshotUrl: infoAccount?.avatarUrl
+          }}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <GameDetailsModal
+          isOpen={!!selectedGame}
+          onClose={() => setSelectedGame(null)}
+          onLaunch={handleLaunch}
+          game={selectedGame}
+          account={selectedAccount || accounts.find((a) => a.cookie) || null}
+        />
+      </Suspense>
+
+      {/* Browser Custom URL Dialog */}
+      <AnimatePresence>
+        {showBrowserCustomDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-40"
+            onClick={() => setShowBrowserCustomDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[var(--color-surface-strong)] border border-[var(--color-border)] rounded-lg p-6 w-96 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-lg font-semibold mb-4 text-[var(--color-text-primary)]">Open Link</h2>
+              <input
+                type="text"
+                value={browserCustomUrl}
+                onChange={(e) => setBrowserCustomUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleBrowserCustomUrlSubmit()
+                  }
+                }}
+                placeholder="Enter URL (e.g., roblox.com or https://example.com)"
+                className="w-full px-3 py-2 border border-[var(--color-border)] rounded-md bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] mb-4"
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowBrowserCustomDialog(false)
+                    setBrowserCustomUrl('')
+                    setBrowserCustomAccountId(null)
+                  }}
+                  className="px-4 py-2 rounded-md border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBrowserCustomUrlSubmit}
+                  disabled={!browserCustomUrl.trim()}
+                  className="px-4 py-2 rounded-md bg-[var(--accent-color)] text-[var(--accent-color-foreground)] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Open
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <InstanceSelectionModal
+        isOpen={modals.instanceSelection}
+        onClose={() => {
+          closeModal('instanceSelection')
+          setPendingLaunchConfig(null)
+        }}
+        onSelect={handleInstanceSelect}
+        installations={availableInstallations}
+      />
+
+      <Suspense fallback={null}>
+        <UniversalProfileModal
+          isOpen={!!quickProfileUserId}
+          onClose={() => setQuickProfileUserId(null)}
+          userId={quickProfileUserId}
+          selectedAccount={accounts.find((a) => a.cookie) || null}
+          privacyMode={settings.privacyMode}
+          initialData={quickProfileUserId ? { userId: quickProfileUserId } : {}}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <AccessoryDetailsModal
+          isOpen={!!commandPaletteAccessory}
+          onClose={() => setCommandPaletteAccessory(null)}
+          assetId={commandPaletteAccessory?.id || null}
+          account={accounts.find((a) => a.cookie) || null}
+          initialData={
+            commandPaletteAccessory
+              ? {
+                name: commandPaletteAccessory.name,
+                imageUrl: commandPaletteAccessory.imageUrl || ''
+              }
+              : undefined
+          }
+        />
+      </Suspense>
+
+      {/* Command Palette */}
+      <AnimatePresence>
+        {isCommandPaletteOpen && (
+          <Suspense fallback={null}>
+            <ErrorBoundary>
+              <CommandPalette
+                onViewProfile={handleCommandPaletteViewProfile}
+                onLaunchGame={handleCommandPaletteLaunchGame}
+                onViewAccessory={handleCommandPaletteViewAccessory}
+              />
+            </ErrorBoundary>
+          </Suspense>
+        )}
+      </AnimatePresence>
+
+      {/* Context Menu */}
+      <ContextMenu
+        activeMenu={activeMenu}
+        accounts={accounts}
+        onViewDetails={setInfoAccount}
+        onEditNote={handleEditNote}
+        onReauth={handleReauth}
+        onOpenBrowserHome={handleOpenBrowserHome}
+        onOpenBrowserCustom={handleOpenBrowserCustom}
+        onGetCookie={handleGetCookie}
+        onRemove={handleIndividualRemove}
+        onClose={() => setActiveMenu(null)}
+      />
+
+      <AlertDialog
+        isOpen={removeAccountOpen}
+        onClose={() => {
+          setRemoveAccountOpen(false)
+          setRemoveAccountId(null)
+          setRemoveMultipleCount(0)
+        }}
+        title={removeAccountId ? 'Remove Account' : `Remove ${removeMultipleCount} Accounts`}
+        message={
+          removeAccountId
+            ? 'Are you sure you want to remove this account? This action cannot be undone.'
+            : `Are you sure you want to remove ${removeMultipleCount} account${removeMultipleCount !== 1 ? 's' : ''}? This action cannot be undone.`
+        }
+        type="confirm"
+        confirmText="Remove"
+        cancelText="Cancel"
+        onConfirm={() => {
+          if (removeAccountId) {
+            // Single account removal
+            setAccounts((prev) => prev.filter((acc) => acc.id !== removeAccountId))
+            if (selectedIds.has(removeAccountId)) {
+              const newSet = new Set(selectedIds)
+              newSet.delete(removeAccountId)
+              setSelectedIds(newSet)
+            }
+          } else if (removeMultipleCount > 0) {
+            // Multiple accounts removal
+            setAccounts((prev) => prev.filter((acc) => !selectedIds.has(acc.id)))
+            setSelectedIds(new Set())
+          }
+          setRemoveAccountId(null)
+          setRemoveMultipleCount(0)
+        }}
+        isDangerous
+      />
+
+      {/* Snackbar Notifications (replaces NotificationProvider) */}
+      <SnackbarContainer />
+
+      {/* PIN Lock Screen Overlay */}
+      <AnimatePresence>
+        {hasCompletedOnboarding && !isAppUnlocked && <PinLockScreen onUnlock={handlePinUnlock} />}
+      </AnimatePresence>
+
+      {/* Onboarding Screen Overlay */}
+      <AnimatePresence>{!hasCompletedOnboarding && <OnboardingScreen />}</AnimatePresence>
+
+      {/* Theme Effects - Particle engine for visual effects */}
+      <ThemeEffects />
+    </div>
+  )
+}
+
+export default App
