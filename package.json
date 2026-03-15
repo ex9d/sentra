@@ -24,7 +24,6 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "@keyauthjs/client": "*",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
     "@ryuziii/discord-rpc": "^1.0.1-rc.1",
@@ -49,6 +48,7 @@
     "lucide-react": "^0.554.0",
     "lz4js": "^0.2.0",
     "multithreading": "^0.3.37",
+    "playwright": "^1.58.2",
     "react-syntax-highlighter": "^16.1.0",
     "react-virtuoso": "^4.16.1",
     "roblox-bat": "^0.6.0",

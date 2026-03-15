@@ -35,7 +35,7 @@ export class RobloxFriendService {
       created: z.string().optional()
     })
 
-    const [followers, following, friends, userInfo] = await Promise.all([
+    const results = await Promise.allSettled([
       request(countSchema, {
         url: `https://friends.roblox.com/v1/users/${userId}/followers/count`,
         cookie
@@ -51,14 +51,23 @@ export class RobloxFriendService {
       request(userInfoSchema, { url: `https://users.roblox.com/v1/users/${userId}`, cookie })
     ])
 
+    const getResult = <T,>(result: PromiseSettledResult<T>, defaultValue: T): T => {
+      return result.status === 'fulfilled' ? result.value : defaultValue
+    }
+
+    const followers = getResult(results[0], { count: 0 })
+    const following = getResult(results[1], { count: 0 })
+    const friends = getResult(results[2], { count: 0 })
+    const userInfo = getResult(results[3], { name: 'Unknown', displayName: 'Unknown' })
+
     return {
-      followerCount: followers.count,
-      followingCount: following.count,
-      friendCount: friends.count,
-      description: userInfo.description,
-      created: userInfo.created,
-      username: userInfo.name,
-      displayName: userInfo.displayName,
+      followerCount: followers?.count ?? 0,
+      followingCount: following?.count ?? 0,
+      friendCount: friends?.count ?? 0,
+      description: userInfo?.description,
+      created: userInfo?.created,
+      username: userInfo?.name ?? 'Unknown',
+      displayName: userInfo?.displayName ?? 'Unknown',
       userId: userId
     }
   }

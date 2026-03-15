@@ -1,10 +1,12 @@
-import { X, AlertCircle, RotateCw, XCircle } from 'lucide-react'
+import { X, AlertCircle, RotateCw, XCircle, Lock } from 'lucide-react'
 import { WatcherSession } from '../hooks/useWatcher'
 
 interface SessionsListProps {
   sessions: WatcherSession[]
   onRemoveSession: (sessionId: string) => void
   onRelaunchSession: (session: WatcherSession) => void
+  onJoinSession?: (session: WatcherSession) => void
+  onJoinPrivateServer?: (session: WatcherSession) => void
   onCloseAllSessions?: () => void
 }
 
@@ -15,6 +17,8 @@ export default function SessionsList({
   sessions,
   onRemoveSession,
   onRelaunchSession,
+  onJoinSession,
+  onJoinPrivateServer,
   onCloseAllSessions
 }: SessionsListProps) {
   const getStatusBg = (status: string) => {
@@ -121,8 +125,26 @@ export default function SessionsList({
               )}
             </div>
 
-            {/* Remove button */}
+            {/* Remove and Action buttons */}
             <div className="absolute bottom-2 right-2 flex gap-1">
+              {session.status === 'running' && onJoinSession && (
+                <button
+                  onClick={() => onJoinSession(session)}
+                  className="px-2 py-1 rounded text-xs font-medium bg-blue-500/30 hover:bg-blue-500/50 border border-blue-500/50 transition-colors text-blue-300 hover:text-blue-200"
+                  title="Where to join"
+                >
+                  Join
+                </button>
+              )}
+              {session.status === 'running' && onJoinPrivateServer && (
+                <button
+                  onClick={() => onJoinPrivateServer(session)}
+                  className="p-1 rounded hover:bg-emerald-500/30 transition-colors text-emerald-400 hover:text-emerald-300"
+                  title="Join private server"
+                >
+                  <Lock className="w-4 h-4" />
+                </button>
+              )}
               {session.status === 'crashed' && (
                 <button
                   onClick={() => onRelaunchSession(session)}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Shirt,
@@ -6,18 +6,13 @@ import {
   Copy,
   Box,
   ArrowLeft,
-  Loader2,
-  Sparkles,
-  TrendingUp,
-  Flame,
-  Star,
-  Music
+  Loader2
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { Account } from '@renderer/types'
-import UserListModal from '@renderer/components/Modals/UserListModal'
-import AccessoryDetailsModal from '@renderer/features/avatar/Modals/AccessoryDetailsModal'
-import PlayerInventorySheet from '@renderer/features/inventory/Modals/PlayerInventorySheet'
+const UserListModal = lazy(() => import('@renderer/components/Modals/UserListModal'))
+const AccessoryDetailsModal = lazy(() => import('@renderer/features/avatar/Modals/AccessoryDetailsModal'))
+const PlayerInventorySheet = lazy(() => import('@renderer/features/inventory/Modals/PlayerInventorySheet'))
 import {
   Dialog,
   DialogContent,
@@ -44,88 +39,13 @@ import { ProfileHeader } from './components/ProfileHeader'
 import { ProfileStatsBento } from './components/ProfileStatsBento'
 import { FriendsSection } from './components/FriendsSection'
 import { GroupsSection } from './components/GroupsSection'
-import GroupDetailsModal from '@renderer/features/groups/Modals/GroupDetailsModal'
+const GroupDetailsModal = lazy(() => import('@renderer/features/groups/Modals/GroupDetailsModal'))
 import { CollectionsSection } from './components/CollectionsSection'
 import { BadgesSection } from './components/BadgesSection'
 import { ExpandedAvatarModal } from './components/ExpandedAvatarModal'
 import { TruncatedTextWithTooltip } from './components/TruncatedTextWithTooltip'
 import { ProfileFloatingToolbar } from './components/ProfileFloatingToolbar'
-import { useRolimonsItem } from '@renderer/hooks/queries'
-
-const SOUND_HAT_IDS = [24114402, 305888394, 24112667, 33070696]
-
-const ItemTagBadges: React.FC<{ assetId: number }> = ({ assetId }) => {
-  const rolimonsItem = useRolimonsItem(assetId)
-  const isLimited = !!rolimonsItem
-  const isSoundHat = SOUND_HAT_IDS.includes(assetId)
-
-  if (!isLimited && !isSoundHat) return null
-
-  return (
-    <div className="absolute flex flex-col gap-1.5 z-20 top-2 left-2">
-      {isLimited && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 backdrop-blur-md transition-all hover:scale-105 shadow-sm cursor-default">
-              <Sparkles size={13} strokeWidth={2.5} className="shrink-0" />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="font-bold text-xs">
-            Limited
-          </TooltipContent>
-        </Tooltip>
-      )}
-      {rolimonsItem?.isProjected && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 backdrop-blur-md transition-all hover:scale-105 shadow-sm cursor-default">
-              <TrendingUp size={13} strokeWidth={2.5} className="shrink-0" />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="font-bold text-xs">
-            Projected
-          </TooltipContent>
-        </Tooltip>
-      )}
-      {rolimonsItem?.isHyped && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 backdrop-blur-md transition-all hover:scale-105 shadow-sm cursor-default">
-              <Flame size={13} strokeWidth={2.5} className="shrink-0" />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="font-bold text-xs">
-            Hyped
-          </TooltipContent>
-        </Tooltip>
-      )}
-      {rolimonsItem?.isRare && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-pink-500/10 text-pink-400 border border-pink-500/20 hover:bg-pink-500/20 backdrop-blur-md transition-all hover:scale-105 shadow-sm cursor-default">
-              <Star size={13} strokeWidth={2.5} className="shrink-0" />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="font-bold text-xs">
-            Rare
-          </TooltipContent>
-        </Tooltip>
-      )}
-      {isSoundHat && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 backdrop-blur-md transition-all hover:scale-105 shadow-sm cursor-default">
-              <Music size={13} strokeWidth={2.5} className="shrink-0" />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="font-bold text-xs">
-            Sound Hat
-          </TooltipContent>
-        </Tooltip>
-      )}
-    </div>
-  )
-}
+import { ItemTagBadges } from './components/ItemTagBadges'
 
 export interface ProfileViewProps {
   userId: string | number
@@ -663,38 +583,42 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
         </DialogContent>
       </Dialog>
 
-      <UserListModal
-        isOpen={userListModal.isOpen}
-        onClose={() => setUserListModal((prev) => ({ ...prev, isOpen: false }))}
-        title={userListModal.title}
-        type={userListModal.type}
-        userId={userId}
-        requestCookie={requestCookie}
-        onSelectUser={(id) => {
-          setUserListModal((prev) => ({ ...prev, isOpen: false }))
-          onSelectProfile?.(id)
-        }}
-      />
+      <Suspense fallback={null}>
+        <UserListModal
+          isOpen={userListModal.isOpen}
+          onClose={() => setUserListModal((prev) => ({ ...prev, isOpen: false }))}
+          title={userListModal.title}
+          type={userListModal.type}
+          userId={userId}
+          requestCookie={requestCookie}
+          onSelectUser={(id) => {
+            setUserListModal((prev) => ({ ...prev, isOpen: false }))
+            onSelectProfile?.(id)
+          }}
+        />
+      </Suspense>
 
-      <AccessoryDetailsModal
-        isOpen={!!selectedAccessory}
-        onClose={() => setSelectedAccessory(null)}
-        assetId={selectedAccessory?.id || null}
-        account={
-          {
-            cookie: requestCookie,
-            userId: accountUserId || (isOwnAccount ? userId : undefined)
-          } as Account
-        }
-        initialData={
-          selectedAccessory
-            ? {
-                name: selectedAccessory.name,
-                imageUrl: selectedAccessory.imageUrl
-              }
-            : undefined
-        }
-      />
+      <Suspense fallback={null}>
+        <AccessoryDetailsModal
+          isOpen={!!selectedAccessory}
+          onClose={() => setSelectedAccessory(null)}
+          assetId={selectedAccessory?.id || null}
+          account={
+            {
+              cookie: requestCookie,
+              userId: accountUserId || (isOwnAccount ? userId : undefined)
+            } as Account
+          }
+          initialData={
+            selectedAccessory
+              ? {
+                  name: selectedAccessory.name,
+                  imageUrl: selectedAccessory.imageUrl
+                }
+              : undefined
+          }
+        />
+      </Suspense>
 
       <ExpandedAvatarModal
         isOpen={isAvatarExpanded}
@@ -776,22 +700,26 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
           document.body
         )}
 
-      <PlayerInventorySheet
-        isOpen={isInventoryOpen}
-        onClose={() => setIsInventoryOpen(false)}
-        userId={userIdNum}
-        username={profile?.username || profile?.displayName || String(userId)}
-        cookie={requestCookie}
-      />
+      <Suspense fallback={null}>
+        <PlayerInventorySheet
+          isOpen={isInventoryOpen}
+          onClose={() => setIsInventoryOpen(false)}
+          userId={userIdNum}
+          username={profile?.username || profile?.displayName || String(userId)}
+          cookie={requestCookie}
+        />
+      </Suspense>
 
-      <GroupDetailsModal
-        isOpen={!!selectedGroupId}
-        onClose={() => setSelectedGroupId(null)}
-        groupId={selectedGroupId}
-        selectedAccount={{ cookie: requestCookie } as Account}
-        userRole={groups.find((g) => g.group.id === selectedGroupId)?.role}
-        onViewProfile={onSelectProfile}
-      />
+      <Suspense fallback={null}>
+        <GroupDetailsModal
+          isOpen={!!selectedGroupId}
+          onClose={() => setSelectedGroupId(null)}
+          groupId={selectedGroupId}
+          selectedAccount={{ cookie: requestCookie } as Account}
+          userRole={groups.find((g) => g.group.id === selectedGroupId)?.role}
+          onViewProfile={onSelectProfile}
+        />
+      </Suspense>
     </div>
   )
 }

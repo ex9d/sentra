@@ -159,8 +159,18 @@ export function useCatalogThumbnails(
 export function useCatalogSearchSuggestions(prefix: string) {
   return useQuery({
     queryKey: queryKeys.catalog.suggestions(prefix),
-    queryFn: () => window.api.getCatalogSearchSuggestions(prefix),
+    queryFn: async () => {
+      try {
+        const result = await window.api.getCatalogSearchSuggestions(prefix)
+        return Array.isArray(result) ? result : []
+      } catch (err) {
+        console.warn('[useCatalogSearch] Failed to fetch suggestions:', err)
+        return []
+      }
+    },
     enabled: prefix.length >= 2,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+    retryDelay: 500
   })
 }

@@ -94,7 +94,7 @@ const CatalogSearchBar = forwardRef<CatalogSearchBarRef, CatalogSearchBarProps>(
       return () => clearTimeout(timer)
     }, [query])
 
-    const { data: suggestions = [] } = useCatalogSearchSuggestions(debouncedQuery)
+    const { data: suggestions = [], isLoading, error } = useCatalogSearchSuggestions(debouncedQuery)
 
     useImperativeHandle(ref, () => ({
       clear: () => {
@@ -136,7 +136,7 @@ const CatalogSearchBar = forwardRef<CatalogSearchBarRef, CatalogSearchBarProps>(
         />
 
         <AnimatePresence>
-          {showSuggestions && suggestions.length > 0 && (
+          {showSuggestions && suggestions && suggestions.length > 0 && !isLoading && (
             <motion.div
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}

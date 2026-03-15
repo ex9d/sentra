@@ -4,6 +4,7 @@ import { ProcessMonitor } from './ProcessMonitor'
 import { logMonitor } from './LogMonitor'
 import { WatcherSession, WatcherEvent, WatcherConfig, LaunchConfig } from './types'
 import { RobloxLauncherService } from '../install/LauncherService'
+import { RobloxInstallService } from '../install/InstallService'
 import { storageService } from '../system/StorageService'
 
 /**
@@ -729,6 +730,216 @@ export class WatcherService {
     } catch (error: any) {
       console.error('[WatcherService] Error auto-tracking launched game:', error)
       return null
+    }
+  }
+
+  /**
+   * Join a private server with the specified account
+   */
+  async joinPrivateServer(accountId: string, jobId: string, placeId: number): Promise<boolean> {
+    try {
+      console.log(`[WatcherService] Joining private server: placeId=${placeId}, jobId=${jobId}`)
+      
+      // Find account in storage
+      const accounts = storageService.getAccounts()
+      const account = accounts.find(acc => acc.id === accountId)
+      
+      if (!account || !account.cookie) {
+        console.error(`[WatcherService] Account not found or no cookie: ${accountId}`)
+        return false
+      }
+      
+      // Get active installation path
+      const installPath = await RobloxInstallService.getActiveInstallPath()
+      if (!installPath) {
+        console.error('[WatcherService] No active installation found')
+        return false
+      }
+      
+      // Launch game with private server jobId
+      const result = await RobloxLauncherService.launchGame(
+        account.cookie,
+        placeId,
+        jobId,
+        undefined,
+        installPath
+      )
+      
+      const success = result?.success === true
+      console.log(`[WatcherService] Private server join result: ${success}`)
+      
+      return success
+    } catch (error: any) {
+      console.error('[WatcherService] Error joining private server:', error)
+      return false
+    }
+  }
+
+  /**
+   * Join a public server/game
+   */
+  async joinGame(accountId: string, placeId: number): Promise<boolean> {
+    try {
+      console.log(`[WatcherService] Joining game: placeId=${placeId}`)
+      
+      // Find account in storage
+      const accounts = storageService.getAccounts()
+      const account = accounts.find(acc => acc.id === accountId)
+      
+      if (!account || !account.cookie) {
+        console.error(`[WatcherService] Account not found or no cookie: ${accountId}`)
+        return false
+      }
+      
+      // Get active installation path
+      const installPath = await RobloxInstallService.getActiveInstallPath()
+      if (!installPath) {
+        console.error('[WatcherService] No active installation found')
+        return false
+      }
+      
+      // Launch game without jobId (will join public server)
+      const result = await RobloxLauncherService.launchGame(
+        account.cookie,
+        placeId,
+        undefined,
+        undefined,
+        installPath
+      )
+      
+      const success = result?.success === true
+      console.log(`[WatcherService] Game join result: ${success}`)
+      
+      return success
+    } catch (error: any) {
+      console.error('[WatcherService] Error joining game:', error)
+      return false
+    }
+  }
+
+  async launchGameWithUrl(accountId: string, placeId: number, url: string): Promise<boolean> {
+    try {
+      console.log(`[WatcherService] Launching game with URL for placeId=${placeId}: ${url}`)
+      
+      // Find account in storage
+      const accounts = storageService.getAccounts()
+      const account = accounts.find(acc => acc.id === accountId)
+      
+      if (!account || !account.cookie) {
+        console.error(`[WatcherService] Account not found or no cookie: ${accountId}`)
+        return false
+      }
+      
+      // Get active installation path
+      const installPath = await RobloxInstallService.getActiveInstallPath()
+      if (!installPath) {
+        console.error('[WatcherService] No active installation found')
+        return false
+      }
+      
+      // Extract private server link code from URL
+      console.log(`[WatcherService] Attempting to extract link code from: "${url}"`)
+      const linkCodeMatch = url.match(/privateServerLinkCode=([^&]+)/)
+      console.log(`[WatcherService] Regex match result:`, linkCodeMatch)
+      
+      if (!linkCodeMatch || !linkCodeMatch[1]) {
+        console.error(`[WatcherService] Invalid private server link code format. Regex did not match.`)
+        console.error(`[WatcherService] URL: ${url}`)
+        console.error(`[WatcherService] Match result: ${linkCodeMatch}`)
+        return false
+      }
+      
+      const linkCode = decodeURIComponent(linkCodeMatch[1])
+      console.log(`[WatcherService] Extracted link code: ${linkCode}`)
+      
+      // Use the specialized private server launcher for better handling
+      try {
+        const result = await RobloxLauncherService.launchWithPrivateServerLink(
+          account.cookie,
+          placeId,
+          url,
+          installPath
+        )
+        
+        const success = result?.success === true
+        console.log(`[WatcherService] Private server launch result: ${success}`)
+        
+        return success
+      } catch (error: any) {
+        // Fallback to regular launchGame if specialized launcher fails
+        console.warn(`[WatcherService] Private server launcher failed, falling back to launchGame: ${error.message}`)
+        
+        const result = await RobloxLauncherService.launchGame(
+          account.cookie,
+          placeId,
+          linkCode,
+          undefined,
+          installPath
+        )
+        
+        const success = result?.success === true
+        console.log(`[WatcherService] Game launch result (fallback): ${success}`)
+        
+        return success
+      }
+    } catch (error: any) {
+      console.error('[WatcherService] Error launching game with URL:', error)
+      return false
+    }
+  }
+
+  /**
+   * Rejoin a watched session's private server
+   */
+  async rejoinPrivateServer(sessionId: string, jobId: string): Promise<boolean> {
+    try {
+      const session = this.sessionManager.getSessionById(sessionId)
+      if (!session) {
+        console.error(`[WatcherService] Session not found: ${sessionId}`)
+        return false
+      }
+
+      console.log(`[WatcherService] Rejoining private server for ${session.username}`)
+      
+      // Find account cookie
+      const accounts = storageService.getAccounts()
+      const account = accounts.find(acc => acc.id === session.accountId)
+      
+      if (!account || !account.cookie) {
+        console.error(`[WatcherService] Account not found or no cookie for session: ${sessionId}`)
+        return false
+      }
+      
+      // Get active installation path
+      const installPath = await RobloxInstallService.getActiveInstallPath()
+      if (!installPath) {
+        console.error('[WatcherService] No active installation found')
+        return false
+      }
+      
+      // Launch with jobId
+      const result = await RobloxLauncherService.launchGame(
+        account.cookie,
+        session.placeId,
+        jobId,
+        undefined,
+        installPath
+      )
+      
+      const success = result?.success === true
+      if (success) {
+        this.logEvent({
+          type: 'session-restarted',
+          sessionId: session.id,
+          username: session.username,
+          message: `Rejoined private server with jobId: ${jobId}`
+        })
+      }
+      
+      return success
+    } catch (error: any) {
+      console.error('[WatcherService] Error rejoining private server:', error)
+      return false
     }
   }
 

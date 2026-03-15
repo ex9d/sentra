@@ -88,11 +88,15 @@ const AvatarTab = lazy(() => import('./features/avatar/index'))
 const InstallTab = lazy(() => import('./features/install/index'))
 const ExecutorTab = lazy(() => import('./features/executor/index'))
 const WatcherTab = lazy(() => import('./features/watcher/index'))
+const MacroTab = lazy(() => import('./features/macro/index'))
+const SniperTab = lazy(() => import('./features/sniper/index'))
+const GeneratorTab = lazy(() => import('./features/generator/index'))
+const ProxyTab = lazy(() => import('./features/proxy/index'))
 const NewsTab = lazy(() => import('./features/news/index'))
 const AccountSettingsTab = lazy(() => import('./features/accountSettings/index'))
 const GameDetailsModal = lazy(() => import('./features/games/Modals/GameDetailsModal'))
 const AccessoryDetailsModal = lazy(() => import('./features/avatar/Modals/AccessoryDetailsModal'))
-import UniversalProfileModal from './components/Modals/UniversalProfileModal'
+const UniversalProfileModal = lazy(() => import('./components/Modals/UniversalProfileModal'))
 const CommandPalette = lazy(() => import('./features/command-palette/index'))
 
 interface JoinConfig {
@@ -127,8 +131,8 @@ const App: React.FC = () => {
 
   const handlePinUnlock = useCallback(() => {
     setAppUnlocked(true)
-    queryClient.invalidateQueries({ queryKey: queryKeys.accounts.list() })
-  }, [queryClient, setAppUnlocked])
+    // Don't invalidate queries - the accounts were already set in PinLockScreen's cache update
+  }, [setAppUnlocked])
 
   const refreshRecentlyPlayed = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: queryKeys.games.recentlyPlayed() })
@@ -1058,6 +1062,32 @@ const App: React.FC = () => {
             </Suspense>
           )}
 
+          {/* Macro page disabled for now */}
+          {/* {activeTab === 'Macro' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <MacroTab />
+            </Suspense>
+          )} */}
+
+          {/* Sniper page disabled for now */}
+          {/* {activeTab === 'Sniper' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <SniperTab />
+            </Suspense>
+          )} */}
+
+          {activeTab === 'Generator' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <GeneratorTab />
+            </Suspense>
+          )}
+
+          {activeTab === 'Proxy' && (
+            <Suspense fallback={<LoadingSpinnerFullPage />}>
+              <ProxyTab />
+            </Suspense>
+          )}
+
           {activeTab === 'Settings' && (
             <Suspense fallback={<LoadingSpinnerFullPage />}>
               <SettingsTab
@@ -1081,8 +1111,6 @@ const App: React.FC = () => {
         isOpen={modals.join}
         onClose={() => closeModal('join')}
         onLaunch={handleLaunch}
-        onOpenBrowsers={handleOpenBrowsers}
-        onGetCookies={handleGetCookies}
         selectedCount={selectedIds.size}
       />
 
@@ -1198,7 +1226,7 @@ const App: React.FC = () => {
           userId={quickProfileUserId}
           selectedAccount={accounts.find((a) => a.cookie) || null}
           privacyMode={settings.privacyMode}
-          initialData={quickProfileUserId ? { userId: quickProfileUserId } : {}}
+          initialData={null}
         />
       </Suspense>
 

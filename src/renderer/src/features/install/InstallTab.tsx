@@ -405,10 +405,6 @@ const InstallTab: React.FC = () => {
             setModalInitialTab('auto')
             setShowNewModal(true)
           }}
-          onNewCustom={() => {
-            setModalInitialTab('custom')
-            setShowNewModal(true)
-          }}
           isMac={isMac}
         />
 

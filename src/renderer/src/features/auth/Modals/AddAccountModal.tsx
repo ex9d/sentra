@@ -109,20 +109,6 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
     }
   }
 
-  const handleCookieSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!cookie.trim() || isLoading) return
-
-    setIsLoading(true)
-    try {
-      await onAdd(cookie, 'cookie')
-      setCookie('')
-      onClose() // Close on success
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleBulkImport = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!bulkCookies.trim() || isLoading) return
@@ -158,6 +144,20 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
     }
   }
 
+  const handleCookieSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!cookie.trim() || isLoading) return
+
+    setIsLoading(true)
+    try {
+      await onAdd(cookie, 'cookie')
+      setCookie('')
+      onClose() // Close on success
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleGetCookie = async () => {
     if (isLoading) return
     try {
@@ -176,7 +176,6 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
       setTimeout(() => setCopiedCookie(false), 2000)
     }
   }
-
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>

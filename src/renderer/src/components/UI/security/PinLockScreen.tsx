@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, X, Delete, AlertTriangle } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@shared/queryKeys'
 
 interface PinLockScreenProps {
   onUnlock: () => void
 }
 
 const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
+  const queryClient = useQueryClient()
   const [pin, setPin] = useState<string[]>(Array(6).fill(''))
   const [error, setError] = useState<string | null>(null)
   const [shake, setShake] = useState(false)
@@ -73,6 +76,10 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         const result = await window.api.verifyPin(enteredPin)
 
         if (result.success) {
+          // If accounts were returned from backend, update the query cache
+          if (result.accounts) {
+            queryClient.setQueryData(queryKeys.accounts.list(), result.accounts)
+          }
           onUnlock()
         } else if (result.locked) {
           setIsLocked(true)
@@ -108,7 +115,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         setIsVerifying(false)
       }
     },
-    [onUnlock]
+    [onUnlock, queryClient]
   )
 
   // Verify PIN when all digits are entered

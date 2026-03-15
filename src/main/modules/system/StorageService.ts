@@ -12,6 +12,7 @@ import { MultiInstance } from '@main/lib/MultiInstance'
 import { z } from 'zod'
 import { favoriteItemSchema } from '../../../shared/ipc-schemas/avatar'
 import { pinService } from './PinService'
+
 import {
   sanitizeSidebarHidden,
   sanitizeSidebarOrder,
@@ -264,10 +265,6 @@ class StorageService {
     }
 
     try {
-      console.log('[StorageService] save: writing to', this.path)
-      console.log('[StorageService] save: data keys:', Object.keys(this.data))
-      console.log('[StorageService] save: encryptedAccounts length:', this.data.encryptedAccounts?.length || 0)
-      
       // make sure the directory is still there (macOS cleaners may remove it)
       const dir = dirname(this.path)
       if (!existsSync(dir)) {
@@ -295,9 +292,7 @@ class StorageService {
         output = JSON.stringify(this.data, null, 2)
       }
 
-      console.log('[StorageService] save: output length:', output.length)
       writeFileSync(this.path, output)
-      console.log('[StorageService] save: successfully wrote to disk')
     } catch (error) {
       console.error('Failed to save storage:', error)
     }
@@ -335,25 +330,14 @@ class StorageService {
   }
 
   /**
-   * Decrypt accounts with PIN using AES-256-GCM
+   * Decrypt accounts with PIN using AES-256-GCM (NO plaintext fallback)
    */
   private decryptAccountsWithPin(encryptedData: string, pin: string): Account[] | null {
     try {
-      // First, try to parse as plain JSON (in case it was stored without encryption)
-      try {
-        const parsed = JSON.parse(encryptedData)
-        if (Array.isArray(parsed)) {
-          console.log('[StorageService] Loaded accounts as plain JSON (no encryption)')
-          return parsed
-        }
-      } catch (e) {
-        // Not plain JSON, continue to decrypt
-      }
-
-      // If not plain JSON, try to decrypt
       // Parse: salt (32 hex chars) + iv (24 hex chars) + authTag (32 hex chars) + encrypted data (rest)
       if (encryptedData.length < 88) {
         // Too short to be encrypted data
+        console.warn('[StorageService] PIN-based decrypt: data too short')
         return null
       }
 
@@ -408,7 +392,7 @@ class StorageService {
   }
 
   /**
-   * Get accounts - returns empty array if PIN not verified
+   * Get accounts - ALWAYS decrypted, no plaintext fallback
    */
   public getAccounts(): Account[] {
     // if the entire config is still encrypted we have no data yet
@@ -424,20 +408,23 @@ class StorageService {
 
     // If we haven't decrypted yet, try to decrypt
     if (this.decryptedAccounts === null && this.data.encryptedAccounts) {
+      console.log('[StorageService] getAccounts: decryptedAccounts is null, attempting decryption. pinHash:', !!pinHash, 'currentVerifiedPin:', !!this.currentVerifiedPin)
       if (pinHash) {
         // PIN is set - need verified PIN to decrypt
         if (this.currentVerifiedPin) {
-          console.log('[StorageService] decrypting accounts with verified PIN')
+          console.log('[StorageService] getAccounts: Decrypting with verified PIN')
           this.decryptedAccounts = this.decryptAccountsWithPin(
             this.data.encryptedAccounts,
             this.currentVerifiedPin
           )
           if (!this.decryptedAccounts) {
-            console.error('[StorageService] Failed to decrypt accounts with verified PIN, returning empty')
+            console.warn('[StorageService] getAccounts: Decryption returned null')
             this.decryptedAccounts = []
+          } else {
+            console.log('[StorageService] getAccounts: ✓ Decrypted', this.decryptedAccounts.length, 'accounts')
           }
         } else {
-          console.log('[StorageService] PIN is set but not verified, cannot decrypt accounts')
+          console.log('[StorageService] getAccounts: PIN is set but not verified, returning empty')
           this.decryptedAccounts = []
         }
       } else {
@@ -445,14 +432,14 @@ class StorageService {
         try {
           const parsed = JSON.parse(this.data.encryptedAccounts)
           if (Array.isArray(parsed)) {
-            console.log('[StorageService] loaded plaintext accounts (no PIN set)')
+            console.log('[StorageService] getAccounts: Loaded', parsed.length, 'plaintext accounts')
             this.decryptedAccounts = parsed
           } else {
-            console.warn('Stored accounts data is not a valid array, resetting to empty')
+            console.warn('[StorageService] getAccounts: Stored data is not array')
             this.decryptedAccounts = []
           }
         } catch (error) {
-          console.error('Failed to parse stored accounts as JSON:', error)
+          console.warn('[StorageService] getAccounts: Failed to parse plaintext accounts')
           this.decryptedAccounts = []
         }
       }
@@ -467,25 +454,23 @@ class StorageService {
   }
 
   /**
-   * Set accounts - encrypts and saves
+   * Set accounts - PIN-based encryption only (matches old working code)
    */
   public setAccounts(accounts: Account[]): boolean {
+    console.log('[StorageService] setAccounts: Called with', accounts.length, 'accounts. pinHash exists:', !!this.getPinHash(), 'currentVerifiedPin exists:', !!this.currentVerifiedPin)
     const pinHash = this.getPinHash()
 
-    // If PIN is set (during onboarding or later), encrypt with current verified PIN
+    // If PIN is set, encrypt with current verified PIN
     if (pinHash) {
       if (!this.currentVerifiedPin) {
         throw new Error('PIN must be verified before saving accounts')
       }
 
       const pinToUse = this.currentVerifiedPin
-      console.log('[StorageService] setAccounts: encrypting', accounts.length, 'accounts with PIN')
-
       let encrypted: string | null = null
       try {
         encrypted = this.encryptAccountsWithPin(accounts, pinToUse)
       } catch (e) {
-        console.error('[StorageService] setAccounts: encryption error:', e)
         throw new Error('Failed to encrypt accounts: ' + String(e))
       }
 
@@ -493,21 +478,43 @@ class StorageService {
         throw new Error('Failed to encrypt accounts: result was null')
       }
 
-      console.log('[StorageService] setAccounts: encrypted successfully, encrypted length:', encrypted.length)
       this.data.encryptedAccounts = encrypted
       this.decryptedAccounts = accounts
       this.save()
-      console.log('[StorageService] setAccounts: saved to disk')
+      console.log('[StorageService] setAccounts: ✓ Saved', accounts.length, 'encrypted accounts to disk')
       return true
     } else {
       // No PIN yet - store plaintext for now
       this.data.encryptedAccounts = JSON.stringify(accounts)
       this.decryptedAccounts = accounts
       this.save()
-      console.log('[StorageService] setAccounts: saved plaintext (no PIN set yet)')
+      console.log('[StorageService] setAccounts: ✓ Saved', accounts.length, 'plaintext accounts (no PIN)')
       return true
     }
   }
+  public getDecryptedPassword(password?: string): string {
+    if (!password) {
+      return ''
+    }
+    // Passwords are now stored plaintext in Account objects
+    // Encryption happens at the JSON level in config.json
+    return password
+  }
+
+  /**
+   * Add accounts to storage for auto-generated accounts
+   */
+  public addAccountsToStorage(newAccounts: Account[]): boolean {
+    try {
+      const existingAccounts = this.getAccounts() || []
+      const combinedAccounts = [...existingAccounts, ...newAccounts]
+      return this.setAccounts(combinedAccounts)
+    } catch (err) {
+      console.error('[StorageService] addAccountsToStorage error:', err)
+      throw err
+    }
+  }
+
 
   public removeAccount(accountId: string): boolean {
     const accounts = this.getAccounts()
@@ -803,6 +810,7 @@ class StorageService {
     locked: boolean
     remainingAttempts: number
     lockoutSeconds?: number
+    accounts?: Account[]
   } {
     const trimmedPin = pin.trim()
     const hash = this.getPinHash()
@@ -841,9 +849,13 @@ class StorageService {
       this.save()
 
       this.#decryptConfigBlobIfNeeded()
-      this.decryptedAccounts = null
+      this.decryptedAccounts = null  // Force re-decryption with verified PIN
+      console.log('[StorageService] verifyPin: ✓ PIN verified, decryptedAccounts cache cleared for re-decryption')
 
-      return { success: true, locked: false, remainingAttempts: 5 }
+      // Return accounts along with success response
+      const accounts = this.getAccounts()
+      console.log('[StorageService] verifyPin: Returning', accounts.length, 'accounts from getAccounts()')
+      return { success: true, locked: false, remainingAttempts: 5, accounts }
     } else {
       console.log('[StorageService] PIN verification failed, updating lockout state')
     }

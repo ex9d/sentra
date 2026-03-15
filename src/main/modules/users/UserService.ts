@@ -132,7 +132,7 @@ export class RobloxUserService {
     const countSchema = z.object({ count: z.number() })
     const currencySchema = z.object({ robux: z.number() })
 
-    const [followers, following, friends, currency] = await Promise.all([
+    const results = await Promise.allSettled([
       request(countSchema, {
         url: `https://friends.roblox.com/v1/users/${userId}/followers/count`
       }),
@@ -146,11 +146,20 @@ export class RobloxUserService {
       })
     ])
 
+    const getResult = <T,>(result: PromiseSettledResult<T>, defaultValue: T): T => {
+      return result.status === 'fulfilled' ? result.value : defaultValue
+    }
+
+    const followers = getResult(results[0], { count: 0 })
+    const following = getResult(results[1], { count: 0 })
+    const friends = getResult(results[2], { count: 0 })
+    const currency = getResult(results[3], { robux: 0 })
+
     return {
-      followerCount: followers.count,
-      followingCount: following.count,
-      friendCount: friends.count,
-      robuxBalance: currency.robux,
+      followerCount: followers?.count ?? 0,
+      followingCount: following?.count ?? 0,
+      friendCount: friends?.count ?? 0,
+      robuxBalance: currency?.robux ?? 0,
       userId: userId
     }
   }

@@ -13,8 +13,13 @@ import { useActiveTab } from '@renderer/stores/useUIStore'
 export function useAccounts() {
   return useQuery({
     queryKey: queryKeys.accounts.list(),
-    queryFn: () => window.api.getAccounts(),
-    staleTime: Infinity // Accounts are managed locally, don't refetch
+    queryFn: async () => {
+      const result = await window.api.getAccounts()
+      // Ensure result is always an array
+      return Array.isArray(result) ? result : []
+    },
+    staleTime: Infinity, // Accounts are managed locally, don't refetch
+    initialData: [] // Default to empty array
   })
 }
 
@@ -80,16 +85,22 @@ export function useAccountsManager() {
   const setAccounts = useCallback(
     (newAccountsOrUpdater: Account[] | ((prev: Account[]) => Account[])) => {
       const currentAccounts = queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || []
+      // Ensure currentAccounts is always an array
+      const safeCurrentAccounts = Array.isArray(currentAccounts) ? currentAccounts : []
+      
       const newAccounts =
         typeof newAccountsOrUpdater === 'function'
-          ? newAccountsOrUpdater(currentAccounts)
+          ? newAccountsOrUpdater(safeCurrentAccounts)
           : newAccountsOrUpdater
 
+      // Ensure newAccounts is always an array
+      const safeNewAccounts = Array.isArray(newAccounts) ? newAccounts : []
+
       // Optimistically update cache immediately
-      queryClient.setQueryData(queryKeys.accounts.list(), newAccounts)
+      queryClient.setQueryData(queryKeys.accounts.list(), safeNewAccounts)
 
       // Persist to storage
-      saveAccounts(newAccounts)
+      saveAccounts(safeNewAccounts)
     },
     [queryClient, saveAccounts]
   )

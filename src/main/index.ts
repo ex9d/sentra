@@ -1,6 +1,5 @@
 /// <reference types="electron-vite/node" />
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import KeyAuthWrapper from './lib/KeyAuthWrapper'
 import { join } from 'path'
 import { existsSync, readFileSync } from 'fs'
 import { getDataFile } from './utils/paths'
@@ -15,11 +14,6 @@ const logPerf = (label: string) => {
 }
 
 let storageService: typeof import('./modules/system/StorageService').storageService
-let keyAuthClient: InstanceType<typeof KeyAuthWrapper> | null = null
-let keyAuthSessionId: string | null = null
-let keyAuthRetryTimer: NodeJS.Timeout | null = null
-let keyAuthRetryCount = 0
-const MAX_KEYAUTH_RETRIES = 3
 
 // Prevent multiple instances of the app from running (Windows-only, but harmless on other platforms)
 // This lock is essential for normal operation but can block app restart on Windows
@@ -32,8 +26,7 @@ if (!gotTheLock) {
   appLock = gotTheLock
 }
 
-// Export for use in other modules
-export { keyAuthClient }
+
 
 // Helper for gracefully handling app shutdown during updates
 export function gracefulShutdownForUpdate(): void {
@@ -127,138 +120,89 @@ app.whenReady().then(async () => {
   const mainWindow = createWindow()
   logPerf('window-created')
 
-  const loadModules = async () => {
-    const modules = await Promise.all([
-      import('./modules/core/RobloxHandler'),
-      import('./modules/system/StorageController'),
-      import('./modules/system/LogsController'),
-      import('./modules/updater/UpdaterController'),
-      import('./modules/news/NewsController'),
-      import('./modules/system/StorageService'),
-      import('./modules/system/PinService'),
-      import('./modules/discord/DiscordRPCController'),
-      import('./modules/watcher/WatcherController')
-    ])
+  // Load CRITICAL modules first (needed before showing UI)
+  const criticalModules = await Promise.all([
+    import('./modules/core/RobloxHandler'),
+    import('./modules/system/StorageController'),
+    import('./modules/system/StorageService'),
+    import('./modules/system/PinService'),
+    import('./modules/updater/UpdaterController'),
+    import('./modules/system/LogsController'),
+    import('./modules/news/NewsController')
+  ])
 
-    return {
-      registerRobloxHandlers: modules[0].registerRobloxHandlers,
-      registerStorageHandlers: modules[1].registerStorageHandlers,
-      registerLogsHandlers: modules[2].registerLogsHandlers,
-      registerUpdaterHandlers: modules[3].registerUpdaterHandlers,
-      registerNewsHandlers: modules[4].registerNewsHandlers,
-      storageService: modules[5].storageService,
-      pinService: modules[6].pinService,
-      registerDiscordRPCHandlers: modules[7].registerDiscordRPCHandlers,
-      registerWatcherHandlers: modules[8].registerWatcherHandlers
-    }
+  const criticalLoaded = {
+    registerRobloxHandlers: criticalModules[0].registerRobloxHandlers,
+    registerStorageHandlers: criticalModules[1].registerStorageHandlers,
+    storageService: criticalModules[2].storageService,
+    pinService: criticalModules[3].pinService,
+    registerUpdaterHandlers: criticalModules[4].registerUpdaterHandlers,
+    registerLogsHandlers: criticalModules[5].registerLogsHandlers,
+    registerNewsHandlers: criticalModules[6].registerNewsHandlers
   }
 
-  const loadedModules = await loadModules()
+  // Update global reference
+  storageService = criticalLoaded.storageService
 
-  // Update global references
-  storageService = loadedModules.storageService
+  logPerf('critical-modules-loaded')
 
-  // Helper function to initialize KeyAuth with retry logic
-  async function initializeKeyAuth(KEYAUTH_NAME: string, KEYAUTH_OWNERID: string, KEYAUTH_VERSION: string): Promise<boolean> {
-    try {
-      const tempClient = new KeyAuthWrapper({
-        name: KEYAUTH_NAME,
-        ownerid: KEYAUTH_OWNERID,
-        version: KEYAUTH_VERSION,
-        url: 'https://keyauth.win/api/1.3/'
-      })
+  // Register critical handlers
+  criticalLoaded.registerRobloxHandlers()
+  criticalLoaded.registerStorageHandlers()
+  criticalLoaded.registerLogsHandlers()
+  criticalLoaded.registerNewsHandlers()
+  criticalLoaded.pinService.initialize()
+  logPerf('critical-handlers-registered')
 
-      console.log('[KeyAuth] Attempting initialization...')
-      const initResult = await tempClient.init()
-      if (!initResult.ok) {
-        console.error('[KeyAuth] Init failed:', initResult.message, initResult.details)
-        return false
-      } else {
-        keyAuthClient = tempClient
-        keyAuthSessionId = (initResult.data as any)?.sessionid ?? null
-        console.log('[KeyAuth] Successfully initialized, session:', keyAuthSessionId ? 'ok' : 'none')
-        keyAuthRetryCount = 0
-        return true
-      }
-    } catch (err) {
-      console.error('[KeyAuth] Initialization error:', err)
-      return false
-    }
-  }
+  // Register production module IPC handlers
+  const { registerModuleIpcHandlers } = await import('./ipc/ModuleIpcHandlers')
+  registerModuleIpcHandlers()
 
-  // Initialize KeyAuth client if environment variables are present
-  try {
-    let KEYAUTH_NAME = process.env.KEYAUTH_NAME
-    let KEYAUTH_OWNERID = process.env.KEYAUTH_OWNERID
-    let KEYAUTH_SECRET = process.env.KEYAUTH_SECRET
-    let KEYAUTH_VERSION = process.env.KEYAUTH_VERSION
-
-    // SECURITY: NEVER attempt to load secrets from stored config
-    // KeyAuth credentials MUST come from environment variables only
-    // This prevents plaintext storage of sensitive credentials
-
-    // SECURITY: KeyAuth credentials MUST be provided via environment variables
-    // Never hardcode credentials, especially KEYAUTH_SECRET. If credentials are missing,
-    // the system will skip KeyAuth initialization to fail securely.
-    if (!KEYAUTH_NAME || !KEYAUTH_OWNERID || !KEYAUTH_SECRET || !KEYAUTH_VERSION) {
-      console.warn('[SECURITY] KeyAuth credentials not provided via environment variables. KeyAuth system disabled.')
-      console.warn('[SECURITY] To enable KeyAuth, set KEYAUTH_NAME, KEYAUTH_OWNERID, KEYAUTH_SECRET, and KEYAUTH_VERSION environment variables.')
-      keyAuthClient = null
-      return
-    }
-
-    if (KEYAUTH_NAME && KEYAUTH_OWNERID && KEYAUTH_VERSION) {
-      const initialized = await initializeKeyAuth(KEYAUTH_NAME, KEYAUTH_OWNERID, KEYAUTH_VERSION)
-      
-      // Set up retry timer if initialization failed
-      if (!initialized) {
-        console.log('[KeyAuth] Scheduling retry in 5 seconds...')
-        keyAuthRetryTimer = setInterval(async () => {
-          try {
-            keyAuthRetryCount++
-            if (keyAuthRetryCount > MAX_KEYAUTH_RETRIES) {
-              console.warn(`[KeyAuth] Max retries (${MAX_KEYAUTH_RETRIES}) reached, giving up`)
-              if (keyAuthRetryTimer) clearInterval(keyAuthRetryTimer)
-              return
-            }
-            console.log(`[KeyAuth] Retry attempt ${keyAuthRetryCount}/${MAX_KEYAUTH_RETRIES}...`)
-            const retrySuccess = await initializeKeyAuth(KEYAUTH_NAME, KEYAUTH_OWNERID, KEYAUTH_VERSION)
-            if (retrySuccess && keyAuthRetryTimer) {
-              clearInterval(keyAuthRetryTimer)
-            }
-          } catch (err) {
-            console.error('[KeyAuth] Retry error:', err)
-          }
-        }, 5000)
-      }
-    } else {
-      console.log('[KeyAuth] Environment variables not set; skipping initialization')
-      keyAuthClient = null
-    }
-  } catch (err) {
-    console.error('[KeyAuth] Failed to initialize:', err)
-    keyAuthClient = null
-  }
-
-  logPerf('modules-loaded')
-
-  // Register handlers
-  loadedModules.registerRobloxHandlers()
-  loadedModules.registerStorageHandlers()
-  loadedModules.registerLogsHandlers()
-  loadedModules.registerNewsHandlers()
-  loadedModules.registerDiscordRPCHandlers()
-  loadedModules.registerWatcherHandlers(mainWindow)
-  loadedModules.pinService.initialize()
-
-  logPerf('handlers-registered')
-
-  // only navigate once the IPC handlers are in place to avoid race conditions
+  // only navigate once the critical IPC handlers are in place to avoid race conditions
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  // Load NON-CRITICAL modules AFTER UI is displayed (deferred loading)
+  mainWindow.once('ready-to-show', async () => {
+    logPerf('ready-to-show')
+    
+    // Load and register non-critical modules in background
+    console.log('[perf:main] Starting deferred module loading...')
+    
+    const nonCriticalModules = await Promise.all([
+      import('./modules/discord/DiscordRPCController'),
+      import('./modules/watcher/WatcherController'),
+      import('./modules/macro/MacroController'),
+      import('./modules/sniper/SniperController'),
+      import('./modules/generator/GeneratorController'),
+      import('./modules/proxy/ProxyController')
+    ])
+
+    const nonCriticalLoaded = {
+      registerDiscordRPCHandlers: nonCriticalModules[0].registerDiscordRPCHandlers,
+      registerWatcherHandlers: nonCriticalModules[1].registerWatcherHandlers,
+      registerMacroHandlers: nonCriticalModules[2].registerMacroHandlers,
+      registerSniperHandlers: nonCriticalModules[3].registerSniperHandlers,
+      registerGeneratorHandlers: nonCriticalModules[4].registerGeneratorHandlers,
+      registerProxyHandlers: nonCriticalModules[5].registerProxyHandlers
+    }
+
+    logPerf('non-critical-modules-loaded')
+
+    // Register non-critical handlers
+    nonCriticalLoaded.registerDiscordRPCHandlers()
+    nonCriticalLoaded.registerWatcherHandlers(mainWindow)
+    nonCriticalLoaded.registerMacroHandlers()
+    nonCriticalLoaded.registerSniperHandlers()
+    nonCriticalLoaded.registerGeneratorHandlers()
+    nonCriticalLoaded.registerProxyHandlers()
+
+    logPerf('non-critical-handlers-registered')
+    console.log('[perf:main] App fully loaded and ready!')
+  })
 
   ipcMain.handle('focus-window', () => {
     if (mainWindow) {
@@ -298,6 +242,23 @@ app.whenReady().then(async () => {
     }
   })
 
+  // Get decrypted password for an account
+  ipcMain.handle('account:get-decrypted-password', async (_event, accountId: string) => {
+    try {
+      if (!storageService) return { success: false, password: '' }
+      const accounts = storageService.getAccounts()
+      const account = accounts.find((acc) => acc.id === accountId)
+      if (!account) {
+        return { success: false, password: '' }
+      }
+      const decrypted = storageService.getDecryptedPassword(account.password)
+      return { success: true, password: decrypted }
+    } catch (err: any) {
+      console.error('Error getting decrypted password:', err)
+      return { success: false, password: '' }
+    }
+  })
+
   // DISABLED: License validation handler - licensing system disabled
   // ipcMain.handle('license:validate-stored', async () => { ... })
 
@@ -305,12 +266,13 @@ app.whenReady().then(async () => {
   // DISABLED: Periodic license session refresh - licensing system disabled
   // setInterval(async () => { ... }, 6 * 60 * 60 * 1000)
 
-  loadedModules.registerUpdaterHandlers(mainWindow)
+  // Register updater handlers
+  criticalLoaded.registerUpdaterHandlers(mainWindow)
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) {
       const newWindow = createWindow()
-      loadedModules.registerUpdaterHandlers(newWindow)
+      criticalLoaded.registerUpdaterHandlers(newWindow)
     } else {
       // If windows exist, just focus the first one
       const mainWindow = BrowserWindow.getAllWindows()[0]

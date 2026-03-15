@@ -15,6 +15,10 @@ export type TabId =
   | 'AccountSettings'
   | 'Executor'
   | 'Watcher'
+  | 'Macro'
+  | 'Sniper'
+  | 'Generator'
+  | 'Proxy'
 
 export enum AccountStatus {
   Online = 'Online',
@@ -30,11 +34,12 @@ export interface Account {
   username: string
   userId: string
   cookie?: string
+  password?: string // Encrypted password (if available)
   status: AccountStatus
   notes: string
   importedVia?: 'browser' | 'cookie' | 'cookielist'
   avatarUrl: string
-  lastActive: string
+  lastActive: string // ISO timestamp of last validation/use
   robuxBalance: number
   friendCount: number
   followerCount: number

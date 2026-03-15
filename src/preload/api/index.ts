@@ -36,3 +36,28 @@ export { discordRPCApi } from './discordRPC'
 
 // Watcher
 export { watcherApi } from './watcher'
+
+// Macro
+export { macroApi } from './macro'
+
+// Sniper
+export { sniperApi } from './sniper'
+
+// Generator
+export { generatorApi } from './generator'
+
+// Proxy
+export { proxyApi } from './proxy'
+
+// ============================================================================
+// NEW PRODUCTION MODULES
+// ============================================================================
+
+// Trading Module
+export { tradingApi } from './trading'
+
+// Browser Automation Module
+export { browserApi } from './trading-browser'
+
+// Proxy Management Module
+export { proxyMgmtApi } from './proxy-management'

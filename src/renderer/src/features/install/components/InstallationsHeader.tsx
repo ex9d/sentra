@@ -7,7 +7,6 @@ interface InstallationsHeaderProps {
   count: number
   onRefresh: () => void
   onNew: () => void
-  onNewCustom: () => void
   isMac: boolean
 }
 
@@ -15,7 +14,6 @@ export const InstallationsHeader: React.FC<InstallationsHeaderProps> = ({
   count,
   onRefresh,
   onNew,
-  onNewCustom,
   isMac
 }) => {
   return (
@@ -42,10 +40,6 @@ export const InstallationsHeader: React.FC<InstallationsHeaderProps> = ({
         <Button variant="default" onClick={onNew} className="gap-2.5" disabled={isMac}>
           <Plus size={18} />
           <span>New Installation</span>
-        </Button>
-        <Button variant="default" onClick={onNewCustom} className="gap-2.5">
-          <Plus size={18} />
-          <span>New Custom Installation</span>
         </Button>
       </div>
     </div>

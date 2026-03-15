@@ -32,8 +32,11 @@ export class RobloxAuthService {
     } catch (error) {
       if (error instanceof RequestError && error.statusCode === 403 && error.headers) {
         const token = error.headers['x-csrf-token']
-        if (token) {
-          return Array.isArray(token) ? token[0] : (token as string)
+        if (typeof token === 'string' && token) {
+          return token
+        }
+        if (Array.isArray(token) && token.length > 0 && typeof token[0] === 'string') {
+          return token[0]
         }
       }
       throw new Error('Failed to retrieve CSRF token')

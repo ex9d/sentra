@@ -8,6 +8,15 @@ import * as S from '../../shared/ipc-schemas'
 
 export const accountApi = {
   validateCookie: (cookie: string) => invoke('validate-cookie', S.userSummarySchema, cookie),
+  validateAndRefreshCookie: (cookie: string) => 
+    invoke('validate-refresh-cookie', z.object({ success: z.boolean(), message: z.string().optional() }), cookie),
+  getCookieHealthStatus: (cookie: string) =>
+    invoke('get-cookie-health', z.object({ 
+      isValid: z.boolean(), 
+      isExpiring: z.boolean(),
+      daysUntilExpiry: z.number(),
+      lastValidated: z.string().optional()
+    }), cookie),
   fetchAccountStats: (cookie: string) =>
     invoke('fetch-account-stats', S.accountStatsSchema, cookie),
   getAccountStatus: (cookie: string) =>
@@ -16,7 +25,9 @@ export const accountApi = {
   getBatchAccountStatuses: (cookies: string[]) =>
     invoke('get-batch-account-statuses', S.batchAccountStatusSchema, cookies),
   getAccounts: () => invoke('get-accounts', z.array(S.accountSchema)),
-  saveAccounts: (accounts: unknown[]) => invoke('save-accounts', z.void(), accounts)
+  saveAccounts: (accounts: unknown[]) => invoke('save-accounts', z.void(), accounts),
+  getDecryptedPassword: (accountId: string) =>
+    invoke('account:get-decrypted-password', z.object({ success: z.boolean(), password: z.string() }), accountId)
 }
 
 // ============================================================================
@@ -26,6 +37,8 @@ export const accountApi = {
 export const usersApi = {
   getUserByUsername: (username: string) =>
     invoke('get-user-by-username', S.userSummarySchema.nullable(), username),
+  getAvatarUrlByUsername: (username: string) =>
+    invoke('get-avatar-url-by-username', z.object({ success: z.boolean(), url: z.string().optional() }), username),
   getExtendedUserDetails: (cookie: string, userId: number) =>
     invoke('get-user-details-extended', S.extendedUserDetailsSchema, cookie, userId),
   getUserGroups: (userId: number) => invoke('get-user-groups', z.array(z.any()), userId),

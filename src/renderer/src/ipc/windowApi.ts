@@ -65,6 +65,19 @@ export interface UpdateSettingResult {
   error?: string
 }
 
+export interface UsersApi {
+  getUserByUsername: (username: string) => Promise<UserSummary | null>
+  getAvatarUrlByUsername: (username: string) => Promise<{ success: boolean; url?: string }>
+  getExtendedUserDetails: (cookie: string, userId: number) => Promise<ExtendedUserDetails>
+  getUserGroups: (userId: number) => Promise<any[]>
+  getBatchUserDetails: (userIds: number[]) => Promise<Record<string, { id: number; name: string; displayName: string } | null>>
+  getDetailedStats: (cookie: string, userId: number) => Promise<DetailedStats>
+  getRobloxBadges: (cookie: string, userId: number) => Promise<any[]>
+  getPlayerBadges: (cookie: string, userId: number) => Promise<any>
+  getPastUsernames: (cookie: string, userId: number) => Promise<UsernameHistory>
+  getUserProfile: (cookie: string, userId: number) => Promise<UserProfileResponse>
+}
+
 export interface AccountApi {
   validateCookie: (cookie: string) => Promise<UserSummary>
   getAvatarUrl: (userId: string) => Promise<string>
@@ -144,6 +157,7 @@ export interface SettingsApi {
     locked: boolean
     remainingAttempts: number
     lockoutSeconds?: number
+    accounts?: Account[]
   }>
   // Check if PIN is currently verified in main process
   isPinVerified: () => Promise<boolean>
@@ -944,6 +958,9 @@ export interface WatcherApi {
   getEvents: () => Promise<WatcherEvent[]>
   clearEvents: () => Promise<{ success: boolean }>
   clearAll: () => Promise<{ success: boolean }>
+  joinGame: (accountId: string, placeId: number) => Promise<{ success: boolean }>
+  joinPrivateServer: (accountId: string, jobId: string, placeId: number) => Promise<{ success: boolean }>
+  launchGameWithUrl: (accountId: string, placeId: number, url: string) => Promise<{ success: boolean }>
   autoTrackLaunchedGame: (
     accountId: string,
     username: string,
@@ -969,6 +986,171 @@ export interface WatcherApi {
   onEvent: (callback: (event: WatcherEvent) => void) => () => void
 }
 
+export interface MacroApi {
+  startRecording: () => Promise<{ success: boolean }>
+  stopRecording: () => Promise<{ success: boolean; events: any[] }>
+  recordMouseMove: (x: number, y: number) => Promise<{ success: boolean }>
+  recordClick: (button?: 'left' | 'right' | 'middle') => Promise<{ success: boolean }>
+  recordKeyPress: (key: string) => Promise<{ success: boolean }>
+  saveMacro: (name: string, events: any[], description?: string) => Promise<{ success: boolean; macro: any }>
+  loadMacro: (macroId: string) => Promise<{ success: boolean; macro?: any; error?: string }>
+  listMacros: () => Promise<{ success: boolean; macros: any[] }>
+  playMacro: (macroId: string, speed?: number) => Promise<{ success: boolean; error?: string }>
+  deleteMacro: (macroId: string) => Promise<{ success: boolean }>
+  isRecording: () => Promise<{ isRecording: boolean }>
+  getRecordingProgress: () => Promise<{ eventCount: number; duration: number }>
+}
+
+export interface SniperApi {
+  startMonitoring: () => Promise<{ success: boolean }>
+  stopMonitoring: () => Promise<{ success: boolean }>
+  updateConfig: (config: any) => Promise<{ success: boolean; config: any }>
+  getConfig: () => Promise<{ success: boolean; config: any }>
+  getMonitoredItems: () => Promise<{ success: boolean; items: any[] }>
+  getHistory: (limit?: number) => Promise<{ success: boolean; history: any[] }>
+  clearHistory: () => Promise<{ success: boolean }>
+  isMonitoring: () => Promise<{ isMonitoring: boolean }>
+  calculateProfit: (purchasePrice: number, resaleValue: number) => Promise<{ success: boolean; profit: number; profitPercent: number }>
+  // Limited Item Watchlist API
+  addLimitedWatch: (itemId: number, itemName: string, minProfitPercent?: number) => Promise<{ success: boolean; watches?: any[]; error?: string }>
+  removeLimitedWatch: (itemId: number) => Promise<{ success: boolean; watches?: any[] }>
+  getLimitedWatches: () => Promise<{ success: boolean; watches?: any[] }>
+  updateLimitedWatch: (itemId: number, updates: any) => Promise<{ success: boolean; watches?: any[] }>
+}
+
+export interface GeneratorApi {
+  generateAccountData: () => Promise<{ success: boolean; accountData: { username: string; password: string; birthDate: string } }>
+  createAccount: () => Promise<{ success: boolean; accountId?: string; error?: string }>
+  launchBrowser: () => Promise<{ success: boolean; error?: string }>
+  fillForm: (accountData: any) => Promise<{ success: boolean; error?: string }>
+  submitForm: () => Promise<{ success: boolean; error?: string }>
+  closeBrowser: () => Promise<{ success: boolean; error?: string }>
+  generateAndSignup: () => Promise<{ success: boolean; accountData: { username: string; password: string; birthDate: string } }>
+  captchaSolved: () => Promise<{ success: boolean; error?: string }>
+  getAccounts: () => Promise<{ success: boolean; accounts: any[] }>
+  clearAccounts: () => Promise<{ success: boolean }>
+  updateConfig: (config: any) => Promise<{ success: boolean; config: any }>
+  getConfig: () => Promise<{ success: boolean; config: any }>
+  getPassword: (accountId: string) => Promise<{ success: boolean; password: string }>
+  getCookie: (accountId: string) => Promise<{ success: boolean; cookie: string }>
+}
+
+export interface ProxyApi {
+  addProxy: (host: string, port: number, username?: string, password?: string) => Promise<{ success: boolean; proxy: any }>
+  addProxyList: (proxies: string[]) => Promise<{ success: boolean; count: number; proxies: any[] }>
+  testProxy: (proxyId: string) => Promise<{ success: boolean; result: any }>
+  testAllProxies: () => Promise<{ success: boolean; results: any[] }>
+  assignProxy: (accountId: string, proxyId?: string) => Promise<{ success: boolean; proxyId?: string }>
+  getNextProxy: () => Promise<{ success: boolean; proxyId: string | null }>
+  rotateProxy: (accountId: string) => Promise<{ success: boolean; proxyId: string | null }>
+  getProxyForAccount: (accountId: string) => Promise<{ success: boolean; proxy: any }>
+  getAllProxies: () => Promise<{ success: boolean; proxies: any[] }>
+  getAliveProxies: () => Promise<{ success: boolean; proxies: any[]; count: number }>
+  removeProxy: (proxyId: string) => Promise<{ success: boolean }>
+  clearAllProxies: () => Promise<{ success: boolean }>
+  // Auto-swap API
+  startAutoSwap: (intervalHours: number, autoTestBeforeSwap?: boolean) => Promise<{ success: boolean; config?: any }>
+  stopAutoSwap: () => Promise<{ success: boolean }>
+  getAutoSwapConfig: () => Promise<{ success: boolean; config?: any }>
+  isAutoSwapRunning: () => Promise<{ isRunning: boolean }>
+}
+
+// ============================================================================
+// NEW PRODUCTION MODULES
+// ============================================================================
+
+// Trading Module Types
+export interface TradingAnalysisResult {
+  itemId: number
+  itemName: string
+  expectedProfit: number
+  profitMargin: number
+  recommendedAction: 'buy' | 'hold' | 'sell'
+  confidence: number
+  timestamp: number
+}
+
+export interface TradingOpportunity {
+  itemId: number
+  itemName: string
+  currentPrice: number
+  resaleValue: number
+  projectedProfit: number
+  profitMarginPercent: number
+  priority: number
+  confidence: number
+}
+
+export interface TradingApi {
+  analyzeItem: (itemId: number, currentPrice: number, resaleValue: number) => Promise<{ success: boolean; analysis?: TradingAnalysisResult; error?: string }>
+  makeTradingDecision: (analysis: TradingAnalysisResult) => Promise<{ success: boolean; decision?: string; reason?: string }>
+  findOpportunities: (items: Array<{ itemId: number; currentPrice: number; resaleValue: number }>) => Promise<{ success: boolean; opportunities?: TradingOpportunity[]; error?: string }>
+  setConfiguration: (config: any) => Promise<{ success: boolean; error?: string }>
+  getConfiguration: () => Promise<{ success: boolean; config?: any; error?: string }>
+  clearCache: () => Promise<{ success: boolean }>
+}
+
+// Browser Automation Module Types
+export interface BrowserAutomationConfig {
+  headless?: boolean
+  timeout?: number
+  waitForNavigation?: boolean
+  customUserAgent?: string
+}
+
+export interface BrowserFormData {
+  [fieldName: string]: string | string[] | boolean | number
+}
+
+export interface BrowserAutomationApi {
+  launch: (config?: BrowserAutomationConfig) => Promise<{ success: boolean; sessionId?: string; error?: string }>
+  navigate: (url: string, waitForNavigation?: boolean) => Promise<{ success: boolean; error?: string }>
+  fillForm: (formData: BrowserFormData, selector?: string) => Promise<{ success: boolean; fieldsFilled?: number; error?: string }>
+  executeAutomation: (steps: any[]) => Promise<{ success: boolean; result?: any; error?: string }>
+  waitForUserInteraction: (timeout?: number) => Promise<{ success: boolean; resumedAt?: number; error?: string }>
+  screenshot: (filename?: string) => Promise<{ success: boolean; path?: string; error?: string }>
+  close: () => Promise<{ success: boolean; error?: string }>
+  isAutomating: () => Promise<{ isAutomating: boolean }>
+  executeJavaScript: (script: string) => Promise<{ success: boolean; result?: any; error?: string }>
+}
+
+// Proxy Management Module Types
+export interface ProxySession {
+  sessionId: string
+  accountId: string
+  proxyId: string
+  assignedAt: number
+  expiresAt?: number
+}
+
+export interface ProxyHealth {
+  proxyId: string
+  isHealthy: boolean
+  lastChecked: number
+  latency: number
+  failureCount: number
+}
+
+export interface ProxyPoolStats {
+  totalProxies: number
+  healthyProxies: number
+  averageLatency: number
+  rotateCycle: number
+}
+
+export interface ProxyMgmtApi {
+  addProxies: (proxies: Array<{ host: string; port: number; username?: string; password?: string }>) => Promise<{ success: boolean; added?: number; error?: string }>
+  importProxies: (filePath: string) => Promise<{ success: boolean; imported?: number; error?: string }>
+  exportProxies: (filePath?: string) => Promise<{ success: boolean; path?: string; error?: string }>
+  testProxies: (proxyIds?: string[]) => Promise<{ success: boolean; results?: ProxyHealth[]; error?: string }>
+  getHealthyProxy: (excludeProxyId?: string) => Promise<{ success: boolean; proxy?: any; error?: string }>
+  assignProxyToSession: (accountId: string, proxyId: string) => Promise<{ success: boolean; session?: ProxySession; error?: string }>
+  releaseSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>
+  getPoolState: () => Promise<{ success: boolean; state?: ProxyPoolStats; error?: string }>
+  setConfiguration: (strategy: 'round-robin' | 'random' | 'fastest' | 'weighted', options?: any) => Promise<{ success: boolean; error?: string }>
+  clearProxies: () => Promise<{ success: boolean; error?: string }>
+}
+
 export type WindowApi = AccountApi &
   FavoritesApi &
   SettingsApi &
@@ -990,7 +1172,27 @@ export type WindowApi = AccountApi &
   NewsApi &
   AccountSettingsApi &
   DiscordRPCApi &
-  WatcherApi
+  WatcherApi &
+  MacroApi &
+  SniperApi &
+  GeneratorApi &
+  ProxyApi &
+  TradingApi &
+  BrowserAutomationApi &
+  ProxyMgmtApi &
+  UsersApi &
+  {
+    // Namespaced API access for organization
+    macro: MacroApi
+    sniper: SniperApi
+    generator: GeneratorApi
+    proxy: ProxyApi
+    trading: TradingApi
+    browser: BrowserAutomationApi
+    proxyMgmt: ProxyMgmtApi
+    user: UsersApi
+    watcher: WatcherApi
+  }
   // DISABLED: License API removed - licensing system disabled
   // & {
   //   license: {

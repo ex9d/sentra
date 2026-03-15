@@ -26,7 +26,11 @@ import {
   newsApi,
   accountSettingsApi,
   discordRPCApi,
-  watcherApi
+  watcherApi,
+  macroApi,
+  sniperApi,
+  generatorApi,
+  proxyApi
 } from './api'
 
 // Platform info
@@ -63,10 +67,14 @@ const api = {
   ...accountSettingsApi,
   ...discordRPCApi,
   ...watcherApi,
+  ...macroApi,
+  ...sniperApi,
+  ...generatorApi,
+  ...proxyApi,
   // Namespace properties for organized access
   news: newsApi,
   account: accountApi,
-  users: usersApi,
+  user: usersApi,
   friends: friendsApi,
   avatar: avatarApi,
   inventory: inventoryApi,
@@ -78,7 +86,11 @@ const api = {
   updater: updaterApi,
   settings: accountSettingsApi,
   discord: discordRPCApi,
-  watcher: watcherApi
+  watcher: watcherApi,
+  macro: macroApi,
+  sniper: sniperApi,
+  generator: generatorApi,
+  proxy: proxyApi
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

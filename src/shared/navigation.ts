@@ -14,6 +14,10 @@ export const SIDEBAR_TAB_IDS = [
   'Install',
   'Executor',
   'Watcher',
+  'Macro',
+  'Sniper',
+  'Generator',
+  'Proxy',
   'Logs',
   'Settings',
   'AccountSettings'
@@ -33,6 +37,10 @@ export const DEFAULT_SIDEBAR_TAB_ORDER: TabId[] = [
   'Install',
   'Executor',
   'Watcher',
+  'Macro',
+  'Sniper',
+  'Generator',
+  'Proxy',
   'Logs',
   'Settings',
   'AccountSettings'

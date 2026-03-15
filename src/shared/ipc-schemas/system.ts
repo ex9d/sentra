@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { BinaryType } from '../../renderer/src/types'
 import { LOCKED_SIDEBAR_TABS, SIDEBAR_TAB_IDS } from '../navigation'
+import { accountSchema } from './user'
 
 // ============================================================================
 // UPDATE & INSTALL SCHEMAS
@@ -169,7 +170,8 @@ export const pinVerifyResultSchema = z.object({
   success: z.boolean(),
   locked: z.boolean(),
   remainingAttempts: z.number(),
-  lockoutSeconds: z.number().optional()
+  lockoutSeconds: z.number().optional(),
+  accounts: z.array(accountSchema).optional()
 })
 
 export const pinSetResultSchema = z.object({

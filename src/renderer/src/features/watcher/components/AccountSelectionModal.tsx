@@ -96,12 +96,6 @@ export default function AccountSelectionModal({
 
         {/* Select All Button */}
         <div className="px-6 pt-4 pb-2">
-          <button
-            onClick={onSelectAll}
-            className="text-sm px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-          >
-            {allSelected ? 'Deselect All' : 'Select All'}
-          </button>
         </div>
 
         {/* Accounts Grid */}
@@ -115,14 +109,8 @@ export default function AccountSelectionModal({
         <div className="border-t border-[var(--color-border)] p-6 flex gap-3 justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] transition-colors"
-          >
-            Close
-          </button>
-          <button
-            onClick={onClose}
             disabled={selectedCount === 0}
-            className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-medium transition-colors"
+            className="px-6 py-2 rounded-lg bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] disabled:bg-gray-600 disabled:opacity-50 text-[var(--accent-color-foreground)] font-medium transition-colors"
           >
             Continue ({selectedCount})
           </button>

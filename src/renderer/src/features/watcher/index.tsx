@@ -3,6 +3,17 @@ import { Play, Trash2, Square, Settings } from 'lucide-react'
 import SessionsList from './components/SessionsList'
 import WatcherEventLog from './components/WatcherEventLog'
 import AccountSelectionModal from './components/AccountSelectionModal'
+import { JoinServerModal } from './components/JoinServerModal'
+import PrivateServerModal from '@renderer/components/Modals/PrivateServerModal'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+  DialogBody
+} from '@renderer/components/UI/dialogs/Dialog'
+import { Button } from '@renderer/components/UI/buttons/Button'
 import { useWatcher } from './hooks/useWatcher'
 import { useAccountsManager } from '@renderer/hooks/queries'
 import { useLocalStorage } from '@renderer/hooks/useLocalStorage'
@@ -32,8 +43,17 @@ export default function WatcherTab() {
   const [isLaunching, setIsLaunching] = useState(false)
   const [showAccountModal, setShowAccountModal] = useState(false)
   const [showRAMSettings, setShowRAMSettings] = useState(false)
+  const [showJoinModal, setShowJoinModal] = useState(false)
+  const [showPrivateServerModal, setShowPrivateServerModal] = useState(false)
+  const [selectedSessionForJoin, setSelectedSessionForJoin] = useState<WatcherSession | null>(null)
+  const [isJoining, setIsJoining] = useState(false)
   const [enableRAMLimiter, setEnableRAMLimiter] = useLocalStorage<boolean>('watcher-ram-limiter', false)
   const [ramLimit, setRamLimit] = useLocalStorage<number>('watcher-ram-limit', 800)
+  const [showLaunchChoiceModal, setShowLaunchChoiceModal] = useState(false)
+  const [launchChoice, setLaunchChoice] = useState<'public' | 'private' | 'jobid' | 'username' | null>(null)
+  const [launchJobId, setLaunchJobId] = useState('')
+  const [launchUsername, setLaunchUsername] = useState('')
+  const [launchPrivateServerLink, setLaunchPrivateServerLink] = useState('')
   const eventLogEndRef = useRef<HTMLDivElement | null>(null)
 
   // Auto-scroll event log to bottom
@@ -115,6 +135,93 @@ export default function WatcherTab() {
     [removeSession]
   )
 
+  const handleJoinSession = useCallback((session: WatcherSession) => {
+    setSelectedSessionForJoin(session)
+    setShowJoinModal(true)
+  }, [])
+
+  const handleJoinPrivateServerSession = useCallback((session: WatcherSession) => {
+    setSelectedSessionForJoin(session)
+    setShowPrivateServerModal(true)
+  }, [])
+
+  const handleJoinPublic = useCallback(async () => {
+    if (!selectedSessionForJoin) return
+
+    setIsJoining(true)
+    try {
+      const result = await window.api.watcher.joinGame(selectedSessionForJoin.accountId, selectedSessionForJoin.placeId)
+      if (result?.success) {
+        console.log(`[Watcher] Successfully joined public game for ${selectedSessionForJoin.username}`)
+      } else {
+        alert('Failed to join game')
+      }
+    } catch (error: any) {
+      console.error('[Watcher] Error joining game:', error)
+      alert(`Error joining game: ${error.message}`)
+    } finally {
+      setIsJoining(false)
+      setShowJoinModal(false)
+      setSelectedSessionForJoin(null)
+    }
+  }, [selectedSessionForJoin])
+
+  const handleJoinPrivate = useCallback(async (jobId: string) => {
+    if (!selectedSessionForJoin) return
+
+    setIsJoining(true)
+    try {
+      const result = await window.api.watcher.joinPrivateServer(
+        selectedSessionForJoin.accountId,
+        jobId,
+        selectedSessionForJoin.placeId
+      )
+      if (result?.success) {
+        console.log(`[Watcher] Successfully joined private server for ${selectedSessionForJoin.username}`)
+      } else {
+        alert('Failed to join private server')
+      }
+    } catch (error: any) {
+      console.error('[Watcher] Error joining private server:', error)
+      alert(`Error joining private server: ${error.message}`)
+    } finally {
+      setIsJoining(false)
+      setShowJoinModal(false)
+      setSelectedSessionForJoin(null)
+    }
+  }, [selectedSessionForJoin])
+
+  const handleJoinPrivateServerLink = useCallback(async (link: string, serverName?: string) => {
+    if (!selectedSessionForJoin) return
+
+    console.log(`[Watcher] Attempting to join private server with link: ${link}`)
+    setIsJoining(true)
+    try {
+      console.log(`[Watcher] Calling launchGameWithUrl with accountId=${selectedSessionForJoin.accountId}, placeId=${selectedSessionForJoin.placeId}`)
+      // Extract game URL and launch with the session's placeId and cookie
+      const result = await window.api.watcher.launchGameWithUrl(
+        selectedSessionForJoin.accountId,
+        selectedSessionForJoin.placeId,
+        link
+      )
+      console.log(`[Watcher] launchGameWithUrl result:`, result)
+      if (result?.success) {
+        console.log(`[Watcher] Successfully joined private server link for ${selectedSessionForJoin.username}`)
+        alert('✓ Successfully joined private server!')
+      } else {
+        console.error(`[Watcher] Failed to join - result:`, result)
+        alert('Failed to join private server')
+      }
+    } catch (error: any) {
+      console.error('[Watcher] Error joining private server link:', error)
+      alert(`Error joining private server: ${error.message}`)
+    } finally {
+      setIsJoining(false)
+      setShowPrivateServerModal(false)
+      setSelectedSessionForJoin(null)
+    }
+  }, [selectedSessionForJoin])
+
   const handleCloseAllSessions = useCallback(async () => {
     if (confirm('Stop watching all sessions?')) {
       try {
@@ -159,67 +266,153 @@ export default function WatcherTab() {
       stopWatching()
       setIsWatcherRunning(false)
     } else {
-      // Set watcher config with auto-restart and RAM limiter based on toggle state
-      try {
-        await window.electron.ipcRenderer.invoke('watcher:set-config', {
-          enableRAMLimiter, // Use actual toggle state
-          ramLimitMB: ramLimit,
-          autoRestart: true,
-          restartDelaySeconds: 5
-        })
-      } catch (err) {
-        console.error('Failed to set watcher config:', err)
-      }
-
-      // Start watcher first
-      await startWatching()
-      setIsWatcherRunning(true)
-
-      // Launch all selected accounts slowly in the background
+      // Show launch choice modal if we have selected accounts
       if (selectedAccountIds.size > 0 && placeId) {
-        // Don't block UI with setIsLaunching during background launches
-        setTimeout(async () => {
-          for (const accountId of selectedAccountIds) {
-            const account = accounts.find((a) => a.id === accountId)
-            if (!account || !account.cookie) continue
+        // Clear inputs before opening modal
+        setLaunchJobId('')
+        setLaunchUsername('')
+        setLaunchPrivateServerLink('')
+        setShowLaunchChoiceModal(true)
+      } else {
+        // No accounts or place ID selected, just start watcher
+        try {
+          await window.electron.ipcRenderer.invoke('watcher:set-config', {
+            enableRAMLimiter,
+            ramLimitMB: ramLimit,
+            autoRestart: true,
+            restartDelaySeconds: 5
+          })
+        } catch (err) {
+          console.error('Failed to set watcher config:', err)
+        }
 
-            try {
-              // Launch game
-              await window.api.launchGame(
-                account.cookie,
-                Number(placeId),
-                undefined,
-                undefined,
-                undefined
-              )
-
-              // Wait 3 seconds for Roblox process to spawn
-              await new Promise((r) => setTimeout(r, 3000))
-
-              // Auto-track in watcher with launch config
-              await window.api.autoTrackLaunchedGame(
-                accountId,
-                account.displayName || account.username,
-                account.userId || 'unknown',
-                Number(placeId),
-                {
-                  cookie: account.cookie,
-                  placeId: Number(placeId)
-                },
-                account.displayName,
-                account.avatarUrl
-              )
-
-              // 2 second delay before launching next account
-              await new Promise((r) => setTimeout(r, 2000))
-            } catch (err: any) {
-              console.error(`Failed to launch ${account.displayName}:`, err)
-            }
-          }
-        }, 0)
+        await startWatching()
+        setIsWatcherRunning(true)
       }
     }
-  }, [isWatcherRunning, startWatching, stopWatching, selectedAccountIds, placeId, accounts, enableRAMLimiter, ramLimit])
+  }, [isWatcherRunning, startWatching, stopWatching, selectedAccountIds, placeId, enableRAMLimiter, ramLimit])
+
+  const handleLaunchWithChoice = useCallback(async (choice: 'public' | 'private' | 'jobid' | 'username') => {
+    // Validate jobId if chosen
+    if (choice === 'jobid' && !launchJobId.trim()) {
+      alert('Please enter a Job ID')
+      return
+    }
+
+    // Validate username if chosen
+    if (choice === 'username' && !launchUsername.trim()) {
+      alert('Please enter a username')
+      return
+    }
+
+    // Validate private server link if chosen
+    if (choice === 'private' && !launchPrivateServerLink.trim()) {
+      console.error('[Watcher] Private server link validation failed:', { launchPrivateServerLink, trimmed: launchPrivateServerLink.trim() })
+      alert('Please enter a private server link (https://www.roblox.com/games/...?privateServerLinkCode=...)')
+      return
+    }
+
+    // Validate that private server link contains the link code
+    if (choice === 'private') {
+      const linkCodeMatch = launchPrivateServerLink.match(/privateServerLinkCode=(\d+)/)
+      if (!linkCodeMatch) {
+        console.error('[Watcher] Private server link code not found in:', launchPrivateServerLink)
+        alert('Link must contain privateServerLinkCode parameter')
+        return
+      }
+    }
+
+    setShowLaunchChoiceModal(false)
+    // Reset inputs
+    setLaunchJobId('')
+    setLaunchUsername('')
+    setLaunchPrivateServerLink('')
+    
+    try {
+      // Set watcher config
+      await window.electron.ipcRenderer.invoke('watcher:set-config', {
+        enableRAMLimiter,
+        ramLimitMB: ramLimit,
+        autoRestart: true,
+        restartDelaySeconds: 5
+      })
+    } catch (err) {
+      console.error('Failed to set watcher config:', err)
+    }
+
+    // Start watcher
+    await startWatching()
+    setIsWatcherRunning(true)
+
+    // Launch all selected accounts
+    if (selectedAccountIds.size > 0 && placeId) {
+      setTimeout(async () => {
+        for (const accountId of selectedAccountIds) {
+          const account = accounts.find((a) => a.id === accountId)
+          if (!account || !account.cookie) continue
+
+          try {
+            // Launch game based on choice
+            let jobId: string | undefined
+            let friendId: string | number | undefined
+
+            if (choice === 'jobid') {
+              jobId = launchJobId
+            } else if (choice === 'username') {
+              friendId = launchUsername
+            } else if (choice === 'private') {
+              // Extract privateServerLinkCode from URL
+              try {
+                const url = new URL(launchPrivateServerLink)
+                const linkCode = url.searchParams.get('privateServerLinkCode')
+                if (linkCode) {
+                  jobId = linkCode
+                } else {
+                  // If no query param, use the whole link as fallback
+                  jobId = launchPrivateServerLink
+                }
+              } catch {
+                // If URL parsing fails, use the link as-is
+                jobId = launchPrivateServerLink
+              }
+            }
+
+            await window.api.launchGame(
+              account.cookie,
+              Number(placeId),
+              jobId,
+              friendId,
+              undefined
+            )
+
+            // Wait 3 seconds for Roblox process to spawn
+            await new Promise((r) => setTimeout(r, 3000))
+
+            // Auto-track in watcher with launch config
+            await window.api.autoTrackLaunchedGame(
+              accountId,
+              account.displayName || account.username,
+              account.userId || 'unknown',
+              Number(placeId),
+              {
+                cookie: account.cookie,
+                placeId: Number(placeId),
+                jobId: jobId,
+                friendId: friendId
+              },
+              account.displayName,
+              account.avatarUrl
+            )
+
+            // 2 second delay before launching next account
+            await new Promise((r) => setTimeout(r, 2000))
+          } catch (err: any) {
+            console.error(`Failed to launch ${account.displayName}:`, err)
+          }
+        }
+      }, 0)
+    }
+  }, [selectedAccountIds, placeId, accounts, startWatching, enableRAMLimiter, ramLimit, launchJobId, launchUsername])
 
   const sessionCount = sessions.length
   const runningCount = sessions.filter((s) => s.status === 'running').length
@@ -288,12 +481,15 @@ export default function WatcherTab() {
             {/* Launch/Stop Watcher Toggle Button */}
             <button
               onClick={handleToggleWatcher}
+              disabled={!isWatcherRunning && selectedAccountIds.size === 0}
               className={`flex-1 px-2 py-1 text-white rounded font-medium flex items-center justify-center gap-1 transition-colors text-xs ${
                 isWatcherRunning
                   ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)]'
+                  : selectedAccountIds.size === 0
+                    ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed'
+                    : 'bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)]'
               }`}
-              title={isWatcherRunning ? 'Stop watching' : 'Start watching'}
+              title={isWatcherRunning ? 'Stop watching' : selectedAccountIds.size === 0 ? 'Select accounts first' : 'Start watching'}
             >
               {isWatcherRunning ? (
                 <>
@@ -391,6 +587,8 @@ export default function WatcherTab() {
             sessions={sessions}
             onRemoveSession={handleRemoveSession}
             onRelaunchSession={handleRelaunchSession}
+            onJoinSession={handleJoinSession}
+            onJoinPrivateServer={handleJoinPrivateServerSession}
             onCloseAllSessions={handleCloseAllSessions}
           />
         </div>
@@ -435,6 +633,119 @@ export default function WatcherTab() {
           onClose={() => setShowAccountModal(false)}
         />
       )}
+
+      {/* Join Server Modal */}
+      {selectedSessionForJoin && (
+        <JoinServerModal
+          isOpen={showJoinModal}
+          onClose={() => {
+            setShowJoinModal(false)
+            setSelectedSessionForJoin(null)
+          }}
+          onJoinPublic={handleJoinPublic}
+          onJoinPrivate={handleJoinPrivate}
+          onJoinPrivateLink={handleJoinPrivateServerLink}
+          sessionUsername={selectedSessionForJoin.displayName || selectedSessionForJoin.username}
+          isLoading={isJoining}
+        />
+      )}
+
+      {/* Private Server Link Modal */}
+      {selectedSessionForJoin && (
+        <PrivateServerModal
+          isOpen={showPrivateServerModal}
+          onClose={() => {
+            setShowPrivateServerModal(false)
+            setSelectedSessionForJoin(null)
+          }}
+          onSubmit={handleJoinPrivateServerLink}
+          isLoading={isJoining}
+          sessionUsername={selectedSessionForJoin.displayName || selectedSessionForJoin.username}
+        />
+      )}
+
+      {/* Launch Choice Modal - Where to join */}
+      <Dialog isOpen={showLaunchChoiceModal} onClose={() => setShowLaunchChoiceModal(false)}>
+        <DialogContent className="max-w-sm max-h-[600px] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Where to Join?</DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+          <DialogBody className="py-2">
+            <div className="space-y-2">
+              <p className="text-xs text-[var(--color-text-muted)] mb-3">
+                {selectedAccountIds.size} account{selectedAccountIds.size === 1 ? '' : 's'}
+              </p>
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => handleLaunchWithChoice('public')}
+                  className="w-full px-3 py-2 rounded-lg border-2 border-blue-500/50 bg-blue-500/10 hover:bg-blue-500/20 transition-colors text-left"
+                >
+                  <div className="font-medium text-xs text-blue-300">Public Server</div>
+                  <div className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                    Join any public server
+                  </div>
+                </button>
+
+                <div className="border-2 border-emerald-500/50 bg-emerald-500/10 rounded-lg p-2 space-y-1.5">
+                  <label className="text-xs font-medium text-emerald-300 block">Private Server Link</label>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={launchPrivateServerLink}
+                    onChange={(e) => setLaunchPrivateServerLink(e.target.value)}
+                    placeholder="Paste: https://roblox.com/games/..."
+                    className="w-full px-2 py-1 bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded text-[var(--color-text-primary)] text-xs placeholder-[var(--color-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  />
+                  <button
+                    onClick={() => handleLaunchWithChoice('private')}
+                    disabled={!launchPrivateServerLink.trim()}
+                    className="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded font-medium text-xs transition-colors"
+                  >
+                    Join
+                  </button>
+                </div>
+
+                <div className="border-2 border-purple-500/50 bg-purple-500/10 rounded-lg p-2 space-y-1.5">
+                  <label className="text-xs font-medium text-purple-300 block">Job ID</label>
+                  <input
+                    type="text"
+                    value={launchJobId}
+                    onChange={(e) => setLaunchJobId(e.target.value)}
+                    placeholder="Job ID"
+                    className="w-full px-2 py-1 bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded text-[var(--color-text-primary)] text-xs placeholder-[var(--color-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                  />
+                  <button
+                    onClick={() => handleLaunchWithChoice('jobid')}
+                    disabled={!launchJobId.trim()}
+                    className="w-full px-2 py-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded font-medium text-xs transition-colors"
+                  >
+                    Join
+                  </button>
+                </div>
+
+                <div className="border-2 border-amber-500/50 bg-amber-500/10 rounded-lg p-2 space-y-1.5">
+                  <label className="text-xs font-medium text-amber-300 block">Username</label>
+                  <input
+                    type="text"
+                    value={launchUsername}
+                    onChange={(e) => setLaunchUsername(e.target.value)}
+                    placeholder="Username"
+                    className="w-full px-2 py-1 bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded text-[var(--color-text-primary)] text-xs placeholder-[var(--color-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                  />
+                  <button
+                    onClick={() => handleLaunchWithChoice('username')}
+                    disabled={!launchUsername.trim()}
+                    className="w-full px-2 py-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded font-medium text-xs transition-colors"
+                  >
+                    Join
+                  </button>
+                </div>
+              </div>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

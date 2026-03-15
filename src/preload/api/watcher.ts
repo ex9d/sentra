@@ -197,6 +197,22 @@ export const watcherApi = {
       }
     ),
 
+  // Join a private server with an account
+  joinPrivateServer: (accountId: string, jobId: string, placeId: number) =>
+    invoke('watcher:join-private-server', z.object({ success: z.boolean() }), accountId, jobId, placeId),
+
+  // Join a public game with an account
+  joinGame: (accountId: string, placeId: number) =>
+    invoke('watcher:join-game', z.object({ success: z.boolean() }), accountId, placeId),
+
+  // Rejoin a watched session's private server
+  rejoinPrivateServer: (sessionId: string, jobId: string) =>
+    invoke('watcher:rejoin-private-server', z.object({ success: z.boolean() }), sessionId, jobId),
+
+  // Launch a game with a URL (supports private server links)
+  launchGameWithUrl: (accountId: string, placeId: number, url: string) =>
+    invoke('watcher:launch-game-with-url', z.object({ success: z.boolean() }), accountId, placeId, url),
+
   // Listen for sessions updates
   onSessionsUpdated: (callback: (sessions: typeof watcherSessionSchema) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, sessions: any) => {

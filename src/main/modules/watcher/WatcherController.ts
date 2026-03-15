@@ -193,6 +193,54 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
     }
   )
 
+  /**
+   * Join a private server with an account
+   */
+  handle(
+    'watcher:join-private-server',
+    z.tuple([z.string(), z.string(), z.number()]),
+    async (_, accountId, jobId, placeId) => {
+      const success = await watcherService.joinPrivateServer(accountId, jobId, placeId)
+      return { success }
+    }
+  )
+
+  /**
+   * Join a public game with an account
+   */
+  handle(
+    'watcher:join-game',
+    z.tuple([z.string(), z.number()]),
+    async (_, accountId, placeId) => {
+      const success = await watcherService.joinGame(accountId, placeId)
+      return { success }
+    }
+  )
+
+  /**
+   * Rejoin a watched session's private server
+   */
+  handle(
+    'watcher:rejoin-private-server',
+    z.tuple([z.string(), z.string()]),
+    async (_, sessionId, jobId) => {
+      const success = await watcherService.rejoinPrivateServer(sessionId, jobId)
+      return { success }
+    }
+  )
+
+  /**
+   * Launch a game with a URL (supports private server links)
+   */
+  handle(
+    'watcher:launch-game-with-url',
+    z.tuple([z.string(), z.number(), z.string()]),
+    async (_, accountId, placeId, url) => {
+      const success = await watcherService.launchGameWithUrl(accountId, placeId, url)
+      return { success }
+    }
+  )
+
   console.log('[WatcherController] Handlers registered')
 }
 

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { handle } from '../core/utils/handle'
 import { RobloxAuthService } from '../auth/RobloxAuthService'
 import { RobloxUserService } from './UserService'
+import { cookieRefreshService } from '../auth/CookieRefreshService'
 
 /**
  * Registers user-related IPC handlers
@@ -9,6 +10,55 @@ import { RobloxUserService } from './UserService'
 export const registerUserHandlers = (): void => {
   handle('get-avatar-url', z.tuple([z.string()]), async (_, userId) => {
     return RobloxUserService.getAvatarUrl(userId)
+  })
+
+  // ============================================================================
+  // COOKIE VALIDATION & REFRESH HANDLERS
+  // ============================================================================
+
+  handle('validate-refresh-cookie', z.tuple([z.string()]), async (_, cookieRaw) => {
+    try {
+      const cookie = RobloxAuthService.extractCookie(cookieRaw)
+      const isValid = await cookieRefreshService.validateAndRefresh(cookie)
+      return {
+        success: isValid,
+        message: isValid ? 'Cookie is valid' : 'Cookie is expired or invalid'
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to validate cookie'
+      }
+    }
+  })
+
+  handle('get-cookie-health', z.tuple([z.string()]), async (_, cookieRaw) => {
+    try {
+      const cookie = RobloxAuthService.extractCookie(cookieRaw)
+      
+      // Get account info to check lastActive
+      const user = await RobloxUserService.getAuthenticatedUser(cookie)
+      const accounts = (await (global as any)._getAccounts?.()) || []
+      const account = accounts.find((a: any) => a.userId === user.id.toString())
+      
+      const lastActive = account?.lastActive || new Date().toISOString()
+      const isExpiring = cookieRefreshService.isLikelyExpired(lastActive)
+      const daysUntil = cookieRefreshService.daysUntilLikelyExpiration(lastActive)
+      
+      return {
+        isValid: !isExpiring,
+        isExpiring: daysUntil < 7 && !isExpiring, // Warn at 7 days
+        daysUntilExpiry: daysUntil,
+        lastValidated: new Date().toISOString()
+      }
+    } catch {
+      return {
+        isValid: false,
+        isExpiring: true,
+        daysUntilExpiry: 0,
+        lastValidated: new Date().toISOString()
+      }
+    }
   })
 
   handle(
@@ -87,6 +137,20 @@ export const registerUserHandlers = (): void => {
 
   handle('get-user-by-username', z.tuple([z.string()]), async (_, username) => {
     return RobloxUserService.getUserByUsername(username)
+  })
+
+  handle('get-avatar-url-by-username', z.tuple([z.string()]), async (_, username) => {
+    try {
+      const user = await RobloxUserService.getUserByUsername(username)
+      if (!user) {
+        return { success: false, url: '' }
+      }
+      const avatarUrl = await RobloxUserService.getAvatarUrl(user.id)
+      return { success: true, url: avatarUrl }
+    } catch (err) {
+      console.error('[UserController] Failed to get avatar URL for username:', username, err)
+      return { success: false, url: '' }
+    }
   })
 
   handle(

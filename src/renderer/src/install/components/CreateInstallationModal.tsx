@@ -42,7 +42,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
   const availableVersions = history[getApiType(newType)] || []
 
   const handleChoosePath = async () => {
-    const path = await window.api.chooseBackupLocation()
+    const path = await window.api.pickBackupFile()
     if (path) {
       setCustomPath(path)
     }
@@ -144,8 +144,8 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
 
             {/* Installation Path Selection */}
             <div className="space-y-2 pt-2 border-t border-neutral-800">
-              <label className="text-sm font-medium text-neutral-300 pb-1 block">Installation Path</label>
-              <p className="text-xs text-neutral-500 mb-2">Use auto-installer or choose a custom installation path</p>
+              <label className="text-sm font-medium text-neutral-300 pb-1 block">Import Accounts</label>
+              <p className="text-xs text-neutral-500 mb-2">Optionally import accounts from a backup file during installation</p>
               
               {!customPath ? (
                 <button
@@ -154,7 +154,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                   className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors text-sm text-neutral-300 hover:text-white flex items-center justify-center gap-2"
                 >
                   <FolderOpen size={14} />
-                  Choose custom installation path
+                  Import accounts from backup
                 </button>
               ) : (
                 <div className="p-3 rounded-lg bg-[var(--color-surface-muted)] border border-neutral-800/50 flex items-center justify-between">
@@ -166,7 +166,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                     type="button"
                     onClick={handleClearPath}
                     className="p-1 ml-2 hover:bg-red-500/10 text-red-400 hover:text-red-300 rounded transition-colors flex-shrink-0"
-                    title="Use auto-installer instead"
+                    title="Clear selection"
                   >
                     <X size={16} />
                   </button>
