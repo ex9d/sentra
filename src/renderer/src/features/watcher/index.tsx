@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Play, Trash2, Square, Settings } from 'lucide-react'
+import { Play, Trash2, Square, Settings, Clock, Zap } from 'lucide-react'
 import SessionsList from './components/SessionsList'
 import WatcherEventLog from './components/WatcherEventLog'
 import AccountSelectionModal from './components/AccountSelectionModal'
@@ -49,6 +49,11 @@ export default function WatcherTab() {
   const [isJoining, setIsJoining] = useState(false)
   const [enableRAMLimiter, setEnableRAMLimiter] = useLocalStorage<boolean>('watcher-ram-limiter', false)
   const [ramLimit, setRamLimit] = useLocalStorage<number>('watcher-ram-limit', 800)
+  const [enableRAMCleanupAttempts, setEnableRAMCleanupAttempts] = useLocalStorage<boolean>('watcher-ram-cleanup', true)
+  const [enableClientTimeout, setEnableClientTimeout] = useLocalStorage<boolean>('watcher-client-timeout', false)
+  const [clientTimeout, setClientTimeout] = useLocalStorage<number>('watcher-client-timeout-seconds', 3600)
+  const [enableCPULimiter, setEnableCPULimiter] = useLocalStorage<boolean>('watcher-cpu-limiter', false)
+  const [cpuLimit, setCPULimit] = useLocalStorage<number>('watcher-cpu-limit', 80)
   const [showLaunchChoiceModal, setShowLaunchChoiceModal] = useState(false)
   const [launchChoice, setLaunchChoice] = useState<'public' | 'private' | 'jobid' | 'username' | null>(null)
   const [launchJobId, setLaunchJobId] = useState('')
@@ -246,20 +251,25 @@ export default function WatcherTab() {
     }
   }, [clearEvents])
 
-  const handleUpdateRAMConfig = useCallback(async () => {
+  const handleUpdateWatcherConfig = useCallback(async () => {
     try {
       await window.electron.ipcRenderer.invoke('watcher:set-config', {
-        enableRAMLimiter, // Use actual toggle state
+        enableRAMLimiter,
         ramLimitMB: ramLimit,
+        enableRAMCleanupAttempts,
+        enableClientTimeout,
+        clientTimeoutSeconds: clientTimeout,
+        enableCPULimiter,
+        cpuLimitPercent: cpuLimit,
         autoRestart: true,
         restartDelaySeconds: 5
       })
       setShowRAMSettings(false)
     } catch (error) {
       console.error('Failed to update watcher config:', error)
-      alert('Failed to update RAM limiter config')
+      alert('Failed to update watcher config')
     }
-  }, [enableRAMLimiter, ramLimit])
+  }, [enableRAMLimiter, ramLimit, enableRAMCleanupAttempts, enableClientTimeout, clientTimeout, enableCPULimiter, cpuLimit])
 
   const handleToggleWatcher = useCallback(async () => {
     if (isWatcherRunning) {
@@ -279,6 +289,10 @@ export default function WatcherTab() {
           await window.electron.ipcRenderer.invoke('watcher:set-config', {
             enableRAMLimiter,
             ramLimitMB: ramLimit,
+            enableClientTimeout,
+            clientTimeoutSeconds: clientTimeout,
+            enableCPULimiter,
+            cpuLimitPercent: cpuLimit,
             autoRestart: true,
             restartDelaySeconds: 5
           })
@@ -333,6 +347,10 @@ export default function WatcherTab() {
       await window.electron.ipcRenderer.invoke('watcher:set-config', {
         enableRAMLimiter,
         ramLimitMB: ramLimit,
+        enableClientTimeout,
+        clientTimeoutSeconds: clientTimeout,
+        enableCPULimiter,
+        cpuLimitPercent: cpuLimit,
         autoRestart: true,
         restartDelaySeconds: 5
       })
@@ -504,20 +522,20 @@ export default function WatcherTab() {
               )}
             </button>
 
-            {/* RAM Limiter Settings Button */}
+            {/* Watcher Settings Button - Controls RAM, Timeout, and CPU */}
             <button
               onClick={() => setShowRAMSettings(!showRAMSettings)}
-              disabled={isMac}
-              className="flex-1 px-2 py-1 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] disabled:bg-gray-600 disabled:opacity-50 text-[var(--accent-color-foreground)] rounded font-medium flex items-center justify-center gap-0.5 transition-colors text-xs"
-              title={isMac ? 'RAM Limiter only available on Windows' : 'Configure RAM limiter'}
+              disabled={false}
+              className="flex-1 px-2 py-1 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] rounded font-medium flex items-center justify-center gap-0.5 transition-colors text-xs"
+              title="Configure watcher settings (RAM, Timeout, CPU)"
             >
               <Settings className="w-3 h-3" />
-              RAM
+              Settings
             </button>
           </div>
 
-          {/* RAM Limiter Settings Panel */}
-          {showRAMSettings && !isMac && (
+          {/* Unified Watcher Settings Panel */}
+          {showRAMSettings && (
             <div className="p-3 bg-[var(--color-surface-muted)] border border-[var(--accent-color)]/30 rounded-lg space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-neutral-300">Enable RAM Limiter</label>
@@ -530,6 +548,10 @@ export default function WatcherTab() {
                       await window.electron.ipcRenderer.invoke('watcher:set-config', {
                         enableRAMLimiter: newState,
                         ramLimitMB: ramLimit,
+                        enableClientTimeout,
+                        clientTimeoutSeconds: clientTimeout,
+                        enableCPULimiter,
+                        cpuLimitPercent: cpuLimit,
                         autoRestart: true,
                         restartDelaySeconds: 5
                       })
@@ -567,8 +589,162 @@ export default function WatcherTab() {
                 </div>
               )}
 
+              {/* RAM Cleanup Attempts */}
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-neutral-300">Attempt Cleanup Before Restart</label>
+                <button
+                  onClick={async () => {
+                    const newState = !enableRAMCleanupAttempts
+                    setEnableRAMCleanupAttempts(newState)
+                    try {
+                      await window.electron.ipcRenderer.invoke('watcher:set-config', {
+                        enableRAMLimiter,
+                        ramLimitMB: ramLimit,
+                        enableRAMCleanupAttempts: newState,
+                        enableClientTimeout,
+                        clientTimeoutSeconds: clientTimeout,
+                        enableCPULimiter,
+                        cpuLimitPercent: cpuLimit,
+                        autoRestart: true,
+                        restartDelaySeconds: 5
+                      })
+                    } catch (error) {
+                      console.error('Failed to update RAM cleanup config:', error)
+                    }
+                  }}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                    enableRAMCleanupAttempts ? 'bg-[var(--accent-color)]' : 'bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                      enableRAMCleanupAttempts ? 'translate-x-5' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className="text-xs text-neutral-500 leading-tight">Try EmptyWorkingSet 3x before restarting (Windows only)</p>
+
+              {/* Divider */}
+              <div className="border-t border-[var(--accent-color)]/20" />
+
+              {/* Client Timeout Settings */}
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-neutral-300">Enable Client Timeout</label>
+                <button
+                  onClick={async () => {
+                    const newState = !enableClientTimeout
+                    setEnableClientTimeout(newState)
+                    try {
+                      await window.electron.ipcRenderer.invoke('watcher:set-config', {
+                        enableClientTimeout: newState,
+                        clientTimeoutSeconds: clientTimeout,
+                        enableRAMLimiter,
+                        ramLimitMB: ramLimit,
+                        enableCPULimiter,
+                        cpuLimitPercent: cpuLimit,
+                        autoRestart: true,
+                        restartDelaySeconds: 5
+                      })
+                    } catch (error) {
+                      console.error('Failed to update client timeout config:', error)
+                    }
+                  }}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                    enableClientTimeout ? 'bg-[var(--accent-color)]' : 'bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                      enableClientTimeout ? 'translate-x-5' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {enableClientTimeout && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-300 block">Timeout (Seconds)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="60"
+                      max="86400"
+                      step="60"
+                      value={clientTimeout}
+                      onChange={(e) => setClientTimeout(Number(e.target.value))}
+                      className="flex-1 px-2 py-1 bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-color)]"
+                    />
+                  </div>
+                  <p className="text-xs text-neutral-500 leading-tight">Auto-restarts client after timeout</p>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="border-t border-[var(--accent-color)]/20" />
+
+              {/* CPU Limiter Settings */}
+              {!isMac && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-neutral-300">Enable CPU Limiter</label>
+                    <button
+                      onClick={async () => {
+                        const newState = !enableCPULimiter
+                        setEnableCPULimiter(newState)
+                        try {
+                          await window.electron.ipcRenderer.invoke('watcher:set-config', {
+                            enableCPULimiter: newState,
+                            cpuLimitPercent: cpuLimit,
+                            enableRAMLimiter,
+                            ramLimitMB: ramLimit,
+                            enableClientTimeout,
+                            clientTimeoutSeconds: clientTimeout,
+                            autoRestart: true,
+                            restartDelaySeconds: 5
+                          })
+                        } catch (error) {
+                          console.error('Failed to update CPU limiter config:', error)
+                        }
+                      }}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        enableCPULimiter ? 'bg-[var(--accent-color)]' : 'bg-gray-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                          enableCPULimiter ? 'translate-x-5' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {enableCPULimiter && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-neutral-300 block">Max CPU (%)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min="10"
+                          max="100"
+                          step="5"
+                          value={cpuLimit}
+                          onChange={(e) => setCPULimit(Number(e.target.value))}
+                          className="flex-1 px-2 py-1 bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-color)]"
+                        />
+                      </div>
+                      <p className="text-xs text-neutral-500 leading-tight">Auto-restarts processes exceeding CPU limit</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {isMac && (
+                <p className="text-xs text-neutral-500 italic">CPU limiter is only available on Windows and Linux</p>
+              )}
+
               <button
-                onClick={handleUpdateRAMConfig}
+                onClick={handleUpdateWatcherConfig}
                 className="w-full px-2 py-1 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] rounded text-xs font-medium transition-colors"
               >
                 Apply

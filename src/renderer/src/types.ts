@@ -151,6 +151,12 @@ export interface Settings {
   browserWindowHeight?: number | null
   // Show a return-page button inside the in-app browser window UI
   showReturnPageButton?: boolean
+  // User Agent settings
+  userAgentSettings?: {
+    currentUserAgentIndex: number
+    autoSwapUserAgent: boolean
+    autoSwapIntervalMinutes: number
+  }
 }
 
 export type AccessoryType =

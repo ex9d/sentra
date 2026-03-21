@@ -15,6 +15,23 @@ export function registerGeneratorHandlers(): void {
     return result
   })
 
+  // Create account with specific username
+  ipcMain.handle('generator:create-account-with-username', async (_event, username: string) => {
+    console.log(`[GeneratorController] IPC received: create-account-with-username with username: ${username}`)
+    try {
+      const result = await generatorService.createAccountWithUsername(username)
+      console.log(`[GeneratorController] IPC result:`, result)
+      return result
+    } catch (err) {
+      console.error(`[GeneratorController] IPC error:`, err)
+      return {
+        success: false,
+        error: String(err),
+        timestamp: Date.now()
+      }
+    }
+  })
+
   // Launch browser
   ipcMain.handle('generator:launch-browser', async () => {
     try {
@@ -77,6 +94,12 @@ export function registerGeneratorHandlers(): void {
     return { success: true }
   })
 
+  // Delete a single account
+  ipcMain.handle('generator:delete-account', (_event, accountId: string) => {
+    const deleted = generatorService.deleteAccount(accountId)
+    return { success: deleted }
+  })
+
   // Update config
   ipcMain.handle('generator:update-config', (_event, config: Partial<GeneratorConfig>) => {
     generatorService.updateConfig(config)
@@ -98,5 +121,46 @@ export function registerGeneratorHandlers(): void {
   ipcMain.handle('generator:get-cookie', (_event, accountId: string) => {
     const cookie = generatorService.getCookie(accountId)
     return { success: true, cookie }
+  })
+
+  // ===== SNIPER ACCOUNTS (stored in encrypted StorageService) =====
+  
+  // Get sniper-generated accounts
+  ipcMain.handle('sniper:get-accounts', () => {
+    const accounts = storageService.getSniperAccounts()
+    return { success: true, accounts }
+  })
+
+  // Add a sniper-generated account
+  ipcMain.handle('sniper:add-account', (_event, account: any) => {
+    try {
+      storageService.addSniperAccount(account)
+      return { success: true }
+    } catch (err) {
+      console.error('[GeneratorController] Failed to add sniper account:', err)
+      return { success: false, error: String(err) }
+    }
+  })
+
+  // Remove a sniper account
+  ipcMain.handle('sniper:remove-account', (_event, accountId: string) => {
+    try {
+      const success = storageService.removeSniperAccount(accountId)
+      return { success }
+    } catch (err) {
+      console.error('[GeneratorController] Failed to remove sniper account:', err)
+      return { success: false, error: String(err) }
+    }
+  })
+
+  // Move sniper account to main accounts
+  ipcMain.handle('sniper:move-to-main', (_event, accountId: string) => {
+    try {
+      const success = storageService.moveSniperAccountToMain(accountId)
+      return { success }
+    } catch (err) {
+      console.error('[GeneratorController] Failed to move sniper account to main:', err)
+      return { success: false, error: String(err) }
+    }
   })
 }

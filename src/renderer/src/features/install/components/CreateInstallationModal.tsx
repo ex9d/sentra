@@ -41,8 +41,9 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
   const [newVersion, setNewVersion] = useState('')
   const [newChannel, setNewChannel] = useState('live')
   const [customPath, setCustomPath] = useState('')
+  const [freshHistory, setFreshHistory] = useState<Record<string, string[]>>(history)
 
-  const availableVersions = history[getApiType(newType)] || []
+  const availableVersions = freshHistory[getApiType(newType)] || []
 
   // Reset form when modal opens and load versions
   useEffect(() => {
@@ -56,7 +57,8 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
       // Force fresh deploy history fetch when modal opens (includes macOS versions)
       (async () => {
         try {
-          await window.api.getDeployHistory(true)
+          const freshData = await window.api.getDeployHistory(true)
+          setFreshHistory(freshData)
         } catch (e) {
           console.error('Failed to load deploy history:', e instanceof Error ? e.message : String(e))
         }
@@ -66,7 +68,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
 
   const handleChoosePath = async () => {
     try {
-      const path = await window.api.chooseBackupLocation()
+      const path = await window.api.selectInstallationDirectory()
       if (path) {
         setCustomPath(path)
       }

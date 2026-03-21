@@ -9,7 +9,7 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
-  initialTheme = 'system',
+  initialTheme = 'dark', // Always default to dark theme
   children
 }) => {
   const getSystemTheme = () => {

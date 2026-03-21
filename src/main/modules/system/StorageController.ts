@@ -1,10 +1,11 @@
-import { ipcMain, IpcMainInvokeEvent, app } from 'electron'
+import { ipcMain, IpcMainInvokeEvent, app, BrowserWindow } from 'electron'
 import { z } from 'zod'
 import path from 'path'
 import { storageService } from './StorageService'
 import { accountSchema } from '../../../shared/ipc-schemas/user'
 import { favoriteItemSchema } from '../../../shared/ipc-schemas/avatar'
 import { settingsPatchSchema } from '../../../shared/ipc-schemas/system'
+import { UserAgentService } from '../auth/UserAgentService'
 
 function handle<T extends any[]>(
   channel: string,
@@ -231,5 +232,104 @@ export const registerStorageHandlers = (): void => {
 
   handle('set-allow-multiple-instances', z.tuple([z.boolean()]), async (_, allow) => {
     storageService.setAllowMultipleInstances(allow)
+  })
+
+  // User Agent handlers
+  handle('swap-user-agent', z.tuple([]), async () => {
+    const newUA = UserAgentService.getNextUserAgent()
+    const index = UserAgentService.getCurrentUserAgentIndex()
+    
+    console.log(`[StorageController] Swapped user agent to index ${index}: ${newUA.substring(0, 60)}...`)
+    
+    // Apply new UA to all existing BrowserWindows
+    const windows = BrowserWindow.getAllWindows()
+    console.log(`[StorageController] Applying to ${windows.length} windows`)
+    
+    windows.forEach(window => {
+      try {
+        window.webContents.setUserAgent(newUA)
+        console.log(`[StorageController] Successfully set UA on window`)
+      } catch (e) {
+        console.error('[StorageController] Failed to set UA on window:', e)
+      }
+    })
+    
+    return {
+      userAgent: newUA,
+      index: index
+    }
+  })
+
+  handle('set-user-agent-index', z.tuple([z.number()]), async (_, index) => {
+    const ua = UserAgentService.setUserAgentIndex(index)
+    const currentIndex = UserAgentService.getCurrentUserAgentIndex()
+    
+    console.log(`[StorageController] Set user agent to index ${currentIndex}: ${ua.substring(0, 60)}...`)
+    
+    // Apply new UA to all existing BrowserWindows
+    const windows = BrowserWindow.getAllWindows()
+    console.log(`[StorageController] Applying to ${windows.length} windows`)
+    
+    windows.forEach(window => {
+      try {
+        window.webContents.setUserAgent(ua)
+        console.log(`[StorageController] Successfully set UA on window`)
+      } catch (e) {
+        console.error('[StorageController] Failed to set UA on window:', e)
+      }
+    })
+    
+    return {
+      userAgent: ua,
+      index: currentIndex
+    }
+  })
+
+  handle('get-current-user-agent', z.tuple([]), async () => {
+    return {
+      userAgent: UserAgentService.getCurrentUserAgent(),
+      index: UserAgentService.getCurrentUserAgentIndex()
+    }
+  })
+
+  handle('get-all-user-agents', z.tuple([]), async () => {
+    return UserAgentService.getAllUserAgents()
+  })
+
+  handle(
+    'set-auto-swap-user-agent',
+    z.tuple([z.boolean(), z.number().optional()]),
+    async (_, enabled, intervalMinutes) => {
+      if (enabled) {
+        UserAgentService.startAutoSwap(intervalMinutes || 30, (ua) => {
+          // Callback to apply UA when auto-swap triggers
+          BrowserWindow.getAllWindows().forEach(window => {
+            try {
+              window.webContents.setUserAgent(ua)
+            } catch (e) {
+              console.error('[StorageController] Failed to set UA on window during auto-swap:', e)
+            }
+          })
+        })
+      } else {
+        UserAgentService.stopAutoSwap()
+      }
+      
+      return {
+        autoSwapEnabled: UserAgentService.isAutoSwapEnabled(),
+        intervalMinutes: UserAgentService.getAutoSwapInterval()
+      }
+    }
+  )
+
+  handle('get-user-agent-state', z.tuple([]), async () => {
+    const settings = storageService.getSettings()
+    return {
+      currentUserAgent: UserAgentService.getCurrentUserAgent(),
+      currentIndex: UserAgentService.getCurrentUserAgentIndex(),
+      autoSwapEnabled: UserAgentService.isAutoSwapEnabled(),
+      autoSwapIntervalMinutes: UserAgentService.getAutoSwapInterval(),
+      totalUserAgents: UserAgentService.getAllUserAgents().length
+    }
   })
 }

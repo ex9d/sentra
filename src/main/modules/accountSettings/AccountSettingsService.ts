@@ -27,15 +27,25 @@ const BILLING_API_URL = 'https://billing.roblox.com/v1'
 
 /**
  * Fetches CSRF token for authenticated requests
+ * Uses the login endpoint (which returns 403 with CSRF token) instead of logout
+ * to avoid unintended session invalidation when calling logout endpoint
  */
 async function getCsrfToken(cookie: string): Promise<string> {
-  const response = await fetch('https://auth.roblox.com/v2/logout', {
-    method: 'POST',
-    headers: {
-      Cookie: `.ROBLOSECURITY=${cookie}`
-    }
-  })
-  return response.headers.get('x-csrf-token') || ''
+  try {
+    const response = await fetch('https://auth.roblox.com/v2/login', {
+      method: 'POST',
+      headers: {
+        Cookie: `.ROBLOSECURITY=${cookie}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    // The endpoint returns 403 with CSRF token in headers for security
+    const token = response.headers.get('x-csrf-token')
+    return token || ''
+  } catch (error) {
+    console.error('[AccountSettingsService] Failed to fetch CSRF token:', error)
+    return ''
+  }
 }
 
 /**

@@ -9,6 +9,7 @@ import type { Account } from '../../../renderer/src/types'
 // @ts-ignore - imported for use in Account initialization
 import { AccountStatus } from '../../../renderer/src/types'
 import { RobloxLoginWindowService } from '../auth/RobloxLoginWindowService'
+import usernameSniperService from '../sniper/UsernameSniper'
 
 // Helper function for delays
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -55,6 +56,8 @@ export class GeneratorService extends EventEmitter {
   private signupBrowserWindow: any = null // Custom Electron browser window for signup
   private signupBrowserWebContents: any = null // WebContents for injecting JavaScript
   private signupBrowserPartition: string = '' // Partition for cookie access
+  private isCreatingAccount: boolean = false // Prevent parallel account creations
+  private accountCreationQueue: Array<() => Promise<AccountCreationResult>> = [] // Queue for rapid account creations
 
   constructor() {
     super()
@@ -149,6 +152,50 @@ export class GeneratorService extends EventEmitter {
   }
 
   /**
+   * Check if username is available and appropriate using sniper
+   */
+  async checkUsernameValidity(username: string): Promise<boolean> {
+    try {
+      const result = await usernameSniperService.checkUsername(username)
+      
+      // code: 0 = valid/available, 1 = taken, 2 = censored, -1 = error
+      if (result.code === 0) {
+        console.log(`[Generator] ✓ Username "${username}" is available`)
+        return true
+      } else if (result.code === 1) {
+        console.log(`[Generator] Username "${username}" is already taken`)
+        return false
+      } else if (result.code === 2) {
+        console.log(`[Generator] Username "${username}" is censored`)
+        return false
+      } else {
+        console.log(`[Generator] Could not validate username "${username}": ${result.message}`)
+        return false
+      }
+    } catch (error) {
+      console.error(`[Generator] Error checking username "${username}":`, error)
+      return false
+    }
+  }
+
+  /**
+   * Generate suitable username (with validity check)
+   */
+  async generateValidUsername(maxAttempts: number = 10): Promise<string> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const username = this.generateUsername()
+      console.log(`[Generator] Checking username: ${username} (attempt ${attempt + 1}/${maxAttempts})`)
+      
+      const isValid = await this.checkUsernameValidity(username)
+      if (isValid) {
+        return username
+      }
+    }
+    
+    throw new Error(`Failed to generate valid username after ${maxAttempts} attempts`)
+  }
+
+  /**
    * Generate random username
    */
   private generateUsername(): string {
@@ -201,60 +248,89 @@ export class GeneratorService extends EventEmitter {
    */
   async launchBrowser(): Promise<void> {
     try {
+      // Close any existing browser window first
+      if (this.signupBrowserWindow && !this.signupBrowserWindow.isDestroyed()) {
+        try {
+          this.signupBrowserWindow.close()
+          await new Promise(resolve => setTimeout(resolve, 500))
+        } catch (err) {
+          console.warn('[Generator] Error closing existing window:', err)
+        }
+      }
+
       // Get custom window dimensions from settings
-      const settings = storageService.getSettings()
-      const windowWidth = settings.browserWindowWidth ?? 1280
-      const windowHeight = settings.browserWindowHeight ?? 800
+      try {
+        const settings = storageService.getSettings()
+        const windowWidth = settings.browserWindowWidth ?? 1280
+        const windowHeight = settings.browserWindowHeight ?? 800
+        console.log('[Generator] Opening signup browser with dimensions:', windowWidth, 'x', windowHeight)
+      } catch (settingErr) {
+        console.warn('[Generator] Error getting settings, using defaults:', settingErr)
+      }
 
+      console.log('[Generator] Attempting to call RobloxLoginWindowService.openSignupBrowser...')
+      
       // Open the custom signup browser (with toolbar for captcha evasion)
-      const signupBrowserInfo = await RobloxLoginWindowService.openSignupBrowser(windowWidth, windowHeight)
-      this.signupBrowserWindow = signupBrowserInfo.browserWindow
-      this.signupBrowserWebContents = signupBrowserInfo.webContents
-      this.signupBrowserPartition = signupBrowserInfo.partition
+      try {
+        const signupBrowserInfo = await RobloxLoginWindowService.openSignupBrowser(1280, 800)
+        this.signupBrowserWindow = signupBrowserInfo.browserWindow
+        this.signupBrowserWebContents = signupBrowserInfo.webContents
+        this.signupBrowserPartition = signupBrowserInfo.partition
 
-      console.log('[Generator] Custom signup browser opened with toolbar (anti-detection mode)')
-      console.log('[Generator] Form will auto-fill in the visible window, user will see everything')
+        console.log('[Generator] Custom signup browser opened successfully!')
+        console.log('[Generator] BrowserWindow:', this.signupBrowserWindow ? 'exists' : 'null')
+        console.log('[Generator] WebContents:', this.signupBrowserWebContents ? 'exists' : 'null')
+      } catch (browserErr) {
+        console.error('[Generator] FAILED to call openSignupBrowser:', browserErr)
+        throw new Error(`Browser service error: ${String(browserErr)}`)
+      }
       
       // Wait longer for the React form to fully load and render
       console.log('[Generator] Waiting 4 seconds for signup form to fully load...')
       await new Promise(resolve => setTimeout(resolve, 4000))
 
       // Debug: Check if form inputs exist and their structure
-      const formDebug = await this.signupBrowserWebContents.executeJavaScript(`
-        (() => {
-          const usernameInput = document.getElementById('signup-username')
-          const passwordInput = document.getElementById('signup-password')
-          const allInputs = Array.from(document.querySelectorAll('input'))
-          
-          return {
-            usernameExists: !!usernameInput,
-            passwordExists: !!passwordInput,
-            usernameValue: usernameInput?.value || 'NOT FOUND',
-            passwordValue: passwordInput?.value || 'NOT FOUND',
-            usernameTag: usernameInput?.tagName,
-            passwordTag: passwordInput?.tagName,
-            usernameOnChange: !!usernameInput?.onchange,
-            passwordOnChange: !!passwordInput?.onchange,
-            usernameClasses: usernameInput?.className,
-            passwordClasses: passwordInput?.className,
-            allInputs: allInputs.map(i => ({ 
-              id: i.id, 
-              name: i.name, 
-              type: i.type, 
-              value: i.value,
-              classes: i.className,
-              readonly: i.readOnly,
-              disabled: i.disabled
-            }))
-          }
-        })()
-      `)
+      try {
+        const formDebug = await this.signupBrowserWebContents.executeJavaScript(`
+          (() => {
+            const usernameInput = document.getElementById('signup-username')
+            const passwordInput = document.getElementById('signup-password')
+            const allInputs = Array.from(document.querySelectorAll('input'))
+            
+            return {
+              usernameExists: !!usernameInput,
+              passwordExists: !!passwordInput,
+              usernameValue: usernameInput?.value || 'NOT FOUND',
+              passwordValue: passwordInput?.value || 'NOT FOUND',
+              usernameTag: usernameInput?.tagName,
+              passwordTag: passwordInput?.tagName,
+              usernameOnChange: !!usernameInput?.onchange,
+              passwordOnChange: !!passwordInput?.onchange,
+              usernameClasses: usernameInput?.className,
+              passwordClasses: passwordInput?.className,
+              allInputs: allInputs.map(i => ({ 
+                id: i.id, 
+                name: i.name, 
+                type: i.type, 
+                value: i.value,
+                classes: i.className,
+                readonly: i.readOnly,
+                disabled: i.disabled
+              }))
+            }
+          })()
+        `)
+        
+        console.log('[Generator] Form structure debug:', JSON.stringify(formDebug, null, 2))
+      } catch (debugErr) {
+        console.warn('[Generator] Could not debug form structure:', debugErr)
+      }
       
-      console.log('[Generator] Form structure debug:', JSON.stringify(formDebug, null, 2))
       console.log('[Generator] Page fully loaded, ready to auto-fill signup form')
       this.emit('browser-launched')
     } catch (err) {
       console.error('[Generator] Browser launch error:', err)
+      console.error('[Generator] Error stack:', err instanceof Error ? err.stack : 'No stack')
       this.emit('browser-error', String(err))
       throw err
     }
@@ -575,12 +651,31 @@ export class GeneratorService extends EventEmitter {
       console.log('[Generator] Waiting for submit button to become enabled...')
       const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
+      // Helper to safely execute JavaScript - checks if webContents still exists
+      const safeExecute = async (code: string, label: string) => {
+        try {
+          if (!this.signupBrowserWebContents) {
+            throw new Error('WebContents is null - browser was closed')
+          }
+          return await this.signupBrowserWebContents.executeJavaScript(code)
+        } catch (err) {
+          console.error(`[Generator] Error during "${label}":`, err)
+          throw err
+        }
+      }
+
       // Try old system first
-      const oldSubmitExists = await this.signupBrowserWebContents.executeJavaScript(`
-        (() => {
-          return document.getElementById('signup-button') !== null
-        })()
-      `)
+      let oldSubmitExists = false
+      try {
+        oldSubmitExists = await safeExecute(`
+          (() => {
+            return document.getElementById('signup-button') !== null
+          })()
+        `, 'checking old submit button')
+      } catch (err) {
+        console.warn('[Generator] Could not check for old submit button:', err)
+        return // Browser was closed, exit gracefully
+      }
       
       if (oldSubmitExists) {
         console.log('[Generator] Found OLD system submit button (#signup-button)')
@@ -589,12 +684,17 @@ export class GeneratorService extends EventEmitter {
         let isEnabled = false
         let attempts = 0
         while (!isEnabled && attempts < 20) {
-          isEnabled = await this.signupBrowserWebContents.executeJavaScript(`
-            (() => {
-              const btn = document.getElementById('signup-button')
-              return btn && !btn.hasAttribute('disabled') && btn.offsetHeight > 0
-            })()
-          `)
+          try {
+            isEnabled = await safeExecute(`
+              (() => {
+                const btn = document.getElementById('signup-button')
+                return btn && !btn.hasAttribute('disabled') && btn.offsetHeight > 0
+              })()
+            `, 'checking button enabled status')
+          } catch (err) {
+            console.warn('[Generator] Button check failed, assuming closed:', err)
+            return
+          }
           if (!isEnabled) {
             await sleep(500)
             attempts++
@@ -608,12 +708,17 @@ export class GeneratorService extends EventEmitter {
         }
         
         console.log('[Generator] Clicking signup button...')
-        await this.signupBrowserWebContents.executeJavaScript(`
-          (() => {
-            const btn = document.getElementById('signup-button')
-            if (btn) btn.click()
-          })()
-        `)
+        try {
+          await safeExecute(`
+            (() => {
+              const btn = document.getElementById('signup-button')
+              if (btn) btn.click()
+            })()
+          `, 'clicking old submit button')
+        } catch (err) {
+          console.warn('[Generator] Failed to click submit button:', err)
+          return
+        }
       } else {
         // Try new system - submit button with type="submit"
         console.log('[Generator] Looking for NEW system submit button (button[type="submit"])')
@@ -622,12 +727,17 @@ export class GeneratorService extends EventEmitter {
         let isEnabled = false
         let attempts = 0
         while (!isEnabled && attempts < 20) {
-          isEnabled = await this.signupBrowserWebContents.executeJavaScript(`
-            (() => {
-              const btn = document.querySelector('button[type="submit"]')
-              return btn && !btn.hasAttribute('disabled') && !btn.classList.contains('disabled') && btn.offsetHeight > 0
-            })()
-          `)
+          try {
+            isEnabled = await safeExecute(`
+              (() => {
+                const btn = document.querySelector('button[type="submit"]')
+                return btn && !btn.hasAttribute('disabled') && !btn.classList.contains('disabled') && btn.offsetHeight > 0
+              })()
+            `, 'checking new button enabled status')
+          } catch (err) {
+            console.warn('[Generator] Button check failed, assuming closed:', err)
+            return
+          }
           if (!isEnabled) {
             await sleep(500)
             attempts++
@@ -641,12 +751,17 @@ export class GeneratorService extends EventEmitter {
         }
         
         console.log('[Generator] Clicking submit button...')
-        await this.signupBrowserWebContents.executeJavaScript(`
-          (() => {
-            const btn = document.querySelector('button[type="submit"]')
-            if (btn) btn.click()
-          })()
-        `)
+        try {
+          await safeExecute(`
+            (() => {
+              const btn = document.querySelector('button[type="submit"]')
+              if (btn) btn.click()
+            })()
+          `, 'clicking new submit button')
+        } catch (err) {
+          console.warn('[Generator] Failed to click new submit button:', err)
+          return
+        }
       }
 
       // Wait for response or navigation
@@ -750,7 +865,7 @@ export class GeneratorService extends EventEmitter {
 
       // Add account to storage with the cookie we found (or empty string if not found)
       console.log('[Generator] Adding account to storage...')
-      await this.addAccountToStorage(accountData, robloxSecurityCookie)
+      await this.addAccountToStorage(accountData, robloxSecurityCookie, false)
 
       console.log('[Generator] Account signup workflow completed successfully')
       this.emit('signup-completed', accountData)
@@ -768,7 +883,7 @@ export class GeneratorService extends EventEmitter {
   /**
    * Add generated account to storage (both generator storage and main accounts)
    */
-  private async addAccountToStorage(accountData: GeneratedAccountData, cookie: string): Promise<void> {
+  private async addAccountToStorage(accountData: GeneratedAccountData, cookie: string, fromSniper: boolean = false): Promise<void> {
     try {
       // Generate ID and store password + cookie
       const accountId = randomUUID()
@@ -782,36 +897,35 @@ export class GeneratorService extends EventEmitter {
       
       console.log('[Generator] Account stored in generator storage:', accountData.username, 'ID:', accountId)
       
-      // Also add to main accounts storage with encrypted password
-      try {
-        // Create Account object from GeneratedAccountData
-        const newAccount: Account = {
-          id: accountId,
-          displayName: accountData.username,
-          username: accountData.username,
-          userId: '', // Will be empty until they login
-          cookie: cookie || undefined,
-          password: accountData.password, // Password stored plaintext - encrypted at JSON level by StorageService
-          status: AccountStatus.Offline,
-          notes: `Auto-generated on ${new Date().toLocaleString()}`,
-          importedVia: 'cookie',
-          avatarUrl: '',
-          lastActive: new Date().toISOString(),
-          robuxBalance: 0,
-          friendCount: 0,
-          followerCount: 0,
-          followingCount: 0,
-          isPremium: false,
-          isAdmin: false
+      // If from sniper, add to sniper-generated accounts list
+      if (fromSniper) {
+        try {
+          // Create Account object from GeneratedAccountData
+          const newAccount: Account = {
+            id: accountId,
+            displayName: accountData.username,
+            username: accountData.username,
+            userId: '', // Will be empty until they login
+            cookie: cookie || undefined,
+            password: accountData.password, // Password stored plaintext - encrypted at JSON level by StorageService
+            status: AccountStatus.Offline,
+            importedVia: 'cookie',
+            avatarUrl: '',
+            lastActive: new Date().toISOString(),
+            robuxBalance: 0,
+            friendCount: 0,
+            followerCount: 0,
+            followingCount: 0,
+            isPremium: false,
+            isAdmin: false,
+            notes: ''
+          }
+          
+          storageService.addSniperAccount(newAccount)
+          console.log('[Generator] Account added to Sniper Generated list:', accountData.username)
+        } catch (err) {
+          console.warn('[Generator] Failed to add account to sniper storage:', err)
         }
-        
-        // Add to main storage using the method that bypasses PIN verification requirement
-        storageService.addAccountsToStorage([newAccount])
-        
-        console.log('[Generator] Account also added to main Accounts tab:', accountData.username)
-      } catch (err) {
-        console.warn('[Generator] Failed to add account to main storage:', err)
-        // Don't fail the whole operation if main storage fails
       }
       
       // Optionally emit event for UI to know a new account was created
@@ -843,21 +957,160 @@ export class GeneratorService extends EventEmitter {
     try {
       console.log('[Generator] Starting account creation...')
 
-      // Generate account data
-      const accountData = this.generateAccountData()
-      console.log(`[Generator] Generated account: ${accountData.username}`)
+      // Generate and validate username
+      let accountData: GeneratedAccountData
+      try {
+        console.log('[Generator] Generating valid username...')
+        const validUsername = await this.generateValidUsername(10)
+        accountData = this.generateAccountData()
+        accountData.username = validUsername
+        console.log(`[Generator] Generated valid account: ${accountData.username}`)
+      } catch (error) {
+        console.error('[Generator] Failed to generate valid username:', error)
+        return {
+          success: false,
+          error: String(error),
+          timestamp: Date.now()
+        }
+      }
 
-      // Launch browser if enabled
-      if (this.config.autoLaunchBrowser) {
-        await this.launchBrowser()
+      return await this.processAccountCreation(accountData)
+    } catch (error) {
+      return {
+        success: false,
+        error: String(error),
+        timestamp: Date.now()
+      }
+    }
+  }
+
+  async createAccountWithUsername(username: string): Promise<AccountCreationResult> {
+    return new Promise((resolve) => {
+      // Add this creation task to the queue
+      this.accountCreationQueue.push(async () => {
+        try {
+          console.log(`[Generator] Starting AUTO-GENERATE account creation with username: ${username} (from sniper)`)
+          console.log(`[Generator] Queue length: ${this.accountCreationQueue.length}`)
+
+          // Create account data with the provided username
+          const password = this.generatePassword()
+          const birthDate = this.generateBirthDate()
+
+          const accountData: GeneratedAccountData = {
+            id: randomUUID(),
+            username,
+            password,
+            birthDate,
+            createdAt: Date.now()
+          }
+
+          console.log(`[Generator] Created account data: ${accountData.username}`)
+
+          // For sniper auto-generate, use the FULL process with browser (forceLaunchBrowser=true)
+          // This will launch browser, fill form, submit, and add to accounts AND sniper storage
+          return await this.processAccountCreation(accountData, true, true)
+        } catch (error) {
+          console.error(`[Generator] CRITICAL ERROR in createAccountWithUsername:`, error)
+          return {
+            success: false,
+            error: String(error),
+            timestamp: Date.now()
+          }
+        }
+      })
+
+      // Process the queue
+      this.processAccountCreationQueue().then(resolve).catch((error) => {
+        console.error('[Generator] Queue processing error:', error)
+        resolve({
+          success: false,
+          error: String(error),
+          timestamp: Date.now()
+        })
+      })
+    })
+  }
+
+  private async processAccountCreationQueue(): Promise<AccountCreationResult> {
+    // If already processing, wait
+    if (this.isCreatingAccount) {
+      console.log('[Generator] Account creation in progress, queuing...')
+      return new Promise((resolve) => {
+        const checkQueue = setInterval(async () => {
+          if (!this.isCreatingAccount) {
+            clearInterval(checkQueue)
+            resolve(await this.processAccountCreationQueue())
+          }
+        }, 100)
+      })
+    }
+
+    // If no queued tasks, return
+    if (this.accountCreationQueue.length === 0) {
+      return {
+        success: true,
+        timestamp: Date.now()
+      }
+    }
+
+    // Process next task
+    this.isCreatingAccount = true
+    const task = this.accountCreationQueue.shift()
+
+    try {
+      if (task) {
+        return await task()
+      }
+      return {
+        success: false,
+        error: 'No task available',
+        timestamp: Date.now()
+      }
+    } finally {
+      this.isCreatingAccount = false
+      // Process next item in queue if available
+      if (this.accountCreationQueue.length > 0) {
+        return this.processAccountCreationQueue()
+      }
+    }
+  }
+
+  private async processAccountCreation(accountData: GeneratedAccountData, forceLaunchBrowser: boolean = false, fromSniper: boolean = false): Promise<AccountCreationResult> {
+    try {
+      // Launch browser if enabled or forced (from sniper auto-generate)
+      if (forceLaunchBrowser || this.config.autoLaunchBrowser) {
+        console.log('[Generator] Launching browser for account creation (forceLaunchBrowser=' + forceLaunchBrowser + ')')
+        try {
+          await this.launchBrowser()
+          console.log('[Generator] Browser launched successfully!')
+        } catch (launchErr) {
+          console.error('[Generator] CRITICAL: Failed to launch browser:', launchErr)
+          throw new Error(`Failed to launch browser: ${String(launchErr)}`)
+        }
+      } else {
+        console.warn('[Generator] Browser launch disabled and not forced - will not create account')
+        throw new Error('Browser not launched - autoLaunchBrowser is false')
       }
 
       // Fill form
-      await this.fillForm(accountData)
+      try {
+        console.log('[Generator] Filling form...')
+        await this.fillForm(accountData)
+        console.log('[Generator] Form filled successfully!')
+      } catch (fillErr) {
+        console.error('[Generator] Failed to fill form:', fillErr)
+        throw fillErr
+      }
 
       // Submit form
-      console.log('[Generator] Submitting form...')
-      await this.submitForm()
+      try {
+        console.log('[Generator] Submitting form...')
+        await this.submitForm()
+        console.log('[Generator] Form submitted!')
+      } catch (submitErr) {
+        console.error('[Generator] Failed to submit form:', submitErr)
+        throw submitErr
+      }
 
       // Monitor for .ROBLOSECURITY cookie
       console.log('[Generator] Monitoring for .ROBLOSECURITY cookie...')
@@ -889,7 +1142,12 @@ export class GeneratorService extends EventEmitter {
       }
 
       // Add account to storage (closes signup browser and opens real browser)
-      await this.addAccountToStorage(accountData, robloxSecurityCookie)
+      try {
+        await this.addAccountToStorage(accountData, robloxSecurityCookie, fromSniper)
+      } catch (storageErr) {
+        console.error('[Generator] Failed to add account to storage:', storageErr)
+        // Don't fail entirely if storage fails
+      }
 
       console.log(`[Generator] Account created successfully: ${accountData.username}`)
 
@@ -986,6 +1244,23 @@ export class GeneratorService extends EventEmitter {
     this.passwordMap.clear()
     this.persistAccounts()
     console.log('[Generator] All accounts cleared')
+  }
+
+  /**
+   * Delete a single created account by ID
+   */
+  deleteAccount(accountId: string): boolean {
+    const initialLength = this.createdAccounts.length
+    this.createdAccounts = this.createdAccounts.filter(acc => acc.id !== accountId)
+    
+    if (this.createdAccounts.length < initialLength) {
+      this.passwordMap.delete(accountId)
+      this.cookieMap.delete(accountId)
+      this.persistAccounts()
+      console.log('[Generator] Account deleted:', accountId)
+      return true
+    }
+    return false
   }
 
   /**

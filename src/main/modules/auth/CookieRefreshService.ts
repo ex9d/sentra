@@ -20,6 +20,11 @@ export class CookieRefreshService {
    * Returns true if valid, false if expired/invalid
    */
   async validateAndRefresh(cookie: string): Promise<boolean> {
+    // Safety check: never validate an empty or null cookie
+    if (!cookie || cookie.trim().length === 0) {
+      return false
+    }
+
     try {
       // Check cache first
       const cacheKey = `cookie_${cookie.substring(0, 20)}`
@@ -60,12 +65,16 @@ export class CookieRefreshService {
 
   /**
    * Update account's last active timestamp
+   * CRITICAL: Only update by exact account match, not by cookie to prevent
+   * accidentally marking wrong account as active
    */
   private updateAccountLastActive(userId: string, cookie: string): void {
     try {
       const accounts = storageService.getAccounts() as any[]
+      
+      // SAFETY: Only update if userId matches exactly, ignore cookie key
       const updated = accounts.map(acc => {
-        if (acc.userId === userId || acc.cookie === cookie) {
+        if (acc.userId === userId) {
           return {
             ...acc,
             lastActive: new Date().toISOString()

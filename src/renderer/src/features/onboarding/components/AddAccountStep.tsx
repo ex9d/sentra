@@ -94,7 +94,6 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
       userId: data.id.toString(),
       cookie: actualCookieValue,
       status: AccountStatus.Offline,
-      notes: 'Imported via cookie',
       avatarUrl: avatarUrl,
       lastActive: '',
       robuxBalance: 0,

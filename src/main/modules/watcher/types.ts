@@ -24,6 +24,8 @@ export interface WatcherSession {
   lastCrashTime?: number
   lastCrashReason?: string
   lastRestartTime?: number
+  lastStartTime?: number // Track when the session started for timeout restart
+  ramCleanupFailureCount?: number // Track consecutive EmptyWorkingSet failures (resets on success)
   launchConfig?: LaunchConfig
 }
 
@@ -48,6 +50,11 @@ export interface WatcherConfig {
   logCheckIntervalMs: number
   ramLimitMB?: number // Max RAM per process in MB (optional, e.g., 800)
   enableRAMLimiter?: boolean // Enable RAM limiting feature
+  enableRAMCleanupAttempts?: boolean // Enable attempting cleanup before restart (Windows only)
+  clientTimeoutSeconds?: number // Auto-restart client after X seconds (optional)
+  enableClientTimeout?: boolean // Enable client timeout restart feature
+  cpuLimitPercent?: number // Max CPU usage percentage (optional)
+  enableCPULimiter?: boolean // Enable CPU limiting feature
 }
 
 export interface WatcherEvent {

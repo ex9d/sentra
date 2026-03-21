@@ -79,7 +79,6 @@ const UniversalProfileModal: React.FC<UniversalProfileModalProps> = ({
                         username: initialData.name,
                         avatarUrl: initialData.headshotUrl || undefined,
                         status: initialData.status,
-                        notes: initialData.description,
                         joinDate: initialData.created,
                         friendCount: initialData.friendCount,
                         followerCount: initialData.followerCount,

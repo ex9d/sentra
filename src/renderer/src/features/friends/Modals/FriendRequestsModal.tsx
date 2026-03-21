@@ -324,19 +324,23 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
         return 0
       }
 
-      const normalizedRequests: FriendRequest[] = fetchedRequests.map((req: any) => ({
-        id: toNumber(req.id),
-        userId: toNumber(req.userId ?? req.id),
-        username: req.username,
-        displayName: req.displayName,
-        avatarUrl: req.avatarUrl || '',
-        created: req.created || new Date().toISOString(),
-        originSourceType: req.originSourceType ?? req.friendRequest?.originSourceType,
-        sourceUniverseId: req.sourceUniverseId ?? req.friendRequest?.sourceUniverseId ?? null,
-        mutualFriendsList: Array.isArray(req.mutualFriendsList) ? req.mutualFriendsList : [],
-        contactName: req.contactName ?? req.friendRequest?.contactName ?? null,
-        senderNickname: req.senderNickname ?? req.friendRequest?.senderNickname ?? ''
-      }))
+      const normalizedRequests: FriendRequest[] = fetchedRequests.map((req: any) => {
+        const userId = toNumber(req.userId ?? req.id)
+        const fallbackName = `User ${userId}`
+        return {
+          id: toNumber(req.id),
+          userId: userId,
+          username: req.username || fallbackName,
+          displayName: req.displayName || req.username || fallbackName,
+          avatarUrl: req.avatarUrl || '',
+          created: req.created || new Date().toISOString(),
+          originSourceType: req.originSourceType ?? req.friendRequest?.originSourceType,
+          sourceUniverseId: req.sourceUniverseId ?? req.friendRequest?.sourceUniverseId ?? null,
+          mutualFriendsList: Array.isArray(req.mutualFriendsList) ? req.mutualFriendsList : [],
+          contactName: req.contactName ?? req.friendRequest?.contactName ?? null,
+          senderNickname: req.senderNickname ?? req.friendRequest?.senderNickname ?? ''
+        }
+      })
 
       setRequests(normalizedRequests)
       void fetchUniverseNames(normalizedRequests)

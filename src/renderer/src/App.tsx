@@ -181,6 +181,9 @@ const App: React.FC = () => {
   const [removeAccountId, setRemoveAccountId] = useState<string | null>(null)
   const [removeMultipleCount, setRemoveMultipleCount] = useState(0)
 
+  // Note editing state
+  const [editingNoteAccount, setEditingNoteAccount] = useState<Account | null>(null)
+
   // Browser custom URL dialog state
   const [showBrowserCustomDialog, setShowBrowserCustomDialog] = useState(false)
   const [browserCustomUrl, setBrowserCustomUrl] = useState('')
@@ -375,8 +378,9 @@ const App: React.FC = () => {
   const { setTheme } = useTheme()
 
   useEffect(() => {
-    setTheme(settings.theme ?? 'system')
-  }, [settings.theme, setTheme])
+    // Always use dark theme, regardless of system preference or saved settings
+    setTheme('dark')
+  }, [setTheme])
 
   useEffect(() => {
     const isSidebarTab = SIDEBAR_TAB_IDS.includes(activeTab)
@@ -667,6 +671,23 @@ const App: React.FC = () => {
     setActiveMenu(null)
   }
 
+  const handleEditNote = useCallback((id: string) => {
+    const account = accounts.find((a) => a.id === id)
+    if (account) {
+      setEditingNoteAccount(account)
+    }
+    setActiveMenu(null)
+  }, [accounts])
+
+  const handleSaveNote = useCallback((accountId: string, newNote: string) => {
+    setAccounts((prev) =>
+      prev.map((acc) =>
+        acc.id === accountId ? { ...acc, notes: newNote } : acc
+      )
+    )
+    setEditingNoteAccount(null)
+  }, [setAccounts])
+
   const handleReauth = (id: string) => {
     showNotification(`Re-authenticating account ${id}... (Mock Action)`, 'info')
     setActiveMenu(null)
@@ -816,21 +837,6 @@ const App: React.FC = () => {
     setActiveMenu(null)
   }
 
-  const handleEditNote = (id: string) => {
-    const account = accounts.find((a) => a.id === id)
-    if (account) {
-      setEditingAccount(account)
-    }
-    setActiveMenu(null)
-  }
-
-  const handleSaveNote = (id: string, newNote: string) => {
-    setAccounts((prev) => prev.map((acc) => (acc.id === id ? { ...acc, notes: newNote } : acc)))
-    if (infoAccount?.id === id) {
-      setInfoAccount({ ...infoAccount, notes: newNote })
-    }
-  }
-
   const handleAddAccount = async (cookie: string, importedVia?: 'browser' | 'cookie' | 'cookielist') => {
     try {
       const cookieValue = cookie.trim()
@@ -877,7 +883,6 @@ const App: React.FC = () => {
         userId: data.id.toString(),
         cookie: actualCookieValue,
         status: status,
-        notes: importedVia === 'browser' ? 'Added via browser login' : 'Imported via cookie',
         importedVia: importedVia || 'cookie',
         avatarUrl: avatarUrl,
         lastActive: isActiveStatus(status) ? new Date().toISOString() : '',
@@ -1069,12 +1074,11 @@ const App: React.FC = () => {
             </Suspense>
           )} */}
 
-          {/* Sniper page disabled for now */}
-          {/* {activeTab === 'Sniper' && (
+          {activeTab === 'Sniper' && (
             <Suspense fallback={<LoadingSpinnerFullPage />}>
               <SniperTab />
             </Suspense>
-          )} */}
+          )}
 
           {activeTab === 'Generator' && (
             <Suspense fallback={<LoadingSpinnerFullPage />}>
@@ -1121,10 +1125,10 @@ const App: React.FC = () => {
       />
 
       <EditNoteModal
-        isOpen={!!editingAccount}
-        onClose={() => setEditingAccount(null)}
+        isOpen={!!editingNoteAccount}
+        onClose={() => setEditingNoteAccount(null)}
         onSave={handleSaveNote}
-        account={editingAccount}
+        account={editingNoteAccount}
         privacyMode={settings.privacyMode}
       />
 

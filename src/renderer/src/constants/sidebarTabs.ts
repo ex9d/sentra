@@ -46,7 +46,7 @@ export const SIDEBAR_TAB_DEFINITIONS: SidebarTabDefinition[] = [
   { id: 'Executor', label: 'Executors', icon: Code, section: 'system' },
   { id: 'Watcher', label: 'Watcher', icon: Eye, section: 'system' },
   // { id: 'Macro', label: 'Macro', icon: RotateCw, section: 'system' }, // Disabled
-  // { id: 'Sniper', label: 'Sniper', icon: Target, section: 'system' }, // Disabled
+  { id: 'Sniper', label: 'Sniper', icon: Target, section: 'system' },
   { id: 'Generator', label: 'Generator', icon: Wand2, section: 'system' },
   { id: 'Proxy', label: 'Proxy', icon: Network, section: 'system' },
   { id: 'Logs', label: 'Logs', icon: ScrollText, section: 'system' },

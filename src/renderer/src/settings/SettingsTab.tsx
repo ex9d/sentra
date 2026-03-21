@@ -18,7 +18,9 @@ import {
   EyeOff,
   RotateCcw,
   AlertTriangle,
-  Monitor
+  Monitor,
+  Globe,
+  Zap
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Color from 'color'
@@ -250,6 +252,14 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
   const [isAddingFont, setIsAddingFont] = useState(false)
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false)
   
+  // User Agent state
+  const [currentUserAgent, setCurrentUserAgent] = useState<string>('')
+  const [userAgentIndex, setUserAgentIndex] = useState<number>(0)
+  const [allUserAgents, setAllUserAgents] = useState<string[]>([])
+  const [isAutoSwapEnabled, setIsAutoSwapEnabled] = useState<boolean>(false)
+  const [autoSwapInterval, setAutoSwapInterval] = useState<number>(30)
+  const [isLoadingUserAgent, setIsLoadingUserAgent] = useState(false)
+  
   // Derive admin flag from KeyAuth license and accounts
   const { data: adminData, isLoading: loadingAdmin, error: adminErr } = useAdminStatus()
   console.log('[SettingsTab] adminData', adminData, 'loading', loadingAdmin, 'error', adminErr)
@@ -361,6 +371,33 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
   useEffect(() => {
     applyFont(activeFont)
   }, [activeFont])
+
+  // Load user agent state on component mount
+  useEffect(() => {
+    const loadUserAgentState = async () => {
+      try {
+        console.log('[SettingsTab] Loading user agent state...')
+        setIsLoadingUserAgent(true)
+        const state = await window.api.getUserAgentState()
+        console.log('[SettingsTab] User agent state loaded:', state)
+        setCurrentUserAgent(state.currentUserAgent)
+        setUserAgentIndex(state.currentIndex)
+        setIsAutoSwapEnabled(state.autoSwapEnabled)
+        setAutoSwapInterval(state.autoSwapIntervalMinutes)
+
+        const agents = await window.api.getAllUserAgents()
+        console.log('[SettingsTab] All user agents:', agents)
+        setAllUserAgents(agents)
+      } catch (error) {
+        console.error('[SettingsTab] Failed to load user agent state:', error)
+      } finally {
+        setIsLoadingUserAgent(false)
+      }
+    }
+
+    console.log('[SettingsTab] Component mounted, loading user agent state')
+    loadUserAgentState()
+  }, [])
 
   // Focus first PIN input when dialogs open
   useEffect(() => {
@@ -1752,6 +1789,109 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                     <p className="text-xs text-neutral-500">
                       Restore accounts from a backup file.
                     </p>
+                  </div>
+                </SettingsCard>
+              </Section>
+
+              <Section title="User Agent Management" description="Swap and rotate user agents for all browser instances.">
+                <SettingsCard
+                  title="Current User Agent"
+                  description="Manually rotate your user agent or enable automatic rotation."
+                  icon={<Globe size={16} />}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            setIsLoadingUserAgent(true)
+                            const result = await window.api.swapUserAgent()
+                            setCurrentUserAgent(result.userAgent)
+                            setUserAgentIndex(result.index)
+                            addNotification({
+                              type: 'success',
+                              title: 'User Agent Swapped',
+                              message: `Rotated to user agent #${result.index + 1}`
+                            })
+                          } catch (error) {
+                            console.error('[SettingsTab] Failed to swap user agent:', error)
+                            addNotification({
+                              type: 'error',
+                              title: 'Swap Failed',
+                              message: error instanceof Error ? error.message : 'Failed to swap user agent'
+                            })
+                          } finally {
+                            setIsLoadingUserAgent(false)
+                          }
+                        }}
+                        disabled={isLoadingUserAgent}
+                        className="px-4 py-2 text-sm font-medium rounded-lg text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        <RotateCcw size={14} />
+                        Swap User Agent
+                      </button>
+                      <p className="text-xs text-neutral-500">
+                        Current: #{userAgentIndex + 1} of {allUserAgents.length}
+                      </p>
+                    </div>
+
+                    <div className="bg-neutral-800/50 p-3 rounded-lg border border-neutral-700/50">
+                      <p className="text-xs text-neutral-500 mb-2">Current user agent:</p>
+                      <p className="text-xs text-neutral-300 break-words font-mono">{currentUserAgent || 'Loading...'}</p>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-white">Auto-swap User Agents</label>
+                          <span className="text-xs text-neutral-500">{autoSwapInterval} minutes</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="5"
+                          max="120"
+                          step="5"
+                          value={autoSwapInterval}
+                          onChange={(e) => setAutoSwapInterval(Number(e.target.value))}
+                          disabled={isLoadingUserAgent}
+                          className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
+                        />
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try {
+                            setIsLoadingUserAgent(true)
+                            const result = await window.api.setAutoSwapUserAgent(!isAutoSwapEnabled, autoSwapInterval)
+                            setIsAutoSwapEnabled(result.autoSwapEnabled)
+                            addNotification({
+                              type: 'success',
+                              title: result.autoSwapEnabled ? 'Auto-swap Enabled' : 'Auto-swap Disabled',
+                              message: result.autoSwapEnabled
+                                ? `User agent will rotate every ${result.intervalMinutes} minutes`
+                                : 'Auto user agent rotation disabled'
+                            })
+                          } catch (error) {
+                            console.error('[SettingsTab] Failed to toggle auto-swap:', error)
+                            addNotification({
+                              type: 'error',
+                              title: 'Toggle Failed',
+                              message: error instanceof Error ? error.message : 'Failed to toggle auto-swap'
+                            })
+                          } finally {
+                            setIsLoadingUserAgent(false)
+                          }
+                        }}
+                        disabled={isLoadingUserAgent}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                          isAutoSwapEnabled
+                            ? 'text-green-400 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20'
+                            : 'text-neutral-400 bg-neutral-700 hover:bg-neutral-600 border border-neutral-600'
+                        }`}
+                      >
+                        <Zap size={14} />
+                        {isAutoSwapEnabled ? 'On' : 'Off'}
+                      </button>
+                    </div>
                   </div>
                 </SettingsCard>
               </Section>

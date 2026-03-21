@@ -19,6 +19,7 @@ const proxiesListSchema = z.object({ success: z.boolean(), proxies: z.array(z.an
 const aliveProxiesSchema = z.object({ success: z.boolean(), proxies: z.array(z.any()), count: z.number() })
 const autoSwapConfigSchema = z.object({ success: z.boolean(), config: z.any() })
 const autoSwapRunningSchema = z.object({ isRunning: z.boolean() })
+const fetchFreeProxiesSchema = z.object({ success: z.boolean(), proxies: z.array(z.string()), error: z.string().optional() })
 
 export const proxyApi = {
   addProxy: (host: string, port: number, username?: string, password?: string) =>
@@ -40,5 +41,8 @@ export const proxyApi = {
     invoke('proxy:start-auto-swap', autoSwapConfigSchema, intervalHours, autoTestBeforeSwap ?? true),
   stopAutoSwap: () => invoke('proxy:stop-auto-swap', successSchema),
   getAutoSwapConfig: () => invoke('proxy:get-auto-swap-config', autoSwapConfigSchema),
-  isAutoSwapRunning: () => invoke('proxy:is-auto-swap-running', autoSwapRunningSchema)
+  isAutoSwapRunning: () => invoke('proxy:is-auto-swap-running', autoSwapRunningSchema),
+
+  // Free proxy fetching
+  fetchFreeProxies: () => invoke('proxy:fetchFreeProxies', fetchFreeProxiesSchema)
 }

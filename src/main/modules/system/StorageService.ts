@@ -39,6 +39,8 @@ const storeDataSchema = z.object({
   windowHeight: z.number().optional(),
   // Encrypted accounts stored as base64 string
   encryptedAccounts: z.string().optional(),
+  // Encrypted sniper-generated accounts
+  encryptedSniperAccounts: z.string().optional(),
   // Encrypted license key (AES + user PIN)
   encryptedLicense: z.string().optional(),
   favoriteGames: z.array(z.string()).optional(),
@@ -50,7 +52,11 @@ const storeDataSchema = z.object({
   watcherConfig: z.object({
     autoRestart: z.boolean().optional(),
     enableRAMLimiter: z.boolean().optional(),
-    ramLimitMB: z.number().optional()
+    ramLimitMB: z.number().optional(),
+    enableClientTimeout: z.boolean().optional(),
+    clientTimeoutSeconds: z.number().optional(),
+    enableCPULimiter: z.boolean().optional(),
+    cpuLimitPercent: z.number().optional()
   }).optional(),
   // Roblox-specific advanced settings
   robloxSettings: z.object({
@@ -85,7 +91,13 @@ const storeDataSchema = z.object({
       }).optional(),
       browserWindowWidth: z.number().nullable().optional(),
       browserWindowHeight: z.number().nullable().optional(),
-      showReturnPageButton: z.boolean().optional()
+      showReturnPageButton: z.boolean().optional(),
+      // User Agent settings
+      userAgentSettings: z.object({
+        currentUserAgentIndex: z.number().default(0).optional(),
+        autoSwapUserAgent: z.boolean().default(false).optional(),
+        autoSwapIntervalMinutes: z.number().default(30).optional()
+      }).optional()
     })
     .optional()
 })
@@ -96,6 +108,7 @@ class StorageService {
   private path: string
   private data: StoreData = {}
   private decryptedAccounts: Account[] | null = null
+  private decryptedSniperAccounts: Account[] | null = null
   private currentVerifiedPin: string | null = null
   // holds the raw encrypted payload when config.json is encrypted
   private encryptedBlob: string | null = null
@@ -531,6 +544,114 @@ class StorageService {
     return false
   }
 
+  /**
+   * Get sniper-generated accounts (separate from main accounts)
+   */
+  public getSniperAccounts(): Account[] {
+    const pinHash = this.getPinHash()
+
+    // If we haven't decrypted yet, try to decrypt
+    if (this.decryptedSniperAccounts === null && this.data.encryptedSniperAccounts) {
+      if (pinHash) {
+        // PIN is set - need verified PIN to decrypt
+        if (this.currentVerifiedPin) {
+          this.decryptedSniperAccounts = this.decryptAccountsWithPin(
+            this.data.encryptedSniperAccounts,
+            this.currentVerifiedPin
+          )
+          if (!this.decryptedSniperAccounts) {
+            this.decryptedSniperAccounts = []
+          }
+        } else {
+          this.decryptedSniperAccounts = []
+        }
+      } else {
+        // No PIN set - try to load as plaintext
+        try {
+          const parsed = JSON.parse(this.data.encryptedSniperAccounts)
+          this.decryptedSniperAccounts = Array.isArray(parsed) ? parsed : []
+        } catch (error) {
+          this.decryptedSniperAccounts = []
+        }
+      }
+    }
+
+    return this.decryptedSniperAccounts || []
+  }
+
+  /**
+   * Set sniper-generated accounts
+   */
+  public setSniperAccounts(accounts: Account[]): boolean {
+    const pinHash = this.getPinHash()
+
+    if (pinHash) {
+      if (!this.currentVerifiedPin) {
+        throw new Error('PIN must be verified before saving accounts')
+      }
+
+      const encrypted = this.encryptAccountsWithPin(accounts, this.currentVerifiedPin)
+      if (!encrypted) {
+        throw new Error('Failed to encrypt sniper accounts')
+      }
+
+      this.data.encryptedSniperAccounts = encrypted
+      this.decryptedSniperAccounts = accounts
+      this.save()
+      return true
+    } else {
+      this.data.encryptedSniperAccounts = JSON.stringify(accounts)
+      this.decryptedSniperAccounts = accounts
+      this.save()
+      return true
+    }
+  }
+
+  /**
+   * Add a sniper-generated account (prevent duplicates by username)
+   */
+  public addSniperAccount(newAccount: Account): boolean {
+    try {
+      const existing = this.getSniperAccounts() || []
+      
+      // Check if account with same username already exists
+      if (existing.some(acc => acc.username === newAccount.username)) {
+        console.log('[StorageService] Sniper account already exists:', newAccount.username)
+        return true // Don't add duplicate
+      }
+
+      const combined = [newAccount, ...existing]
+      return this.setSniperAccounts(combined)
+    } catch (err) {
+      console.error('[StorageService] addSniperAccount error:', err)
+      throw err
+    }
+  }
+
+  /**
+   * Remove a sniper account
+   */
+  public removeSniperAccount(accountId: string): boolean {
+    const accounts = this.getSniperAccounts()
+    return this.setSniperAccounts(accounts.filter((a) => a.id !== accountId))
+  }
+
+  /**
+   * Move sniper account to main accounts
+   */
+  public moveSniperAccountToMain(accountId: string): boolean {
+    const sniperAccounts = this.getSniperAccounts()
+    const account = sniperAccounts.find(a => a.id === accountId)
+    
+    if (!account) return false
+
+    // Add to main accounts
+    this.addAccountsToStorage([account])
+    
+    // Remove from sniper accounts
+    return this.removeSniperAccount(accountId)
+  }
+
   public getFavoriteGames(): string[] {
     return this.data.favoriteGames || []
   }
@@ -605,7 +726,12 @@ class StorageService {
       pinCode: this.data.settings?.pinCodeHash ? 'SET' : null,
       browserWindowWidth: this.data.settings?.browserWindowWidth ?? null,
       browserWindowHeight: this.data.settings?.browserWindowHeight ?? null,
-      showReturnPageButton: this.data.settings?.showReturnPageButton ?? false
+      showReturnPageButton: this.data.settings?.showReturnPageButton ?? false,
+      userAgentSettings: {
+        currentUserAgentIndex: this.data.settings?.userAgentSettings?.currentUserAgentIndex ?? 0,
+        autoSwapUserAgent: this.data.settings?.userAgentSettings?.autoSwapUserAgent ?? false,
+        autoSwapIntervalMinutes: this.data.settings?.userAgentSettings?.autoSwapIntervalMinutes ?? 30
+      }
     }
   }
 
@@ -934,6 +1060,11 @@ class StorageService {
     browserWindowWidth?: number | null
     browserWindowHeight?: number | null
     showReturnPageButton?: boolean
+    userAgentSettings?: {
+      currentUserAgentIndex?: number
+      autoSwapUserAgent?: boolean
+      autoSwapIntervalMinutes?: number
+    }
   }): void {
     const nextSettings = { ...this.getSettings() }
 
@@ -1007,6 +1138,14 @@ class StorageService {
 
     if ('showReturnPageButton' in settings) {
       nextSettings.showReturnPageButton = !!settings.showReturnPageButton
+    }
+
+    if ('userAgentSettings' in settings && settings.userAgentSettings) {
+      nextSettings.userAgentSettings = {
+        currentUserAgentIndex: typeof settings.userAgentSettings.currentUserAgentIndex === 'number' ? settings.userAgentSettings.currentUserAgentIndex : (nextSettings.userAgentSettings?.currentUserAgentIndex ?? 0),
+        autoSwapUserAgent: !!settings.userAgentSettings.autoSwapUserAgent,
+        autoSwapIntervalMinutes: typeof settings.userAgentSettings.autoSwapIntervalMinutes === 'number' ? settings.userAgentSettings.autoSwapIntervalMinutes : (nextSettings.userAgentSettings?.autoSwapIntervalMinutes ?? 30)
+      }
     }
 
     nextSettings.sidebarTabOrder = sanitizeSidebarOrder(nextSettings.sidebarTabOrder)
@@ -1096,18 +1235,38 @@ class StorageService {
   /**
    * Get watcher configuration
    */
-  public getWatcherConfig(): { autoRestart: boolean; enableRAMLimiter: boolean; ramLimitMB: number } {
+  public getWatcherConfig(): { 
+    autoRestart: boolean
+    enableRAMLimiter: boolean
+    ramLimitMB: number
+    enableClientTimeout: boolean
+    clientTimeoutSeconds: number
+    enableCPULimiter: boolean
+    cpuLimitPercent: number
+  } {
     return {
       autoRestart: this.data.watcherConfig?.autoRestart ?? true,
       enableRAMLimiter: this.data.watcherConfig?.enableRAMLimiter ?? false,
-      ramLimitMB: this.data.watcherConfig?.ramLimitMB ?? 800
+      ramLimitMB: this.data.watcherConfig?.ramLimitMB ?? 800,
+      enableClientTimeout: this.data.watcherConfig?.enableClientTimeout ?? false,
+      clientTimeoutSeconds: this.data.watcherConfig?.clientTimeoutSeconds ?? 3600, // 1 hour default
+      enableCPULimiter: this.data.watcherConfig?.enableCPULimiter ?? false,
+      cpuLimitPercent: this.data.watcherConfig?.cpuLimitPercent ?? 80
     }
   }
 
   /**
    * Set watcher configuration
    */
-  public setWatcherConfig(config: { autoRestart?: boolean; enableRAMLimiter?: boolean; ramLimitMB?: number }): void {
+  public setWatcherConfig(config: { 
+    autoRestart?: boolean
+    enableRAMLimiter?: boolean
+    ramLimitMB?: number
+    enableClientTimeout?: boolean
+    clientTimeoutSeconds?: number
+    enableCPULimiter?: boolean
+    cpuLimitPercent?: number
+  }): void {
     if (!this.data.watcherConfig) {
       this.data.watcherConfig = {}
     }
@@ -1119,6 +1278,18 @@ class StorageService {
     }
     if (config.ramLimitMB !== undefined) {
       this.data.watcherConfig.ramLimitMB = config.ramLimitMB
+    }
+    if (config.enableClientTimeout !== undefined) {
+      this.data.watcherConfig.enableClientTimeout = config.enableClientTimeout
+    }
+    if (config.clientTimeoutSeconds !== undefined) {
+      this.data.watcherConfig.clientTimeoutSeconds = config.clientTimeoutSeconds
+    }
+    if (config.enableCPULimiter !== undefined) {
+      this.data.watcherConfig.enableCPULimiter = config.enableCPULimiter
+    }
+    if (config.cpuLimitPercent !== undefined) {
+      this.data.watcherConfig.cpuLimitPercent = config.cpuLimitPercent
     }
     this.save()
   }

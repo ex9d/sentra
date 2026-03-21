@@ -31,7 +31,6 @@ export interface ProfileData {
   username: string
   avatarUrl: string
   status: AccountStatus
-  notes: string
   joinDate: string
   placeVisits: number
   friendCount: number
@@ -100,7 +99,6 @@ export const useProfileData = ({ userId, requestCookie, initialData }: UseProfil
       username,
       avatarUrl: avatarUrl || initialData?.avatarUrl || '',
       status: currentStatus,
-      notes: profilePlatform?.description || initialData?.notes || '',
       joinDate,
       placeVisits: initialData?.placeVisits || 0,
       friendCount: profilePlatform?.friendsCount || initialData?.friendCount || 0,

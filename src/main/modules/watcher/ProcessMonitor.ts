@@ -1,5 +1,6 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { memoryCleanupService } from './MemoryCleanupService'
 
 const execAsync = promisify(exec)
 
@@ -230,13 +231,73 @@ export class ProcessMonitor {
   }
 
   /**
+   * Attempt to clean up RAM using EmptyWorkingSet (Windows only)
+   * Returns object with cleanup result and whether process should be restarted
+   */
+  static async attemptRAMCleanup(pid: number, currentRAM: number, maxRAMMB: number, failureCount: number, enableCleanup: boolean = true): Promise<{
+    cleanedUp: boolean
+    shouldRestart: boolean
+  }> {
+    try {
+      // Only attempt cleanup if memory is over limit
+      if (currentRAM <= maxRAMMB) {
+        return { cleanedUp: false, shouldRestart: false }
+      }
+
+      // If cleanup is disabled, skip attempts and go straight to restart
+      if (!enableCleanup) {
+        console.log(`[ProcessMonitor] RAM cleanup disabled - restarting process ${pid}`)
+        return { cleanedUp: false, shouldRestart: true }
+      }
+
+      // Only attempt cleanup on Windows
+      if (process.platform !== 'win32') {
+        console.log(`[ProcessMonitor] RAM cleanup only supported on Windows - killing process ${pid}`)
+        return { cleanedUp: false, shouldRestart: true }
+      }
+
+      console.log(
+        `[ProcessMonitor] Attempting RAM cleanup for PID ${pid}: ${currentRAM}MB > ${maxRAMMB}MB (failure count: ${failureCount})`
+      )
+
+      // Try to clean up memory using EmptyWorkingSet
+      const cleanupSuccess = await memoryCleanupService.emptyWorkingSet(pid)
+
+      if (cleanupSuccess) {
+        console.log(`[ProcessMonitor] RAM cleanup succeeded for PID ${pid}`)
+        return { cleanedUp: true, shouldRestart: false }
+      }
+
+      // Cleanup failed - check if we've failed 3 times
+      const newFailureCount = failureCount + 1
+      console.log(`[ProcessMonitor] RAM cleanup failed for PID ${pid} (attempt ${newFailureCount}/3)`)
+
+      // After 3 failed cleanup attempts, restart the process
+      if (newFailureCount >= 3) {
+        console.log(
+          `[ProcessMonitor] RAM cleanup failed 3 times for PID ${pid} - will restart client`
+        )
+        return { cleanedUp: false, shouldRestart: true }
+      }
+
+      // Still have attempts left, don't restart yet
+      return { cleanedUp: false, shouldRestart: false }
+    } catch (error) {
+      console.error(`[ProcessMonitor] Error during RAM cleanup attempt for ${pid}:`, error)
+      return { cleanedUp: false, shouldRestart: false }
+    }
+  }
+
+  /**
    * Restart a Roblox session if RAM exceeds limit
+   * First attempts EmptyWorkingSet cleanup (Windows only) if enabled
+   * If cleanup fails 3 times with RAM still over limit, kills the process
    * Returns true if process was killed and needs restart
    */
-  static async checkAndLimitRAM(pid: number, maxRAMMB: number): Promise<boolean> {
+  static async checkAndLimitRAM(pid: number, maxRAMMB: number, failureCount: number = 0, enableCleanup: boolean = true): Promise<boolean> {
     try {
       const ramUsage = await this.getProcessRAM(pid)
-      
+
       if (ramUsage === null) {
         // Process might not exist or command failed
         console.log(`[ProcessMonitor] Could not get RAM for process ${pid} - process may not exist`)
@@ -246,11 +307,24 @@ export class ProcessMonitor {
       console.log(`[ProcessMonitor] Process ${pid} RAM usage: ${ramUsage}MB (limit: ${maxRAMMB}MB)`)
 
       if (ramUsage > maxRAMMB) {
-        console.log(
-          `[ProcessMonitor] Process ${pid} exceeded RAM limit: ${ramUsage}MB > ${maxRAMMB}MB - killing process`
-        )
-        const killed = await this.killProcess(pid)
-        return killed
+        // Attempt RAM cleanup via EmptyWorkingSet before killing (if enabled)
+        const { cleanedUp, shouldRestart } = await this.attemptRAMCleanup(pid, ramUsage, maxRAMMB, failureCount, enableCleanup)
+
+        if (shouldRestart) {
+          console.log(
+            `[ProcessMonitor] Process ${pid} exceeded RAM limit (${ramUsage}MB > ${maxRAMMB}MB) - will restart`
+          )
+          const killed = await this.killProcess(pid)
+          return killed
+        }
+
+        if (cleanedUp) {
+          console.log(`[ProcessMonitor] RAM cleanup succeeded for PID ${pid} - no restart needed`)
+          return false
+        }
+
+        // Cleanup failed but we still have attempts left - just log and continue
+        return false
       }
 
       return false

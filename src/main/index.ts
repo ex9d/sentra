@@ -15,6 +15,9 @@ const logPerf = (label: string) => {
 
 let storageService: typeof import('./modules/system/StorageService').storageService
 
+// Synchronous flag to prevent race condition - must be set before any async code
+let handlersRegistered = false
+
 // Prevent multiple instances of the app from running (Windows-only, but harmless on other platforms)
 // This lock is essential for normal operation but can block app restart on Windows
 // We store it so we can release it during updates if needed
@@ -154,6 +157,10 @@ app.whenReady().then(async () => {
   criticalLoaded.pinService.initialize()
   logPerf('critical-handlers-registered')
 
+  // Resume user agent auto-swap if it was enabled
+  const { UserAgentService } = await import('./modules/auth/UserAgentService')
+  UserAgentService.resumeAutoSwapIfEnabled()
+
   // Register production module IPC handlers
   const { registerModuleIpcHandlers } = await import('./ipc/ModuleIpcHandlers')
   registerModuleIpcHandlers()
@@ -169,6 +176,15 @@ app.whenReady().then(async () => {
   mainWindow.once('ready-to-show', async () => {
     logPerf('ready-to-show')
     
+    // Set flag SYNCHRONOUSLY to prevent both windows from registering handlers
+    // This must be done before any async operations
+    if (handlersRegistered) {
+      console.log('[perf:main] Handlers already registered, skipping for this window')
+      return
+    }
+    handlersRegistered = true
+    console.log('[perf:main] Locked handler registration, proceeding with setup...')
+
     // Load and register non-critical modules in background
     console.log('[perf:main] Starting deferred module loading...')
     
@@ -193,6 +209,7 @@ app.whenReady().then(async () => {
     logPerf('non-critical-modules-loaded')
 
     // Register non-critical handlers
+    console.log('[perf:main] Registering non-critical IPC handlers (one-time setup)...')
     nonCriticalLoaded.registerDiscordRPCHandlers()
     nonCriticalLoaded.registerWatcherHandlers(mainWindow)
     nonCriticalLoaded.registerMacroHandlers()

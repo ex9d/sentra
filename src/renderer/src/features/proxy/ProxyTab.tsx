@@ -183,6 +183,8 @@ export const ProxyTab = () => {
     }
   }
 
+
+
   return (
     <div className="space-y-6">
       {/* Statistics & Controls */}
@@ -218,6 +220,7 @@ export const ProxyTab = () => {
               <Zap className="w-4 h-4 mr-2" />
               {isTesting ? 'Testing...' : 'Test All'}
             </Button>
+
             <Button
               onClick={() => setShowAddForm(!showAddForm)}
               variant="outline"

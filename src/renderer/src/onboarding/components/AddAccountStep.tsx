@@ -99,7 +99,6 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
       userId: data.id.toString(),
       cookie: actualCookieValue,
       status: AccountStatus.Offline,
-      notes: importedVia === 'browser' ? 'Added via browser login' : 'Added during onboarding',
       importedVia: importedVia,
       avatarUrl: avatarUrl,
       lastActive: '',

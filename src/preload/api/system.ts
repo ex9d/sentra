@@ -121,7 +121,57 @@ export const systemApi = {
 
   // Multiple instances setting
   getAllowMultipleInstances: () => invoke('get-allow-multiple-instances', z.boolean()),
-  setAllowMultipleInstances: (allow: boolean) => invoke('set-allow-multiple-instances', z.void(), allow)
+  setAllowMultipleInstances: (allow: boolean) => invoke('set-allow-multiple-instances', z.void(), allow),
+
+  // User Agent Management
+  swapUserAgent: () =>
+    invoke(
+      'swap-user-agent',
+      z.object({
+        userAgent: z.string(),
+        index: z.number()
+      })
+    ),
+  setUserAgentIndex: (index: number) =>
+    invoke(
+      'set-user-agent-index',
+      z.object({
+        userAgent: z.string(),
+        index: z.number()
+      }),
+      index
+    ),
+  getCurrentUserAgent: () =>
+    invoke(
+      'get-current-user-agent',
+      z.object({
+        userAgent: z.string(),
+        index: z.number()
+      })
+    ),
+  getAllUserAgents: () =>
+    invoke('get-all-user-agents', z.array(z.string())),
+  setAutoSwapUserAgent: (enabled: boolean, intervalMinutes?: number) =>
+    invoke(
+      'set-auto-swap-user-agent',
+      z.object({
+        autoSwapEnabled: z.boolean(),
+        intervalMinutes: z.number()
+      }),
+      enabled,
+      intervalMinutes
+    ),
+  getUserAgentState: () =>
+    invoke(
+      'get-user-agent-state',
+      z.object({
+        currentUserAgent: z.string(),
+        currentIndex: z.number(),
+        autoSwapEnabled: z.boolean(),
+        autoSwapIntervalMinutes: z.number(),
+        totalUserAgents: z.number()
+      })
+    )
 }
 
 // ============================================================================

@@ -35,7 +35,6 @@ const ProfileTab: React.FC<ProfileTabProps> = memo(
             username: account.username,
             avatarUrl: account.avatarUrl,
             status: account.status,
-            notes: account.notes,
             joinDate: account.joinDate,
             placeVisits: account.placeVisits,
             friendCount: account.friendCount,

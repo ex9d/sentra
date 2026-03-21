@@ -18,8 +18,8 @@ export function useFriends(account: Account | null, options?: { forceRefresh?: b
       return fetchedFriends.map((f: any) => ({
         id: f.id,
         accountId: accountId!,
-        displayName: f.displayName,
-        username: f.username,
+        displayName: f.displayName || f.username || `User ${f.userId || f.id}`,
+        username: f.username || f.displayName || `user_${f.userId || f.id}`,
         userId: f.userId,
         avatarUrl: f.avatarUrl,
         status: mapPresenceToStatus(f.userPresenceType),

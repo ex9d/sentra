@@ -34,6 +34,12 @@ export interface WatcherConfig {
   restartDelaySeconds: number
   checkIntervalMs: number
   logCheckIntervalMs: number
+  enableRAMLimiter?: boolean
+  ramLimitMB?: number
+  enableClientTimeout?: boolean
+  clientTimeoutSeconds?: number
+  enableCPULimiter?: boolean
+  cpuLimitPercent?: number
 }
 
 export interface WatcherEvent {

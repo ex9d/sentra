@@ -1,5 +1,6 @@
 import { BrowserWindow, BrowserWindowConstructorOptions, session, shell, BrowserView, ipcMain } from 'electron'
 import type { Cookie, Event as ElectronEvent } from 'electron'
+import { UserAgentService } from './UserAgentService'
 
 export class RobloxLoginWindowService {
   private static readonly PARTITION = 'persist:roblox-login'
@@ -537,8 +538,6 @@ export class RobloxLoginWindowService {
   }
 
   private static getRealisticUserAgent(): string {
-    const focused = BrowserWindow.getFocusedWindow()
-    if (focused?.webContents.userAgent) return focused.webContents.userAgent
-    return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
+    return UserAgentService.getCurrentUserAgent()
   }
 }

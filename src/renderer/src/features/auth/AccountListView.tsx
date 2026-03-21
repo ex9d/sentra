@@ -189,11 +189,6 @@ const AccountListView = ({
             )}
           </div>
         </td>
-        <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
-          <div className="text-sm text-neutral-500 group-hover:text-neutral-400 transition-colors">
-            {getImportMethodDescription(account.importedVia)}
-          </div>
-        </td>
         <td className="hidden md:table-cell px-6 py-4">
           <div className="text-sm text-neutral-500 min-w-[100px] break-words group-hover:text-neutral-400">
             {account.notes || <span className="opacity-20 italic">Empty</span>}

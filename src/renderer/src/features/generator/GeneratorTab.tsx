@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@renderer/components/UI/buttons/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/UI/display/Card'
-import { Wand2, Copy, Trash2, Settings, Eye, EyeOff, Download } from 'lucide-react'
+import { Wand2, Copy, Trash2, Settings, Eye, EyeOff, Download, Clipboard, Key } from 'lucide-react'
 import { useAccountsManager } from '../auth/api/useAccounts'
 import { AccountStatus } from '@renderer/types'
 import { v4 as uuidv4 } from 'uuid'
@@ -20,14 +20,32 @@ interface GeneratorConfig {
   passwordLength: number
   includeSpecialChars: boolean
   autoLaunchBrowser: boolean
+  selectedClient?: string
+  multiGenerateCount: number
+  autoSwapBrowser: boolean
 }
+
+const CLIENT_NAMES = [
+  'Chrome Desktop',
+  'Firefox Desktop',
+  'Safari macOS',
+  'Edge Windows',
+  'Opera',
+  'Brave',
+  'Vivaldi',
+  'Google Bot',
+  'Custom'
+]
 
 export const GeneratorTab = () => {
   const [config, setConfig] = useState<GeneratorConfig>({
     usernamePrefix: 'sentra_',
     passwordLength: 16,
     includeSpecialChars: true,
-    autoLaunchBrowser: true
+    autoLaunchBrowser: true,
+    selectedClient: 'Chrome Desktop',
+    multiGenerateCount: 1,
+    autoSwapBrowser: false
   })
   const [createdAccounts, setCreatedAccounts] = useState<GeneratedAccountData[]>([])
   const [isCreating, setIsCreating] = useState(false)
@@ -83,14 +101,30 @@ export const GeneratorTab = () => {
   const handleCreateAccount = async () => {
     setIsCreating(true)
     try {
-      const result = await window.api.generator.createAccount()
+      const countToGenerate = config.multiGenerateCount
+      const originalClient = config.selectedClient
+      
+      for (let i = 0; i < countToGenerate; i++) {
+        // Auto-swap browser if enabled
+        if (config.autoSwapBrowser && i > 0) {
+          const nextClientIndex = (CLIENT_NAMES.indexOf(originalClient || 'Chrome Desktop') + 1) % CLIENT_NAMES.length
+          setConfig(prev => ({ ...prev, selectedClient: CLIENT_NAMES[nextClientIndex] }))
+        }
 
-      if (result.success) {
-        // Small delay to ensure storage is persisted
-        await new Promise(resolve => setTimeout(resolve, 500))
-        await loadAccounts()
-        setPreviewAccount(null)
+        const result = await window.api.generator.createAccount()
+
+        if (result.success) {
+          // Small delay to ensure storage is persisted
+          await new Promise(resolve => setTimeout(resolve, 300))
+        }
       }
+      
+      // Restore original client
+      setConfig(prev => ({ ...prev, selectedClient: originalClient }))
+      
+      // Reload accounts
+      await loadAccounts()
+      setPreviewAccount(null)
     } catch (err) {
       console.error('Failed to create account:', err)
     } finally {
@@ -136,7 +170,6 @@ export const GeneratorTab = () => {
         userId: userId,
         cookie: cookie || undefined,
         status: AccountStatus.Offline,
-        notes: `Imported from Generator ${new Date().toLocaleDateString()}`,
         avatarUrl: avatarUrl,
         lastActive: new Date().toISOString(),
         robuxBalance: 0,
@@ -169,6 +202,33 @@ export const GeneratorTab = () => {
     }
   }
 
+  const handleBulkCopy = async () => {
+    try {
+      const bulkData: string[] = []
+      
+      for (const account of createdAccounts) {
+        try {
+          const passwordResult = await window.api.generator.getPassword(account.id)
+          const cookieResult = await window.api.generator.getCookie(account.id)
+          const password = (passwordResult && passwordResult.success && passwordResult.password) ? passwordResult.password : ''
+          const cookie = (cookieResult && cookieResult.success && cookieResult.cookie) ? cookieResult.cookie : ''
+          bulkData.push(`${account.username}:${password}:${cookie}`)
+        } catch (err) {
+          console.error(`Failed to get data for account ${account.id}:`, err)
+          // Still add the account with empty password/cookie
+          bulkData.push(`${account.username}::`)
+        }
+      }
+      
+      const bulkText = bulkData.join('\n')
+      await navigator.clipboard.writeText(bulkText)
+      alert(`Copied ${createdAccounts.length} account${createdAccounts.length !== 1 ? 's' : ''} in username:password:cookie format`)
+    } catch (err) {
+      console.error('Failed to bulk copy accounts:', err)
+      alert('Failed to copy accounts to clipboard')
+    }
+  }
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
   }
@@ -197,7 +257,7 @@ export const GeneratorTab = () => {
               disabled={isCreating}
               className="flex-1"
             >
-              {isCreating ? 'Creating...' : 'Create Account'}
+              {isCreating ? 'Creating...' : `Create (${config.multiGenerateCount})`}
             </Button>
             <Button
               onClick={() => setShowSettings(!showSettings)}
@@ -254,6 +314,19 @@ export const GeneratorTab = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
+              <label className="text-sm font-medium mb-2 block">Client/Browser</label>
+              <select
+                value={config.selectedClient || 'Chrome Desktop'}
+                onChange={(e) => setConfig({ ...config, selectedClient: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md bg-background"
+              >
+                {CLIENT_NAMES.map(client => (
+                  <option key={client} value={client}>{client}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Selects user agent for account generation</p>
+            </div>
+            <div>
               <label className="text-sm font-medium mb-2 block">Username Prefix</label>
               <input
                 type="text"
@@ -295,6 +368,30 @@ export const GeneratorTab = () => {
                 Auto-launch Browser
               </label>
             </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Accounts to Generate</label>
+              <input
+                type="number"
+                value={config.multiGenerateCount}
+                onChange={(e) => setConfig({ ...config, multiGenerateCount: Math.max(1, parseInt(e.target.value) || 1) })}
+                min="1"
+                max="50"
+                className="w-full px-3 py-2 border rounded-md bg-background"
+              />
+              <p className="text-xs text-gray-500 mt-1">How many accounts to create (1-50)</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="autoSwapBrowser"
+                checked={config.autoSwapBrowser}
+                onChange={(e) => setConfig({ ...config, autoSwapBrowser: e.target.checked })}
+              />
+              <label htmlFor="autoSwapBrowser" className="text-sm font-medium">
+                Auto-swap Browser Each Generation
+              </label>
+            </div>
+            <p className="text-xs text-gray-500">Cycles through client list with each account created</p>
             <Button onClick={handleUpdateConfig} className="w-full">
               Save Settings
             </Button>
@@ -308,14 +405,26 @@ export const GeneratorTab = () => {
           <CardTitle className="flex items-center justify-between">
             <span>Created Accounts ({createdAccounts.length})</span>
             {createdAccounts.length > 0 && (
-              <Button
-                onClick={handleClearAccounts}
-                size="sm"
-                variant="ghost"
-                className="text-red-500"
-              >
-                Clear All
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleBulkCopy}
+                  size="sm"
+                  variant="outline"
+                  className="text-blue-600 hover:text-blue-700"
+                  title="Copy all in username:password:cookie format"
+                >
+                  <Copy className="w-4 h-4 mr-1" />
+                  Bulk Copy
+                </Button>
+                <Button
+                  onClick={handleClearAccounts}
+                  size="sm"
+                  variant="ghost"
+                  className="text-red-500"
+                >
+                  Clear All
+                </Button>
+              </div>
             )}
           </CardTitle>
         </CardHeader>
@@ -343,9 +452,28 @@ export const GeneratorTab = () => {
                       onClick={async (e) => {
                         e.stopPropagation()
                         try {
+                          const passwordResult = await window.api.generator.getPassword(account.id)
+                          const cookieResult = await window.api.generator.getCookie(account.id)
+                          const password = (passwordResult && passwordResult.success && passwordResult.password) ? passwordResult.password : ''
+                          const cookie = (cookieResult && cookieResult.success && cookieResult.cookie) ? cookieResult.cookie : ''
+                          const fullData = `${account.username}:${password}:${cookie}`
+                          await navigator.clipboard.writeText(fullData)
+                        } catch (err) {
+                          console.error('Failed to copy account data:', err)
+                        }
+                      }}
+                      className="text-gray-500 hover:text-purple-400 transition-colors p-1"
+                      title="Copy username:password:cookie"
+                    >
+                      <Clipboard className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        try {
                           const result = await window.api.generator.getPassword(account.id)
-                          if (result.success && result.password) {
-                            navigator.clipboard.writeText(result.password)
+                          if (result && result.success && result.password) {
+                            await navigator.clipboard.writeText(result.password)
                           } else {
                             alert('Failed to retrieve password')
                           }
@@ -357,7 +485,7 @@ export const GeneratorTab = () => {
                       className="text-gray-500 hover:text-blue-400 transition-colors p-1"
                       title="Copy password"
                     >
-                      <Copy className="w-4 h-4" />
+                      <Key className="w-4 h-4" />
                     </button>
                     <button
                       onClick={(e) => {
@@ -369,6 +497,28 @@ export const GeneratorTab = () => {
                       title="Add to accounts"
                     >
                       <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        if (confirm(`Delete account "${account.username}"? This action cannot be undone.`)) {
+                          try {
+                            const result = await window.api.generator.deleteAccount(account.id)
+                            if (result.success) {
+                              await loadAccounts()
+                            } else {
+                              alert('Failed to delete account')
+                            }
+                          } catch (err) {
+                            console.error('Failed to delete account:', err)
+                            alert('Could not delete account')
+                          }
+                        }
+                      }}
+                      className="text-gray-500 hover:text-red-400 transition-colors p-1"
+                      title="Delete account"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

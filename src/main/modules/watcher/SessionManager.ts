@@ -41,6 +41,8 @@ export class SessionManager {
       logFile,
       lastLogSize: 0,
       lastUpdate: Date.now(),
+      lastStartTime: Date.now(), // Track when session started
+      ramCleanupFailureCount: 0, // Track consecutive RAM cleanup failures
       status: 'running',
       restartCount: 0,
       restartAttempts: 0,
@@ -107,6 +109,17 @@ export class SessionManager {
     const session = this.sessions.get(sessionId)
     if (session) {
       session.lastRestartTime = timestamp
+      session.lastUpdate = Date.now()
+    }
+  }
+
+  /**
+   * Update last start time (tracks when the Roblox client process started)
+   */
+  updateLastStartTime(sessionId: string, timestamp?: number): void {
+    const session = this.sessions.get(sessionId)
+    if (session) {
+      session.lastStartTime = timestamp || Date.now()
       session.lastUpdate = Date.now()
     }
   }

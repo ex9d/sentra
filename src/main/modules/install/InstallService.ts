@@ -135,6 +135,7 @@ export class RobloxInstallService {
   private static historyCache: Record<string, string[]> | null = null
   private static lastHistoryFetch = 0
   private static readonly CACHE_DURATION = 1000 * 60 * 15 // 15 minutes
+  private static installationStartTime = 0 // Track when installation begins
 
   static async runSpoofer(): Promise<void> {
     try {
@@ -171,7 +172,10 @@ export class RobloxInstallService {
 
   static async getDeployHistory(force = false): Promise<Record<string, string[]>> {
     const now = Date.now()
-    if (!force && this.historyCache && now - this.lastHistoryFetch < this.CACHE_DURATION) {
+    // Force fresh fetch if installation started recently (within last 30 seconds)
+    // or if explicitly forced
+    const isRecentInstallation = this.installationStartTime && now - this.installationStartTime < 30000
+    if (!force && !isRecentInstallation && this.historyCache && now - this.lastHistoryFetch < this.CACHE_DURATION) {
       return this.historyCache
     }
 
@@ -237,6 +241,9 @@ export class RobloxInstallService {
     onProgress: (status: string, progress: number, detail?: string) => void
   ): Promise<boolean> {
     if (!BINARY_TYPES[binaryType]) return false
+
+    // Mark installation start time to bypass cache for latest versions
+    this.installationStartTime = Date.now()
 
     try {
       const blobDir = BINARY_TYPES[binaryType].blobDir

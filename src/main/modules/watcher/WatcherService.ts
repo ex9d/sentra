@@ -29,7 +29,11 @@ export class WatcherService {
       checkIntervalMs: 15000,
       logCheckIntervalMs: 2000,
       enableRAMLimiter: savedConfig.enableRAMLimiter,
-      ramLimitMB: savedConfig.ramLimitMB
+      ramLimitMB: savedConfig.ramLimitMB,
+      enableClientTimeout: savedConfig.enableClientTimeout,
+      clientTimeoutSeconds: savedConfig.clientTimeoutSeconds,
+      enableCPULimiter: savedConfig.enableCPULimiter,
+      cpuLimitPercent: savedConfig.cpuLimitPercent
     }
   }
 
@@ -245,20 +249,64 @@ export class WatcherService {
         // Check RAM limiter if enabled
         if (this.config.enableRAMLimiter && this.config.ramLimitMB && this.config.ramLimitMB > 0) {
           console.log(`[Watcher] Checking RAM for ${session.username} (PID: ${session.pid}, Limit: ${this.config.ramLimitMB}MB)`)
-          const needsRestart = await ProcessMonitor.checkAndLimitRAM(session.pid, this.config.ramLimitMB)
+          const currentFailureCount = session.ramCleanupFailureCount || 0
+          // Pass cleanup setting to ProcessMonitor - only attempt cleanup if enabled
+          const enableCleanup = this.config.enableRAMCleanupAttempts !== false // Default to true if not specified
+          const needsRestart = await ProcessMonitor.checkAndLimitRAM(session.pid, this.config.ramLimitMB, currentFailureCount, enableCleanup)
+          
           if (needsRestart) {
             console.log(
               `[Watcher] RAM limit exceeded for ${session.username} - marking for restart`
             )
+            const cleanupMessage = enableCleanup ? 'after failed cleanup attempts' : ''
             this.logEvent({
               type: 'session-crashed',
               sessionId: session.id,
               username: session.username,
-              message: `Process exceeded RAM limit (${this.config.ramLimitMB}MB) - restarting automatically`,
-              details: { reason: 'RAM_LIMIT_EXCEEDED' }
+              message: `Process exceeded RAM limit (${this.config.ramLimitMB}MB) ${cleanupMessage} - restarting automatically`,
+              details: { reason: 'RAM_LIMIT_EXCEEDED_CLEANUP_FAILED' }
             })
-            await this.onSessionCrashed(session, `RAM limit exceeded (${this.config.ramLimitMB}MB)`)
+            const restartReason = enableCleanup ? `RAM limit exceeded (${this.config.ramLimitMB}MB) - cleanup failed 3 times` : `RAM limit exceeded (${this.config.ramLimitMB}MB)`
+            await this.onSessionCrashed(session, restartReason)
             continue
+          }
+
+          // Only track cleanup attempts if cleanup is enabled
+          if (enableCleanup) {
+            // Get current RAM to determine if cleanup attempt was made
+            const currentRAM = await ProcessMonitor.getProcessRAM(session.pid)
+            if (currentRAM !== null && currentRAM > this.config.ramLimitMB) {
+              // RAM is still over limit - increment failure count
+              session.ramCleanupFailureCount = currentFailureCount + 1
+              console.log(`[Watcher] RAM cleanup failed attempt ${session.ramCleanupFailureCount} for ${session.username}`)
+            } else if (currentRAM !== null && currentRAM <= this.config.ramLimitMB) {
+              // RAM cleanup succeeded - reset counter
+              if (currentFailureCount > 0) {
+                console.log(`[Watcher] RAM cleanup succeeded for ${session.username} - resetting failure count`)
+              }
+              session.ramCleanupFailureCount = 0
+            }
+          }
+        }
+
+        // Check client timeout restart if enabled
+        if (this.config.enableClientTimeout && this.config.clientTimeoutSeconds && this.config.clientTimeoutSeconds > 0) {
+          if (session.lastStartTime) {
+            const secondsRunning = (Date.now() - session.lastStartTime) / 1000
+            if (secondsRunning > this.config.clientTimeoutSeconds) {
+              console.log(
+                `[Watcher] Client timeout exceeded for ${session.username} (${Math.round(secondsRunning)}s > ${this.config.clientTimeoutSeconds}s) - restarting`
+              )
+              this.logEvent({
+                type: 'session-crashed',
+                sessionId: session.id,
+                username: session.username,
+                message: `Client timeout exceeded (${Math.round(secondsRunning)}s > ${this.config.clientTimeoutSeconds}s) - restarting automatically`,
+                details: { reason: 'CLIENT_TIMEOUT' }
+              })
+              await this.onSessionCrashed(session, `Client timeout exceeded (${Math.round(secondsRunning)}s)`)
+              continue
+            }
           }
         }
 

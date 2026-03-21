@@ -177,6 +177,31 @@ export interface SettingsApi {
     lockoutSeconds?: number
     remainingAttempts: number
   }>
+  // User Agent Management
+  swapUserAgent: () => Promise<{
+    userAgent: string
+    index: number
+  }>
+  setUserAgentIndex: (index: number) => Promise<{
+    userAgent: string
+    index: number
+  }>
+  getCurrentUserAgent: () => Promise<{
+    userAgent: string
+    index: number
+  }>
+  getAllUserAgents: () => Promise<string[]>
+  setAutoSwapUserAgent: (enabled: boolean, intervalMinutes?: number) => Promise<{
+    autoSwapEnabled: boolean
+    intervalMinutes: number
+  }>
+  getUserAgentState: () => Promise<{
+    currentUserAgent: string
+    currentIndex: number
+    autoSwapEnabled: boolean
+    autoSwapIntervalMinutes: number
+    totalUserAgents: number
+  }>
 }
 
 export interface SocialApi {
@@ -372,6 +397,7 @@ export interface InstallationsApi {
   restoreBackup: (filepath: string, backupPin: string) => Promise<unknown[]>
   pickBackupFile: () => Promise<string>
   chooseBackupLocation: () => Promise<string>
+  selectInstallationDirectory: () => Promise<string>
 }
 
 export interface FlagsApi {
@@ -1016,6 +1042,21 @@ export interface SniperApi {
   removeLimitedWatch: (itemId: number) => Promise<{ success: boolean; watches?: any[] }>
   getLimitedWatches: () => Promise<{ success: boolean; watches?: any[] }>
   updateLimitedWatch: (itemId: number, updates: any) => Promise<{ success: boolean; watches?: any[] }>
+  // Username Sniper API
+  createSession: (usernames: string[], proxies?: string[], loopEnabled?: boolean, loopCount?: number, checkInterval?: number) => Promise<{ success: boolean; sessionId?: string; error?: string }>
+  getSession: (sessionId: string) => Promise<{ success: boolean; session?: any; error?: string }>
+  startSniper: (sessionId: string) => Promise<{ success: boolean; error?: string }>
+  pauseSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>
+  stopSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>
+  clearSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>
+  getValidUsernames: (sessionId: string) => Promise<{ success: boolean; usernames?: string[]; error?: string }>
+  // Username Sniper event listeners
+  onValid: (callback: (data: { username: string }) => void) => () => void
+  onTaken: (callback: (data: { username: string }) => void) => () => void
+  onCensored: (callback: (data: { username: string }) => void) => () => void
+  onProgress: (callback: (data: { checked: number; total: number; loop: number; totalLoops: number }) => void) => () => void
+  onCompleted: (callback: (data: any) => void) => () => void
+  onError: (callback: (data: any) => void) => () => void
 }
 
 export interface GeneratorApi {
@@ -1029,10 +1070,12 @@ export interface GeneratorApi {
   captchaSolved: () => Promise<{ success: boolean; error?: string }>
   getAccounts: () => Promise<{ success: boolean; accounts: any[] }>
   clearAccounts: () => Promise<{ success: boolean }>
+  deleteAccount: (accountId: string) => Promise<{ success: boolean }>
   updateConfig: (config: any) => Promise<{ success: boolean; config: any }>
   getConfig: () => Promise<{ success: boolean; config: any }>
   getPassword: (accountId: string) => Promise<{ success: boolean; password: string }>
   getCookie: (accountId: string) => Promise<{ success: boolean; cookie: string }>
+  createAccountWithUsername: (username: string) => Promise<{ success: boolean; accountId?: string; error?: string }>
 }
 
 export interface ProxyApi {
@@ -1053,6 +1096,8 @@ export interface ProxyApi {
   stopAutoSwap: () => Promise<{ success: boolean }>
   getAutoSwapConfig: () => Promise<{ success: boolean; config?: any }>
   isAutoSwapRunning: () => Promise<{ isRunning: boolean }>
+  // Free proxy fetching
+  fetchFreeProxies: () => Promise<{ success: boolean; proxies: string[]; error?: string }>
 }
 
 // ============================================================================

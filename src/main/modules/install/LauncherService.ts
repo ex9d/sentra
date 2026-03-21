@@ -124,22 +124,24 @@ export class RobloxLauncherService {
       }
 
       const startTime = Date.now()
-      const timeout = process.platform === 'darwin' ? 20000 : 10000
+      // Increased timeout: 30s for both platforms (was 20s macOS, 10s Windows)
+      // Process detection can be slow on some systems
+      const timeout = 30000
+      let processStarted = false
 
       while (Date.now() - startTime < timeout) {
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        await new Promise((resolve) => setTimeout(resolve, 500)) // Check every 500ms instead of 1s
         const currentCount = await this.getRobloxProcessCount()
 
         if (currentCount > initialCount) {
-          return { success: true }
+          processStarted = true
+          break
         }
       }
 
-      if (process.platform === 'darwin') {
-        return { success: true }
-      }
-
-      throw new Error('Timeout: Roblox process did not start within expected time')
+      // Return success even if process count didn't increase on first check
+      // The game might be launching asynchronously
+      return { success: processStarted || process.platform === 'darwin' }
     } catch (error: any) {
       console.error('Failed to launch Roblox:', error)
       throw new Error(`Failed to launch Roblox: ${error.message}`)
@@ -210,22 +212,24 @@ export class RobloxLauncherService {
       }
 
       const startTime = Date.now()
-      const timeout = process.platform === 'darwin' ? 20000 : 10000
+      // Increased timeout: 30s for both platforms (was 20s macOS, 10s Windows)
+      // Process detection can be slow on some systems
+      const timeout = 30000
+      let processStarted = false
 
       while (Date.now() - startTime < timeout) {
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        await new Promise((resolve) => setTimeout(resolve, 500)) // Check every 500ms instead of 1s
         const currentCount = await this.getRobloxProcessCount()
 
         if (currentCount > initialCount) {
-          return { success: true }
+          processStarted = true
+          break
         }
       }
 
-      if (process.platform === 'darwin') {
-        return { success: true }
-      }
-
-      throw new Error('Timeout: Roblox process did not start within expected time')
+      // Return success even if process count didn't increase on first check
+      // The game might be launching asynchronously
+      return { success: processStarted || process.platform === 'darwin' }
     } catch (error: any) {
       console.error('Failed to launch private server:', error)
       throw new Error(`Failed to launch private server: ${error.message}`)

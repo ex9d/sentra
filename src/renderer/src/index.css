@@ -267,6 +267,63 @@ pre {
   scrollbar-width: none;
 }
 
+/* Range input styling */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 5px;
+  outline: none;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #22c55e;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+  transition: all 0.2s ease;
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 3px 12px rgba(34, 197, 94, 0.5);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #22c55e;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+  transition: all 0.2s ease;
+}
+
+input[type='range']::-moz-range-thumb:hover {
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 3px 12px rgba(34, 197, 94, 0.5);
+}
+
+input[type='range']:disabled::-webkit-slider-thumb {
+  background: #6b7280;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+input[type='range']:disabled::-moz-range-thumb {
+  background: #6b7280;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 @layer utilities {
   .pressable {
     transition:
